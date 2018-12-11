@@ -1,0 +1,9 @@
+*.pyc
+ntuples
+build/
+*.root
+*.pdf
+*.dot
+MatrixElement/**/build/
+slurm/
+
