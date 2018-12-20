@@ -10,7 +10,7 @@ local lepton2 = declare_input("lepton2")
 local bjet1 = declare_input("bjet1")
 local bjet2 = declare_input("bjet2")
 
-baseDirME = "/home/ucl/cp3/fbury/MoMEMta/MEMWeight/MatrixElements/ME_TTbar"
+baseDirME = "/home/ucl/cp3/fbury/MoMEMtaNeuralNet/MEMWeight/MatrixElements/ME_TTbar"
 baseDirTF = "/home/ucl/cp3/brfranco/scratch/framework/MIS_prod_data/CMSSW_7_6_5/src/cp3_llbb/HHTools/histFactory_hh/"
 TFFile = baseDirTF .. "tf_genCut0_noRecoCut_lljjorbb_Oct18/condor/output/allTT_smoothed_notPutToZero.root"
 
@@ -192,7 +192,7 @@ Looper.looper = {
     -- This modules evaluates the matrix element and PDFs on the fully reconstructed event, and multiplies those
     -- with all the Jacobians it is given.
     -- Where all the matrix elements generated using MadGRaph are stored
-    ME_card = '/home/ucl/cp3/fbury/MoMEMta/MEMWeight/MatrixElements/ME_TTbar/Cards/param_card.dat'
+    ME_card = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/MEMWeight/MatrixElements/ME_TTbar/Cards/param_card.dat'
     MatrixElement.ttbar = {
       pdf = 'CT10nlo',
       pdf_scale = parameter('top_mass'),

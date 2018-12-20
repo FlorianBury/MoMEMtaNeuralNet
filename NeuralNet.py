@@ -4,6 +4,8 @@ import re
 import math
 import sys
 import json
+import shutil
+import pickle
 
 import array
 import numpy as np
@@ -33,6 +35,11 @@ import astetik as ast # For the plot section
 
 import matplotlib.pyplot as plt
 
+# Personal files #
+from split_training import DictSplit
+#from parameters import * # Get the global variables 
+import parameters
+
 #################################################################################################
 # InterpolationModel #
 #################################################################################################
@@ -41,9 +48,9 @@ def InterpolationModel(x_train,y_train,x_val,y_val,params):
     Keras model for the Neural Network, used to scan the hyperparameter space by Talos
     Inputs :
         - x_train = training inputs (aka : 4-vec of 4 particles + MET)
-        - y_train = training outputs (aka : weights)
+        - y_train = training [weights, outputs (aka MEM weights)]
         - x_val = test inputs
-        - y_val = test outputs
+        - y_val = test [weights, outputs (aka MEM weights)]
         - params = dict of parameters for the talos scan
     Outputs :
         - out =  predicted outputs from network
@@ -54,17 +61,17 @@ def InterpolationModel(x_train,y_train,x_val,y_val,params):
     L1 = Dense(params['first_neuron'],
                activation=params['activation'],
                kernel_regularizer=l2(params['l2']))(IN)
-    HIDDEN = hidden_layers(params,6).API(L1)
-    OUT = Dense(6,activation=params['output_activation'],name='OUT')(HIDDEN)
+    HIDDEN = hidden_layers(params,1).API(L1)
+    OUT = Dense(1,activation=params['output_activation'],name='OUT')(HIDDEN)
 
     # Define model #
     model = Model(inputs=[IN], outputs=[OUT])
     #utils.print_summary(model=model) #used to print model
 
     # Callbacks #
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.001, patience=10, verbose=1, mode='min')
-    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, verbose=1, mode='min', epsilon=0.0001, cooldown=0, min_lr=0.00001)
-    Callback_list = [reduceLR,early_stopping]
+    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=10, verbose=1, mode='min')
+    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, verbose=1, mode='min', epsilon=0.00001, cooldown=0, min_lr=0.00001)
+    Callback_list = [early_stopping]
 
     # Compile #
     model.compile(optimizer=params['optimizer'](lr_normalizer(params['lr'], params['optimizer'])),
@@ -73,12 +80,12 @@ def InterpolationModel(x_train,y_train,x_val,y_val,params):
 
     # Fit #
     out = model.fit({'IN':x_train},
-                    {'OUT':y_train},
-                    sample_weight=None,
+                    {'OUT':y_train[:,1]},
+                    sample_weight=y_train[:,0],
                     epochs=params['epochs'],
                     batch_size=params['batch_size'],
-                    verbose=0,
-                    validation_data=({'IN':x_val},{'OUT':y_val}),
+                    verbose=1,
+                    validation_data=({'IN':x_val},{'OUT':y_val[:,1]},y_val[:,0]),
                     callbacks=Callback_list
                     )
 
@@ -87,36 +94,30 @@ def InterpolationModel(x_train,y_train,x_val,y_val,params):
 #################################################################################################
 # HyperScan #
 #################################################################################################
-def HyperScan(x_train,y_train,name):
+def HyperScan(x_train,y_train,name,sample,task):
     """
     Performs the scan for hyperparameters
     Inputs :
         - x_train : numpy array [:,18]
             input training values (aka : 4-vec of 4 particles + MET)
-        - y_train : numpy array [:,1]
-            output training values (aka : weights)
+        - y_train : numpy array [:,2]
+            y_train = [weights, outputs (aka MEM weights)] 
         - name : str
             name of the dataset
+        - sample : str
+            name of the sample time : either DY or TT
     Outputs :
         - h = Class Scan() object
             object from class Scan to be used by other functions
     Reference : /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/scan/Scan.py
     """
     # Talos hyperscan parameters #
-    p = {
-            'lr' : [0.09],
-            'first_neuron' : [30,40],
-            'activation' : [relu],
-            'dropout' : [0,0.5],
-            'hidden_layers' : [4,5],
-            'output_activation' : [tanh],
-            'l2' : [0,0.2,0.4],
-            'optimizer' : [RMSprop],
-            'epochs' : [10000],
-            'batch_size' : [1],
-            'loss_function' : [binary_crossentropy]
-# 504
-        }
+    if task!='': # if task is specified load it otherwise get it from parameters.py
+        with open(os.path.join(parameters.main_path,'split',task), 'rb') as f:
+            p = pickle.load(f)
+    else: # We need the full dict
+        p = parameters.p
+
     #p = {
     #        'lr' : 0.001,
     #        'first_neuron' : 20,
@@ -132,8 +133,11 @@ def HyperScan(x_train,y_train,name):
     #out, model = InterpolationModel(x_train,y_train,x_train,y_train,p)
     #sys.exit()
     no = 1
-    while os.path.exists(os.path.join(os.getcwd(),name+'_'+str(no)+'.csv')):
+    name = name+'_'+sample+'_'+task
+    path_name = parameters.main_path+name
+    while os.path.exists(path_name+str(no)+'.csv'):
         no +=1
+
 
     parallel_gpu_jobs(0.5)
     h = Scan(  x=x_train,
@@ -159,7 +163,7 @@ def HyperScan(x_train,y_train,name):
     print ('Details',end='\n\n')
     print (h.details)
 
-    return h
+    return h, name+'_'+str(no)
 
 #################################################################################################
 # HyperEvaluate #
@@ -170,9 +174,9 @@ def HyperEvaluate(h,x_test,y_test,folds=5):
     Inputs :
         - h = Class Scan() object
             object from class Scan coming from HyperScan
-        - x_test : numpy array [:,2]
+        - x_test : numpy array [:,18]
             input testing values (aka : 4-vec of 4 particles + MET)
-        - y_test : numpy array [:,6]
+        - y_test : numpy array [:,1]
             output testing values (aka : weight), not used during learning
         - folds : int (default = 5)
             Number of cross-validation folds
@@ -268,16 +272,19 @@ def HyperDeploy(h,name,best):
         /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/commands/deploy.py
     """
 
-    no = 1
-    while os.path.exists(os.path.join(os.getcwd(),name+'_'+str(no))):
-        no +=1
     if best == -1:
         idx = best_model(h, 'val_loss', asc=True)
     else: # From HyperEvaluate
         idx = best
 
 
-    Deploy(h,model_name=name+'_'+str(no),best_idx=idx,metric='val_loss',asc=True)
+    Deploy(h,model_name=name,best_idx=idx,metric='val_loss',asc=True)
+
+    try:
+        shutil.move(name+'.zip',os.path.join(parameters.main_path,'model'))
+    except:
+        print ('[WARNING] Could not move file to model folder, maybe folder does not exits of file already present')
+        print ('\tAttempted to move '+os.getcwd()+name+'.zip'+'  ->  '+parameters.main_path+'/model/'+name+'.zip') 
 
 
 #################################################################################################
@@ -319,7 +326,7 @@ def HyperReport(name):
     print ('='*80)
 
     # Few plots #
-    path = os.path.join(os.getcwd(),name+'/report')
+    path = os.path.join(parameters.main_path,name+'report')
     if not os.path.isdir(path):
         os.makedirs(path)
 
@@ -354,7 +361,7 @@ def HyperReport(name):
 #################################################################################################
 # HyperRestore #
 #################################################################################################
-def HyperRestore(inputs,scaler,path):
+def HyperRestore(inputs,path):
     """
     Retrieve a zip containing the best model, parameters, x and y data, ... and restores it
     Produces an output from the input numpy array
@@ -363,9 +370,6 @@ def HyperRestore(inputs,scaler,path):
             Inputs to be evaluated
         - path : str
             path to the model archive
-        - fft : bool
-            Wether or not to apply the fft to the network
-
     Outputs
         - output : numpy array [:,1]
             output of the given model
@@ -377,11 +381,6 @@ def HyperRestore(inputs,scaler,path):
     a = Restore(path)
 
     # Output of the model #
-    inputs_scaled = scaler.transform(inputs)
-    outputs = a.model.predict(inputs_scaled)
-    out_dict = {}
-    for i in range(0,outputs.shape[0]):
-        out_dict[(inputs[i,0],inputs[i,1])] = outputs[i,:]
+    outputs = a.model.predict(inputs)
 
-    return out_dict
-
+    return outputs

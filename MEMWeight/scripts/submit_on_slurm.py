@@ -54,11 +54,11 @@ order = [
     #'TW',
     #'TbarW'
     ]
-events_per_jobs = 200
+events_per_jobs = 400
 
-if round(args.max/events_per_jobs)>2000:
-    n_jobs = 2000
-    events_per_jobs = round(args.max/n_jobs)
+#if round(args.max/events_per_jobs)>5000:
+#    n_jobs = 2000
+#    events_per_jobs = round(args.max/n_jobs)
 
 timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
 timestamp = '{}_{}'.format(timestamp, args.name)

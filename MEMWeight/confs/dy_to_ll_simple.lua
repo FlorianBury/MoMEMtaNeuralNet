@@ -45,7 +45,7 @@ local isr = declare_input("isr")
 USE_TF = true
 USE_PERM = true -- carefull if you use TF binned in eta and the permutations, jet1 tf is applied to jet2
 
-baseDirME = "/home/ucl/cp3/fbury/MoMEMta/MEMWeight/MatrixElements/ME_DY"
+baseDirME = "/home/ucl/cp3/fbury/MoMEMtaNeuralNet/MEMWeight/MatrixElements/ME_DY"
 baseDirTF = "/home/ucl/cp3/brfranco/scratch/framework/MIS_prod_data/CMSSW_7_6_5/src/cp3_llbb/HHTools/histFactory_hh/"
 TFFile = baseDirTF .. "tf_genCut0_noRecoCut_lljjorbb_Oct18/condor/output/allTT_smoothed_notPutToZero.root"
 parameters = {
