@@ -32,13 +32,12 @@ def submit_on_slurm(name):
     config.payload = """
     python {script} --scan ${{scan}} --task ${{task}} --DY --TT  
     """
-    print (config.sbatch_workdir)
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     out_dir = parameters.main_path
 
     slurm_config = copy.deepcopy(config)
-    slurm_working_dir = os.path.join(out_dir,'slurm', timestamp)
+    slurm_working_dir = os.path.join(out_dir,'slurm',name+'_'+timestamp)
 
     slurm_config.batchScriptsDir = os.path.join(slurm_working_dir, 'scripts')
     slurm_config.inputSandboxDir = slurm_config.batchScriptsDir
@@ -49,7 +48,8 @@ def submit_on_slurm(name):
     #slurm_config.payload = config.payload.format(scan=name,task=task)
     slurm_config.payload = config.payload.format(script=out_dir+"/MoMEMtaNeuralNet.py")
 
-    for f in glob.glob('split/*.pkl'):
+    for f in glob.glob(os.path.join(parameters.main_path,'split',name,'*.pkl')):
+        print (f)
         task = os.path.basename(f)
         slurm_config.inputParams.append([name,task])
 

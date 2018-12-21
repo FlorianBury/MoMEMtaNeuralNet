@@ -84,7 +84,7 @@ def InterpolationModel(x_train,y_train,x_val,y_val,params):
                     sample_weight=y_train[:,0],
                     epochs=params['epochs'],
                     batch_size=params['batch_size'],
-                    verbose=1,
+                    verbose=2,
                     validation_data=({'IN':x_val},{'OUT':y_val[:,1]},y_val[:,0]),
                     callbacks=Callback_list
                     )
@@ -106,6 +106,8 @@ def HyperScan(x_train,y_train,name,sample,task):
             name of the dataset
         - sample : str
             name of the sample time : either DY or TT
+        - task : str
+            name of the dict to be used if specified (otherwise, use the full one)
     Outputs :
         - h = Class Scan() object
             object from class Scan to be used by other functions
@@ -113,7 +115,7 @@ def HyperScan(x_train,y_train,name,sample,task):
     """
     # Talos hyperscan parameters #
     if task!='': # if task is specified load it otherwise get it from parameters.py
-        with open(os.path.join(parameters.main_path,'split',task), 'rb') as f:
+        with open(os.path.join(parameters.main_path,'split',name,task), 'rb') as f:
             p = pickle.load(f)
     else: # We need the full dict
         p = parameters.p
@@ -133,7 +135,7 @@ def HyperScan(x_train,y_train,name,sample,task):
     #out, model = InterpolationModel(x_train,y_train,x_train,y_train,p)
     #sys.exit()
     no = 1
-    name = name+'_'+sample+'_'+task
+    name = name+'_'+sample+'_'+task.replace('.pkl','')
     path_name = parameters.main_path+name
     while os.path.exists(path_name+str(no)+'.csv'):
         no +=1

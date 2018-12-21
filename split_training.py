@@ -23,10 +23,11 @@ import parameters
 
 class SplitTraining:
 
-    def __init__(self,p,params_per_job):
+    def __init__(self,p,params_per_job,dir_name):
         self.params = p
         self.grid_downsample = None
         self.params_per_job = params_per_job
+        self.dir_name = dir_name
     
         self.paramgrid_object = ParamGrid(self)
 
@@ -70,7 +71,7 @@ class SplitTraining:
 
     def _save_as_pickle(self):
         # Remove dir if already exist #
-        path_dict = os.path.join(parameters.main_path+'split/')
+        path_dict = os.path.join(parameters.main_path,'split',self.dir_name)
         if os.path.exists(path_dict):
             shutil.rmtree(path_dict) 
 
@@ -79,7 +80,7 @@ class SplitTraining:
 
         # Dump each dict into separate pkl file #
         for i,d in enumerate(self.list_dict):
-            with open(path_dict+'dict_'+str(i)+'.pkl', 'wb') as f: 
+            with open(path_dict+'/dict_'+str(i)+'.pkl', 'wb') as f: 
                 pickle.dump(d, f)  
         print ('[INFO] Generated ',len(self.list_dict),' dict of parameters at \n\t',path_dict)
 
@@ -87,12 +88,12 @@ class SplitTraining:
 # DictSplit #
 #################################################################################################
     
-def DictSplit(params_per_job):
+def DictSplit(params_per_job,name):
     # Retrieve Hyperparameter dict #    
     p = parameters.p
 
     # Split into sub dict #
-    SplitTraining(p,params_per_job=params_per_job)
+    SplitTraining(p,params_per_job=params_per_job,dir_name=name)
 
 if __name__ == '__main__':
     main()

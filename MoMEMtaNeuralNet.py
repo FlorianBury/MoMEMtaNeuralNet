@@ -78,7 +78,7 @@ def main():
     # Splitting into sub-dicts and slurm submission #
     #############################################################################################
     if opt.split!=0:
-        DictSplit(opt.split)
+        DictSplit(opt.split,opt.submit)
         print ('[INFO] Splitting jobs done')
 
         if opt.submit!='':
@@ -215,7 +215,7 @@ def main():
             HyperDeploy(h_DY,name_DY,-1)
             #HyperDeploy(h_DY,name_DY,idx_DY)
         # TT network #
-        elif opt.TT:
+        if opt.TT:
             h_TT, name_TT = HyperScan(x_train,np.c_[w_train,y_train[:,1]],name=opt.scan,sample='TT',task=opt.task)
             idx_TT = HyperEvaluate(h_TT,x_test,y_test[:,1],folds=5) 
             HyperDeploy(h_TT,name_TT,-1)
@@ -224,7 +224,7 @@ def main():
     if opt.report != '':
         if opt.DY: 
             HyperReport(path_model+opt.report+'_DY.csv')
-        elif opt.type=='TT':
+        if opt.TT:
             HyperReport(path_model+opt.report+'_TT.csv')
 
     if opt.output!='': 
@@ -246,7 +246,7 @@ def main():
 
         array2root(output,os.path.join(path_out,opt.output)+'output_'+opt.type+'.root',mode='recreate') 
 
-            
+        
    
 if __name__ == "__main__":
     main()
