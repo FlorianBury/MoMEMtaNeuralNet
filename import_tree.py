@@ -1,16 +1,14 @@
 import glob
 import os
 import sys
+import logging
 import re
-import math
-import socket
-import json
 
 import array
 import numpy as np
 
-from ROOT import TChain, TFile, TTree
 from root_numpy import tree2array, rec2array
+from ROOT import TChain, TFile, TTree
 
 
 ###############################################################################
@@ -33,15 +31,19 @@ def Tree2Numpy(input_file, variables, weight, cut=None, reweight_to_cross_sectio
     """
 
     file_handle = TFile.Open(input_file)
-
     tree = file_handle.Get('tree')
+    N = tree.GetEntries()
+    logging.debug('\t\tNumber of events : '+str(N))
 
     cross_section = 1
     relative_weight = 1
     if reweight_to_cross_section:
         cross_section = file_handle.Get('cross_section').GetVal()
-        relative_weight = cross_section / file_handle.Get("event_weight_sum").GetVal()
-
+        event_weight_sum = file_handle.Get("event_weight_sum").GetVal()
+        logging.debug('\t\tReweighting requested')
+        logging.debug('\t\t\tCross section : '+str(cross_section))
+        logging.debug('\t\t\tEvent weight sum: '+str(event_weight_sum))
+        relative_weight = cross_section / event_weight_sum
     # Read the tree and convert it to a numpy structured array
     a = tree2array(tree, branches=variables + [weight], selection=cut)
 
@@ -55,7 +57,7 @@ def Tree2Numpy(input_file, variables, weight, cut=None, reweight_to_cross_sectio
     dataset = rec2array(dataset)
 
     if n:
-        print("Reading only {} from input tree".format(n))
+        logging.info("Reading only {} from input tree".format(n))
         dataset = dataset[:n]
         weights = weights[:n]
 
@@ -65,7 +67,7 @@ def Tree2Numpy(input_file, variables, weight, cut=None, reweight_to_cross_sectio
 # LoopOverTrees #
 ###############################################################################
 
-def LoopOverTrees(input_dir, variables, weight, part_name=None, cut=None, reweight_to_cross_section=False, n=None, verbose=False):
+def LoopOverTrees(input_dir, variables, weight, part_name=None, cut=None, reweight_to_cross_section=False, n=None):
     """
     Loop over ROOT trees inside input_dir and process them using Tree2Numpy.
     Inputs :
@@ -82,10 +84,10 @@ def LoopOverTrees(input_dir, variables, weight, part_name=None, cut=None, reweig
     """
 
     if not os.path.isdir(input_dir):
-        sys.exit("[WARNING] LoopOverTrees : Not a directory")
+        logging.critical("LoopOverTrees : Not a directory")
+        sys.exit(1)
 
-    if verbose:
-        print ("\tAccessing directory : ",input_dir)
+    logging.debug("Accessing directory : "+input_dir)
 
     N = len(variables)
     datasets = np.empty((0,N))
@@ -94,16 +96,12 @@ def LoopOverTrees(input_dir, variables, weight, part_name=None, cut=None, reweig
     for name in glob.glob(input_dir+"*.root"):
         filename = name.replace(input_dir,'')
 
-        if verbose:
-            print ("\t\tAccessing file : ",filename)
             
         if part_name is not None:
             if re.search(part_name,filename):
-                if verbose:
-                    print ('\t\t\tFound match')
+                logging.debug(("\tAccessing file : "+filename).ljust(60,'-')+'-> Correct sample')
             else:
-                if verbose:
-                    print ('\t\t\tCould not find match')
+                logging.debug(("\tAccessing file : "+filename).ljust(60,'*'))
                 continue 
         
         d,w = Tree2Numpy(name,variables,weight,cut,reweight_to_cross_section,n) 

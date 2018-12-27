@@ -2,7 +2,7 @@
 
 import os
 import sys
-import warnings
+import logging
 
 import argparse
 import numpy as np
@@ -14,7 +14,9 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
 # Personal files #
-#from parameters import *
+from submit_on_slurm import submit_on_slurm
+from generate_mask import GenerateMask
+from split_training import DictSplit
 import parameters
 
 
@@ -43,13 +45,13 @@ def get_options():
 
     if opt.scan!='' or opt.report!='' or opt.output!='':
         if not opt.DY and not opt.TT:
-            print ('[WARNING] Either -dy or -tt must be specified')  
+            logging.critical('Either -dy or -tt must be specified')  
             sys.exit(1)
         if opt.split!=0 or opt.submit:
-            print ('[WARNING] These parameters cannot be used together')  
+            logging.critical('These parameters cannot be used together')  
             sys.exit(1)
     if opt.submit and opt.split==0:
-        print ('[WARNING] You forgot to specify --split')
+        logging.critical('You forgot to specify --split')
         sys.exit(1)
 
     return opt
@@ -58,16 +60,17 @@ def main():
     #############################################################################################
     # Preparation #
     #############################################################################################
+    # Logging #
+    logging.basicConfig(level=logging.DEBUG,
+                        format='%(asctime)s - %(levelname)s - %(message)s')
+
     # Get options from user #
     opt = get_options()
 
     # Private modules # TODO : move the out 
     from NeuralNet import HyperScan, HyperReport, HyperEvaluate, HyperDeploy, HyperRestore
     from import_tree import LoopOverTrees, Tree2Numpy
-    from generate_mask import GenerateMask
-    from split_training import DictSplit
     from root_numpy import array2root
-    from submit_on_slurm import submit_on_slurm
     # Needed because PyROOT messes with argparse
 
     main_path = parameters.main_path
@@ -79,9 +82,11 @@ def main():
     #############################################################################################
     if opt.split!=0:
         DictSplit(opt.split,opt.submit)
-        print ('[INFO] Splitting jobs done')
+        
+        logging.info('Splitting jobs done')
 
         if opt.submit!='':
+            logging.info('Submitting jobs')
             submit_on_slurm(name=opt.submit)
         sys.exit()
 
@@ -89,7 +94,7 @@ def main():
     # Data Input and preprocessing #
     #############################################################################################
     # Input path #
-    print ('[INFO] Starting histograms input')
+    logging.info('Starting histograms input')
 
     variables = ['lep1_p4.Px()',
                  'lep1_p4.Py()',
@@ -111,25 +116,25 @@ def main():
                  'met_phi',
                  'weight_DY',
                  'weight_TT']
-    print ('[INFO] HToZA samples')
-    data_HToZA, weight_HToZA = LoopOverTrees(input_dir=path_to_files,variables=variables,weight='total_weight',reweight_to_cross_section=False,part_name='HToZA',verbose=False)
-    print ('HToZA sample size : {}'.format(data_HToZA.shape[0]))
-    print ('[INFO] DY samples')
-    data_DY, weight_DY = LoopOverTrees(input_dir=path_to_files,variables=variables,weight='total_weight',reweight_to_cross_section=True,part_name='DY',verbose=False)
-    print ('DY sample size : {}'.format(data_DY.shape[0]))
-    print ('[INFO] TT samples')
-    data_TT, weight_TT = LoopOverTrees(input_dir=path_to_files,variables=variables,weight='total_weight',reweight_to_cross_section=True,part_name='TT',verbose=False,n=500000)
-    print ('TT sample size : {}'.format(data_TT.shape[0]))
+    logging.info('HToZA samples')
+    data_HToZA, weight_HToZA = LoopOverTrees(input_dir=path_to_files,variables=variables,weight='total_weight',reweight_to_cross_section=False,part_name='HToZA')
+    logging.info('HToZA sample size : {}'.format(data_HToZA.shape[0]))
+    logging.info('DY samples')
+    data_DY, weight_DY = LoopOverTrees(input_dir=path_to_files,variables=variables,weight='total_weight',reweight_to_cross_section=True,part_name='DY')
+    logging.info('DY sample size : {}'.format(data_DY.shape[0]))
+    logging.info('TT samples')
+    data_TT, weight_TT = LoopOverTrees(input_dir=path_to_files,variables=variables,weight='total_weight',reweight_to_cross_section=True,part_name='TT',n=500000)
+    logging.info('TT sample size : {}'.format(data_TT.shape[0]))
 
     # Weight equalization #
     weight_HToZA = weight_HToZA/np.sum(weight_HToZA)*1000
-    weight_DY = weight_DY/np.sum(weight_DY)*1000
-    weight_TT = weight_TT/np.sum(weight_TT)*1000
+    weight_DY = weight_DY/np.sum(weight_DY)*10000
+    weight_TT = weight_TT/np.sum(weight_TT)*10000
     if np.sum(weight_HToZA) != np.sum(weight_DY) or np.sum(weight_HToZA) != np.sum(weight_TT) or np.sum(weight_TT) != np.sum(weight_DY):
-        print ('[WARNING] Sum of weights different between the samples')
-        print ('\tHToZA : ',np.sum(weight_HToZA))
-        print ('\tDY : ',np.sum(weight_DY))
-        print ('\tTT : ',np.sum(weight_TT))
+        logging.warning ('Sum of weights different between the samples')
+        logging.warning('\tHToZA : '+str(np.sum(weight_HToZA)))
+        logging.warning('\tDY : '+str(np.sum(weight_DY)))
+        logging.warning('\tTT : '+str(np.sum(weight_TT)))
 
     # Preprocessing #
     mask_HToZA = GenerateMask(data_HToZA.shape[0],'HToZA')
@@ -201,36 +206,45 @@ def main():
     #############################################################################################
     # DNN #
     #############################################################################################
+        # Make path #
     path_model = os.path.join(main_path,'model')
     if not os.path.exists(path_model):
         os.mkdir(path_model)
 
     if opt.scan != '':
-        # Make path #
-
         # DY network #
         if opt.DY:
+            logging.info('Starting scan DY case')
             h_DY, name_DY = HyperScan(x_train,np.c_[w_train,y_train[:,0]],name=opt.scan,sample='DY',task=opt.task)
+            logging.info('Starting evaluation DY case')
             idx_DY = HyperEvaluate(h_DY,x_test,y_test[:,0],folds=5) 
+            logging.info('Starting deployment TT case')
             HyperDeploy(h_DY,name_DY,-1)
             #HyperDeploy(h_DY,name_DY,idx_DY)
         # TT network #
         if opt.TT:
+            logging.info('Starting scan TT case')
             h_TT, name_TT = HyperScan(x_train,np.c_[w_train,y_train[:,1]],name=opt.scan,sample='TT',task=opt.task)
+            logging.info('Starting evaluation TT case')
             idx_TT = HyperEvaluate(h_TT,x_test,y_test[:,1],folds=5) 
+            logging.info('Starting deployment TT case')
             HyperDeploy(h_TT,name_TT,-1)
             #HyperDeploy(h_TT,path_model+opt.scan+'_cross_val_TT',idx_TT)
         
     if opt.report != '':
         if opt.DY: 
+            logging.info('Reporting DY case')
             HyperReport(path_model+opt.report+'_DY.csv')
         if opt.TT:
+            logging.info('Reporting TT case')
             HyperReport(path_model+opt.report+'_TT.csv')
 
     if opt.output!='': 
         if opt.DY:
+            logging.info('Restoring DY model')
             out_DY = HyperRestore(x_test,path_model+opt.output+'.zip')
         if opt.TT:
+            logging.info('Restoring TT model')
             out_TT = HyperRestore(x_test,path_model+opt.output+'.zip')
 
         # de-preprocess, concatenate and dtype#
@@ -244,7 +258,9 @@ def main():
             output = np.c_[output,out_TT]
             output.dtype = np.append(output.dtype,('output_TT','float64'))
 
-        array2root(output,os.path.join(path_out,opt.output)+'output_'+opt.type+'.root',mode='recreate') 
+        output_name = os.path.join(path_out,opt.output,'output_'+opt.output)
+        array2root(output,output_name,mode='recreate') 
+        logging.info('Output saved as : '+output_name)
 
         
    

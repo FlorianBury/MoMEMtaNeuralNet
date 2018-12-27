@@ -49,14 +49,13 @@ def submit_on_slurm(name):
     slurm_config.payload = config.payload.format(script=out_dir+"/MoMEMtaNeuralNet.py")
 
     for f in glob.glob(os.path.join(parameters.main_path,'split',name,'*.pkl')):
-        print (f)
         task = os.path.basename(f)
         slurm_config.inputParams.append([name,task])
 
     # Submit job!
 
-    print("Submitting job...")
+    logging.info("Submitting job...")
     submitWorker = SubmitWorker(slurm_config, submit=True, yes=True, debug=False, quiet=False)
     submitWorker()
-    print("Done")
+    logging.info("Done")
 

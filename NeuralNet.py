@@ -160,10 +160,9 @@ def HyperScan(x_train,y_train,name,sample,task):
             )
 
     # returns the experiment configuration details
-    print
-    print ('='*80,end='\n\n')
-    print ('Details',end='\n\n')
-    print (h.details)
+    logging.info('='*80,end='\n\n')
+    logging.debug('Details',end='\n\n')
+    logging.debug(h.details)
 
     return h, name+'_'+str(no)
 
@@ -196,8 +195,7 @@ def HyperEvaluate(h,x_test,y_test,folds=5):
     n_rounds = r.rounds()
 
     # Evaluation #
-    print
-    print ('='*80,end='\n\n')
+    logging.info('='*80,end='\n\n')
     scores = []
     idx_best_model = best_model(h, 'val_loss', asc=True)
 
@@ -228,27 +226,26 @@ def HyperEvaluate(h,x_test,y_test,folds=5):
         if count >= 10 and n_rounds-count>5: # avoids printing intermediate useless states
             continue
         # Print model and error in order #
-        print ('Model index %d -> Error = %0.5f (+/- %0.5f))'%(idx,m_err,std_err))
+        logging.info('Model index %d -> Error = %0.5f (+/- %0.5f))'%(idx,m_err,std_err))
         if idx==idx_best_model:
-            print ('\t-> Best model from val_loss')
+            logging.info('\t-> Best model from val_loss')
 
-    print
-    print ('='*80,end='\n\n')
+    logging.info('='*80,end='\n\n')
 
     # Prints best model accordind to cross-validation and val_loss #
 
-    print ('Best model from val_loss -> id ',idx_best_model)
-    print ('Eval error : %0.5f (+/- %0.5f))'%(scores[idx_best_model][0],scores[idx_best_model][1]))
-    print (h.data.iloc[idx_best_model,:])
-    print ('-'*80,end='\n\n')
+    logging.info('Best model from val_loss -> id ',idx_best_model)
+    logging.info('Eval error : %0.5f (+/- %0.5f))'%(scores[idx_best_model][0],scores[idx_best_model][1]))
+    logging.debug(h.data.iloc[idx_best_model,:])
+    logging.info('-'*80,end='\n\n')
 
-    print ('Best model from cross validation -> id ',idx_best_eval)
+    logging.info('Best model from cross validation -> id ',idx_best_eval)
     if idx_best_eval==idx_best_model:
-        print ('Same model')
+        logging.info('Same model')
     else:
-        print ('Eval error : %0.5f (+/- %0.5f))'%(scores[idx_best_eval][0],scores[idx_best_eval][1]))
-        print (h.data.iloc[idx_best_eval,:])
-    print ('-'*80,end='\n\n')
+        logging.info('Eval error : %0.5f (+/- %0.5f))'%(scores[idx_best_eval][0],scores[idx_best_eval][1]))
+        logging.debug(h.data.iloc[idx_best_eval,:])
+    logging.info('-'*80,end='\n\n')
 
     # WARNING : model id's starts with 0 BUT on panda dataframe h.data, models start at 1
 
@@ -285,8 +282,8 @@ def HyperDeploy(h,name,best):
     try:
         shutil.move(name+'.zip',os.path.join(parameters.main_path,'model'))
     except:
-        print ('[WARNING] Could not move file to model folder, maybe folder does not exits of file already present')
-        print ('\tAttempted to move '+os.getcwd()+name+'.zip'+'  ->  '+parameters.main_path+'/model/'+name+'.zip') 
+        logging.warning('[WARNING] Could not move file to model folder, maybe folder does not exits of file already present')
+        logging.warning('\tAttempted to move '+os.getcwd()+name+'.zip'+'  ->  '+parameters.main_path+'/model/'+name+'.zip') 
 
 
 #################################################################################################
@@ -306,33 +303,30 @@ def HyperReport(name):
     r = Reporting(name+'.csv')
 
     # returns the results dataframe
-    print
-    print ('='*80,end='\n\n')
-    print ('Complete data after n_round = ',r.rounds(),':\n',r.data,end='\n\n')
+    logging.info('='*80,end='\n\n')
+    logging.info('Complete data after n_round = ',r.rounds(),':\n',r.data,end='\n\n')
 
     # Lowest val_loss #
-    print
-    print ('-'*80)
-    print ('Lowest val_loss = ',r.low('val_loss'),' obtained after ',r.rounds2high('val_loss'))
+    logging.info('-'*80)
+    logging.info('Lowest val_loss = ',r.low('val_loss'),' obtained after ',r.rounds2high('val_loss'))
 
     # Best params #
-    print
-    print ('='*80)
-    print ('Best parameters sets')
+    logging.info('='*80)
+    logging.info('Best parameters sets')
     sorted_data = r.data.sort_values('val_loss',ascending=True)
     for i in range(0,3):
-        print ('-'*80)
-        print ('Best params n°',i+1)
-        print (sorted_data.iloc[i])
+        logging.debug('-'*80)
+        logging.debug('Best params n°',i+1)
+        logging.debug(sorted_data.iloc[i])
 
-    print ('='*80)
+    logging.info('='*80)
 
     # Few plots #
     path = os.path.join(parameters.main_path,name+'report')
     if not os.path.isdir(path):
         os.makedirs(path)
 
-    print ('[INFO] Starting plot section')
+    logging.info('Starting plot section')
     # Correlation #
     r.plot_corr(metric='val_loss')
     plt.savefig(path+'/correlation.png')

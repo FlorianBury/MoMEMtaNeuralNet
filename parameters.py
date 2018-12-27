@@ -16,17 +16,15 @@ path_out = '/nfs/scratch/fynu/fbury/MoMEMta_output/'
 
 # Scan dictionary #
 p = {                                                                                                                                                                                                   
-    'lr' : (0.001,0.1,2),                                                                                                                                                                           
-    'first_neuron' : [50,100],                                                                                                                                                                      
-    'activation' : [relu],                                                                                                                                                                          
+    'lr' : (0.001,0.1,10),                                                                                                                                                                           
+    'first_neuron' : [50,100], 
+    'activation' : [relu,selu], 
     'dropout' : [0],                                                                                                                                                                                
-    'hidden_layers' : [4,5],                                                                                                                                                                        
-    'output_activation' : [selu],                                                                                                                                                                   
-    'l2' : [0],                                                                                                                                                                                     
-    'optimizer' : [Adam],                                                                                                                                                                           
-    'epochs' : [1],                                                                                                                                                                                 
-    'batch_size' : [5000],                                                                                                                                                                          
-    'loss_function' : [mean_squared_error]                                                                                                                                                          
+    'hidden_layers' : [4,5,6,7,8],
+    'output_activation' : [selu,relu], 
+    'l2' : [0],                  
+    'optimizer' : [Adam],      
+    'epochs' : [200],         
+    'batch_size' : [1000,5000,10000],   
+    'loss_function' : [mean_squared_error]   
 }      
-
-
