@@ -6,8 +6,8 @@ import sys
 import json
 import shutil
 import pickle
+import pprint
 
-import array
 import numpy as np
 import itertools
 
@@ -57,13 +57,13 @@ class SplitTraining:
                 one_dict = {}
                 for key in self.params.keys():
                     one_dict[key] = []
-            else: 
-                # Append each case #
-                for p,k in zip(param,self.params.keys()):
-                    one_dict[k].append(p)
+
+            # Append each case #
+            for p,k in zip(param,self.params.keys()):
+                one_dict[k].append(p)
 
             i += 1
-            if i == self.params_per_job+1:
+            if i == self.params_per_job:
                 i=0
                 _list_dict.append(one_dict)
 

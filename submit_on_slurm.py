@@ -5,6 +5,7 @@ import os
 import datetime
 import sys
 import glob
+import logging
 
 # Slurm configuration
 from CP3SlurmUtils.Configuration import Configuration

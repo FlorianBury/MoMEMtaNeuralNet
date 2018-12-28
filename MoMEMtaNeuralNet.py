@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import re
+import csv
 import os
 import sys
 import logging
@@ -17,6 +19,7 @@ import matplotlib.pyplot as plt
 from submit_on_slurm import submit_on_slurm
 from generate_mask import GenerateMask
 from split_training import DictSplit
+from concatenate_csv import ConcatenateCSV
 import parameters
 
 
@@ -25,22 +28,40 @@ def get_options():
     Parse and return the arguments provided by the user.
     """
     parser = argparse.ArgumentParser(description='Compare names of input and output files for matches and potentiel failed files')
-    parser.add_argument('-s','--scan', action='store', required=False, type=str, default='',
+
+    # Scan, deploy and restore arguments #
+    a = parser.add_argument_group('Scan, deploy and restore arguments')
+    a.add_argument('-s','--scan', action='store', required=False, type=str, default='',
         help='Name of the scan to be used (modify scan parameters in NeuralNet.py)')
-    parser.add_argument('-split','--split', action='store', required=False, type=int, default=0,
-        help='Number of parameter sets per jobs to be used for splitted training for slurm submission')
-    parser.add_argument('-submit','--submit', action='store', required=False, default='', type=str,
-        help='Wether to submit on slurm and nname for the save (must have specified --split)')
-    parser.add_argument('-task','--task', action='store', required=False, type=str, default='',
-        help='Name of dict to be used for scan (ONLY used by submit_on_slurm.py or debug)')
-    parser.add_argument('-dy','--DY', action='store_true', required=False, default=False,
+    a.add_argument('-dy','--DY', action='store_true', required=False, default=False,
         help='Use DY MEM weights (must be specified if --scan or --report or --output are used')
-    parser.add_argument('-tt','--TT', action='store_true', required=False, default=False,
+    a.add_argument('-tt','--TT', action='store_true', required=False, default=False,
         help='Use TT MEM weights (must be specified if --scan or --report or --output are used')
-    parser.add_argument('-r','--report', action='store', required=False, type=str, default='',
+    a.add_argument('-task','--task', action='store', required=False, type=str, default='',
+        help='Name of dict to be used for scan (Used by function itself when submitting jobs or DEBUG)')
+
+    # Splitting and submitting arguments #
+    b = parser.add_argument_group('Splitting and submitting arguments')
+    b.add_argument('-split','--split', action='store', required=False, type=int, default=0,
+        help='Number of parameter sets per jobs to be used for splitted training for slurm submission')
+    b.add_argument('-submit','--submit', action='store', required=False, default='', type=str,
+        help='Wether to submit on slurm and nname for the save (must have specified --split)')
+
+    # Analyzing or producing outputs for given model (csv or zip file) #
+    c = parser.add_argument_group('Analyzing or producing outputs for given model (csv or zip file)')
+    c.add_argument('-r','--report', action='store', required=False, type=str, default='',
         help='Name of the csv file for the reporting (without .csv)')
-    parser.add_argument('-o','--output', action='store', required=False, type=str, default='',                                                                                                          
+    c.add_argument('-o','--output', action='store', required=False, type=str, default='',                                                                                                          
         help='Applies the provided model name (without .zip and type, aka DY or TT) on test set and outputs root trees') 
+
+    # Concatenating csv files arguments #
+    d = parser.add_argument_group('Concatenating csv files arguments')
+    d.add_argument('-csv','--csv', action='store', required=False, type=str, default='',                                                                                                          
+        help='Wether to concatenate the csv files from different slurm jobs into a main one, \
+              please provide the path to the csv files')
+
+
+
     opt = parser.parse_args()
 
     if opt.scan!='' or opt.report!='' or opt.output!='':
@@ -53,6 +74,10 @@ def get_options():
     if opt.submit and opt.split==0:
         logging.critical('You forgot to specify --split')
         sys.exit(1)
+    if opt.split!=0 and (opt.report!='' or opt.output!='' or opt.csv!='' or opt.scan!=''):
+        logging.warning('Since you have specified a split, all the other arguments will be skipped')
+    if opt.csv!='' and (opt.report!='' or opt.output!='' or opt.scan!=''):
+        logging.warning('Since you have specified a csv concatenation, all the other arguments will be skipped')
 
     return opt
 
@@ -61,7 +86,7 @@ def main():
     # Preparation #
     #############################################################################################
     # Logging #
-    logging.basicConfig(level=logging.DEBUG,
+    logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(levelname)s - %(message)s')
 
     # Get options from user #
@@ -88,6 +113,23 @@ def main():
         if opt.submit!='':
             logging.info('Submitting jobs')
             submit_on_slurm(name=opt.submit)
+        sys.exit()
+
+    #############################################################################################
+    # Splitting into sub-dicts and slurm submission #
+    #############################################################################################
+    if opt.csv!='':
+        logging.info('Concatenating csv files from : %s'%(opt.csv))
+        dict_tot = ConcatenateCSV(opt.csv)
+
+        name_csv = os.path.dirname(opt.csv).split('/')[-1]
+        name_csv = re.sub("[-_]\d+[-_]\d+","",name_csv)
+
+        with open(os.path.join(main_path,'model',name_csv+'.csv'),'w') as f:  # Just use 'w' mode in 3.x
+            w = csv.DictWriter(f, dict_tot.keys())
+            w.writeheader()
+            w.writerow(dict_tot)
+            logging.info('Full dict saved as %s'%(os.path.join(main_path,'model',name_csv+'.csv')))
         sys.exit()
 
     #############################################################################################

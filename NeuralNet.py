@@ -1,11 +1,10 @@
-import glob
 import os
 import re
-import math
 import sys
 import json
 import shutil
 import pickle
+import logging
 
 import array
 import numpy as np
@@ -135,7 +134,7 @@ def HyperScan(x_train,y_train,name,sample,task):
     #out, model = InterpolationModel(x_train,y_train,x_train,y_train,p)
     #sys.exit()
     no = 1
-    name = name+'_'+sample+'_'+task.replace('.pkl','')
+    name = name+'_'+sample+task.replace('.pkl','')
     path_name = parameters.main_path+name
     while os.path.exists(path_name+str(no)+'.csv'):
         no +=1
@@ -160,8 +159,8 @@ def HyperScan(x_train,y_train,name,sample,task):
             )
 
     # returns the experiment configuration details
-    logging.info('='*80,end='\n\n')
-    logging.debug('Details',end='\n\n')
+    logging.info('='*80)
+    logging.debug('Details')
     logging.debug(h.details)
 
     return h, name+'_'+str(no)
@@ -195,7 +194,7 @@ def HyperEvaluate(h,x_test,y_test,folds=5):
     n_rounds = r.rounds()
 
     # Evaluation #
-    logging.info('='*80,end='\n\n')
+    logging.info('='*80)
     scores = []
     idx_best_model = best_model(h, 'val_loss', asc=True)
 
@@ -230,22 +229,22 @@ def HyperEvaluate(h,x_test,y_test,folds=5):
         if idx==idx_best_model:
             logging.info('\t-> Best model from val_loss')
 
-    logging.info('='*80,end='\n\n')
+    logging.info('='*80)
 
     # Prints best model accordind to cross-validation and val_loss #
 
-    logging.info('Best model from val_loss -> id ',idx_best_model)
+    logging.info('Best model from val_loss -> id %d'%(idx_best_model))
     logging.info('Eval error : %0.5f (+/- %0.5f))'%(scores[idx_best_model][0],scores[idx_best_model][1]))
     logging.debug(h.data.iloc[idx_best_model,:])
-    logging.info('-'*80,end='\n\n')
+    logging.info('-'*80)
 
-    logging.info('Best model from cross validation -> id ',idx_best_eval)
+    logging.info('Best model from cross validation -> id %d'%(idx_best_eval))
     if idx_best_eval==idx_best_model:
         logging.info('Same model')
     else:
         logging.info('Eval error : %0.5f (+/- %0.5f))'%(scores[idx_best_eval][0],scores[idx_best_eval][1]))
         logging.debug(h.data.iloc[idx_best_eval,:])
-    logging.info('-'*80,end='\n\n')
+    logging.info('-'*80)
 
     # WARNING : model id's starts with 0 BUT on panda dataframe h.data, models start at 1
 
@@ -303,12 +302,12 @@ def HyperReport(name):
     r = Reporting(name+'.csv')
 
     # returns the results dataframe
-    logging.info('='*80,end='\n\n')
-    logging.info('Complete data after n_round = ',r.rounds(),':\n',r.data,end='\n\n')
-
+    logging.info('='*80)
+    logging.info('Complete data after n_round = %d'%(r.rounds()))
+    logging.info(r.data)
     # Lowest val_loss #
     logging.info('-'*80)
-    logging.info('Lowest val_loss = ',r.low('val_loss'),' obtained after ',r.rounds2high('val_loss'))
+    logging.info('Lowest val_loss = %0.5f obtained after %d rounds'%(r.low('val_loss'),r.rounds2high('val_loss')))
 
     # Best params #
     logging.info('='*80)
@@ -316,7 +315,7 @@ def HyperReport(name):
     sorted_data = r.data.sort_values('val_loss',ascending=True)
     for i in range(0,3):
         logging.debug('-'*80)
-        logging.debug('Best params n°',i+1)
+        logging.debug('Best params n°%d'%(i+1))
         logging.debug(sorted_data.iloc[i])
 
     logging.info('='*80)
