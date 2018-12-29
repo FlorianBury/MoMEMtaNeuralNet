@@ -120,16 +120,22 @@ def main():
     #############################################################################################
     if opt.csv!='':
         logging.info('Concatenating csv files from : %s'%(opt.csv))
-        dict_tot = ConcatenateCSV(opt.csv)
+        dict_DY = ConcatenateCSV(opt.csv,'DY')
+        dict_TT = ConcatenateCSV(opt.csv,'TT')
 
-        name_csv = os.path.dirname(opt.csv).split('/')[-1]
+        name_csv = os.path.dirname(opt.csv).split('/')[-2]
         name_csv = re.sub("[-_]\d+[-_]\d+","",name_csv)
 
-        with open(os.path.join(main_path,'model',name_csv+'.csv'),'w') as f:  # Just use 'w' mode in 3.x
-            w = csv.DictWriter(f, dict_tot.keys())
+        with open(os.path.join(main_path,'model',name_csv+'_DY.csv'),'w') as f:  
+            w = csv.DictWriter(f, dict_DY.keys())
             w.writeheader()
-            w.writerow(dict_tot)
-            logging.info('Full dict saved as %s'%(os.path.join(main_path,'model',name_csv+'.csv')))
+            w.writerow(dict_DY)
+            logging.info('Full dict DY saved as %s'%(os.path.join(main_path,'model',name_csv+'_DY.csv')))
+        with open(os.path.join(main_path,'model',name_csv+'_TT.csv'),'w') as f:  
+            w = csv.DictWriter(f, dict_TT.keys())
+            w.writeheader()
+            w.writerow(dict_TT)
+            logging.info('Full dict TT saved as %s'%(os.path.join(main_path,'model',name_csv+'_TT.csv')))
         sys.exit()
 
     #############################################################################################
@@ -276,18 +282,18 @@ def main():
     if opt.report != '':
         if opt.DY: 
             logging.info('Reporting DY case')
-            HyperReport(path_model+opt.report+'_DY.csv')
+            HyperReport(os.path.join(path_model,opt.report+'_DY.csv'))
         if opt.TT:
             logging.info('Reporting TT case')
-            HyperReport(path_model+opt.report+'_TT.csv')
+            HyperReport(os.path.join(path_model,opt.report+'_TT.csv'))
 
     if opt.output!='': 
         if opt.DY:
             logging.info('Restoring DY model')
-            out_DY = HyperRestore(x_test,path_model+opt.output+'.zip')
+            out_DY = HyperRestore(x_test,os.path.join(path_model,opt.output+'.zip'))
         if opt.TT:
             logging.info('Restoring TT model')
-            out_TT = HyperRestore(x_test,path_model+opt.output+'.zip')
+            out_TT = HyperRestore(x_test,os.path.join(path_model,opt.output+'.zip'))
 
         # de-preprocess, concatenate and dtype#
         inputs = x_test*scaler.scale_+scaler.mean_

@@ -299,7 +299,7 @@ def HyperReport(name):
     Reference :
         /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/commands/reporting.py
     """
-    r = Reporting(name+'.csv')
+    r = Reporting(name)
 
     # returns the results dataframe
     logging.info('='*80)
@@ -307,7 +307,9 @@ def HyperReport(name):
     logging.info(r.data)
     # Lowest val_loss #
     logging.info('-'*80)
-    logging.info('Lowest val_loss = %0.5f obtained after %d rounds'%(r.low('val_loss'),r.rounds2high('val_loss')))
+    #logging.info('Lowest val_loss = %0.5f obtained after %0.f rounds'%(r.low('val_loss'),r.rounds2high('val_loss')))
+    print (r.low('val_loss'))
+    print (r.rounds2high('val_loss'))
 
     # Best params #
     logging.info('='*80)
