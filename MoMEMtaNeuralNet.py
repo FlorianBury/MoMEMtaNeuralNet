@@ -122,22 +122,14 @@ def main():
         logging.info('Concatenating csv files from : %s'%(opt.csv))
         dict_DY = ConcatenateCSV(opt.csv,'DY')
         dict_TT = ConcatenateCSV(opt.csv,'TT')
+        
+        dict_DY.Concatenate()
+        dict_DY.WriteToFile()
 
-        name_csv = os.path.dirname(opt.csv).split('/')[-2]
-        name_csv = re.sub("[-_]\d+[-_]\d+","",name_csv)
+        dict_TT.Concatenate()
+        dict_TT.WriteToFile()
 
-        with open(os.path.join(main_path,'model',name_csv+'_DY.csv'),'w') as f:  
-            w = csv.DictWriter(f, dict_DY.keys())
-            w.writeheader()
-            w.writerow(dict_DY)
-            logging.info('Full dict DY saved as %s'%(os.path.join(main_path,'model',name_csv+'_DY.csv')))
-        with open(os.path.join(main_path,'model',name_csv+'_TT.csv'),'w') as f:  
-            w = csv.DictWriter(f, dict_TT.keys())
-            w.writeheader()
-            w.writerow(dict_TT)
-            logging.info('Full dict TT saved as %s'%(os.path.join(main_path,'model',name_csv+'_TT.csv')))
         sys.exit()
-
     #############################################################################################
     # Data Input and preprocessing #
     #############################################################################################
@@ -282,10 +274,10 @@ def main():
     if opt.report != '':
         if opt.DY: 
             logging.info('Reporting DY case')
-            HyperReport(os.path.join(path_model,opt.report+'_DY.csv'))
+            HyperReport(os.path.join(path_model,opt.report+'_DY.csv'),'DY')
         if opt.TT:
             logging.info('Reporting TT case')
-            HyperReport(os.path.join(path_model,opt.report+'_TT.csv'))
+            HyperReport(os.path.join(path_model,opt.report+'_TT.csv'),'TT')
 
     if opt.output!='': 
         if opt.DY:
