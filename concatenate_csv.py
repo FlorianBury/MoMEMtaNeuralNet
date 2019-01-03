@@ -41,8 +41,10 @@ class ConcatenateCSV:
             
             # Append full dict #
             for key,val in dict_from_file.items():
-                self.dict_tot[key].append(val[0])
-            self.counter += 1
+                self.dict_tot[key] += val
+                entries = len(val)
+
+            self.counter += entries
 
             logging.debug('\tCurrent number of hyperparameter sets : %d'%(self.counter)) 
 
@@ -58,19 +60,49 @@ class ConcatenateCSV:
         name_csv = re.sub("[-_]\d+[-_]\d+","",name_csv)    
 
         # Write to file #
-        path_out = os.path.join(parameters.main_path,'model',name_csv+'_'+self.sample+'.csv')
-        with open(path_out, 'w') as the_file:
+        self.path_out = os.path.join(parameters.main_path,'model',name_csv+'_'+self.sample+'.csv')
+        invalid_counter = 0
+        with open(self.path_out, 'w') as the_file:
             w = csv.writer(the_file)
             # Write keys as header #
             w.writerow(self.dict_tot.keys())
             # Write each test line by line #
-            for i in range(0,self.counter):
+            for i in range(0,self.counter): # loop over the elements values of the dict
                 test_line = []
-                for val in self.dict_tot.values():
-                    test_line.append(val[i])
-                w.writerow(test_line)
+                valid_test = True # If valid, can append to file 
+                for val in self.dict_tot.values(): # only select the i-th element
+                    # check if negative values -> likely an overflow #
+                    if not isinstance(val[i],str) and val[i]<0:
+                        valid_test = False
+                            
+                    # Check if string -> acti or opt -> must correct #
+                    if isinstance(val[i],str):
+                        corr_val = _correct(val[i])
+                        test_line.append(corr_val)
 
-        logging.info('CSV file saved as %s'%(path_out))
+                    # Append the number in the line #
+                    else:
+                        test_line.append(val[i])
+
+                if valid_test:
+                    w.writerow(test_line)
+                else:
+                    invalid_counter += 1
+                    logging.debug(test_line)
+
+        logging.info('CSV file saved as %s'%(self.path_out))
+        logging.info('Invalid line, total %d/%d'%(invalid_counter,self.counter))
+
+def _correct(obj):
+    # Corrects the <function relu at 0x{12}> -> relu
+    # Corrects the <class 'keras.optimizers.Adam'> -> Adam
+    if obj.startswith('<function'):
+        return obj.split(' ')[1]
+    elif obj.startswith('<class'):
+        new_obj = obj.split(' ')[1].split('.')[2].replace("'>","")
+        return new_obj
+    else:
+        return obj
 
 
 

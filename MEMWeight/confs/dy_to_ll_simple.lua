@@ -26,10 +26,11 @@ end
 -- n_increase allow to launch more points at each iteration
 -- NB : all the point that have been launched are used to compute the intergal
 cuba = {
+    seed = random,
     relative_accuracy = 0.01,
     verbosity = 3,
-    max_eval = 500000,
-    n_start = 15000,
+    max_eval = max_eval,
+    n_start = n_start
 }
 
 -- NB: to be defined in the .cc is matrix_element_prefix

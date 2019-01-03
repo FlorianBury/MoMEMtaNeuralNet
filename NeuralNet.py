@@ -36,8 +36,8 @@ import matplotlib.pyplot as plt
 
 # Personal files #
 from split_training import DictSplit
-#from parameters import * # Get the global variables 
 import parameters
+from plot_scans import PlotScans
 
 #################################################################################################
 # InterpolationModel #
@@ -221,7 +221,7 @@ def HyperEvaluate(h,x_test,y_test,folds=5):
     for m_err,std_err, idx in sorted_scores:
         count += 1
         if count == 10:
-            print ('...')
+            logging.info('...')
         if count >= 10 and n_rounds-count>5: # avoids printing intermediate useless states
             continue
         # Print model and error in order #
@@ -298,79 +298,102 @@ def HyperReport(name,sample):
         - sample : str
             either TT or DY 
     Reference :
-        /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/commands/reporting.py
     """
     r = Reporting(name)
 
     # returns the results dataframe
     logging.info('='*80)
     logging.info('Complete data after n_round = %d'%(r.rounds()))
-    logging.info(r.data)
+    logging.debug(r.data)
     # Lowest val_loss #
     logging.info('-'*80)
-    #logging.info('Lowest val_loss = %0.5f obtained after %0.f rounds'%(r.low('val_loss'),r.rounds2high('val_loss')))
-    print (r.low('val_loss'))
-    print (r.rounds2high('val_loss'))
+    logging.info('Lowest val_loss = %0.5f obtained after %0.f rounds'%(r.low('val_loss'),r.rounds2high('val_loss')))
 
     # Best params #
     logging.info('='*80)
     logging.info('Best parameters sets')
     sorted_data = r.data.sort_values('val_loss',ascending=True)
     for i in range(0,3):
-        logging.debug('-'*80)
-        logging.debug('Best params n°%d'%(i+1))
-        #logging.debug(sorted_data.iloc[i])
+        logging.info('-'*80)
+        logging.info('Best params n°%d'%(i+1))
+        logging.info(sorted_data.iloc[i])
 
     logging.info('='*80)
 
     # Few plots #
-    path = os.path.join(parameters.main_path,name.replace('.csv',''),'')
-    if not os.path.isdir(path):
-        os.makedirs(path)
+    path_plot = os.path.join(parameters.main_path,name.replace('.csv',''),'')
+    if not os.path.isdir(path_plot):
+        os.makedirs(path_plot)
+    PlotScans(data=r.data,path=path_plot)
+
+    return
+
 
     logging.info('Starting plot section')
     # Correlation #
     try:
         r.plot_corr(metric='val_loss')
-        plt.savefig(path+'/correlation_'+sample+'_.png')
+        plt.savefig(path+'/correlation.png')
     except:
         logging.warning('Correlation plot failed')
 
     # val_loss VS loss #
     try:
         r.plot_regs('loss','val_loss')
-        plt.savefig(path+'/val_loss_VS_loss_'+sample+'_.png')
+        plt.savefig(path+'/val_loss_VS_loss.png')
     except:
-        logging.warning('loss-val_loss regression failed plot failed')
+        logging.warning('loss-val_loss regression plot failed')
+
+    # lr vs batch #
+    try:
+        ast.bargrid(r.data,x='lr',y='val_loss',hue='batch_size')
+        plt.savefig(path+'/lr_VS_batch.png')
+    except:
+        logging.warning('lr-batch plot failed')
+
+    ast.bargrid(r.data,x='lr',y='val_loss',hue='batch_size')
+    plt.savefig(path+'/lr_VS_batch.png')
 
     # KDE #
     try:
         r.plot_kde('val_loss')
-        plt.savefig(path+'/KDE_val_loss_'+sample+'_.png')
+        plt.savefig(path+'/KDE_val_loss.png')
     except:
         logging.warning('KDE val_loss plot failed')
 
     #r.plot_kde(x='val_loss',y='lr')
     try:
         ast.kde(r.data,x='val_loss',y='lr',x_label='val_loss',y_label='learning_rate')
-        plt.savefig(path+'/KDE_val_loss_lr_'+sample+'_.png')
+        plt.savefig(path+'/KDE_val_loss_lr.png')
     except:
         logging.warning('KDE val_loss-lr plot failed')
 
     # Plot bars #
     try:
         ast.bargrid(r.data,x='epochs',y='val_loss',hue='batch_size',col='optimizer',col_wrap=2)
-        plt.savefig(path+'/barplot_1_'+sample+'_.png')
-        ast.bargrid(r.data,x='epochs',y='val_loss',hue='batch_size',col='loss_function',col_wrap=1)
-        plt.savefig(path+'/barplot_2_'+sample+'_.png')
-        ast.bargrid(r.data,x='first_neuron',y='val_loss',hue='activation',col='hidden_layers')
-        plt.savefig(path+'/barplot_3_'+sample+'_.png')
-        ast.bargrid(r.data,x='first_neuron',y='val_loss',hue='output_activation',col='hidden_layers')
-        plt.savefig(path+'/barplot_4_'+sample+'_.png')
-        ast.bargrid(r.data,x='dropout',y='val_loss',hue='lr',col='hidden_layers')
-        plt.savefig(path+'/barplot_5_'+sample+'_.png')
+        plt.savefig(path+'/barplot_1.png')
     except:
-        logging.warning('Bar plots failed')
+        logging.warning('Bar plot 1 failed')
+    try:
+        ast.bargrid(r.data,x='epochs',y='val_loss',hue='batch_size',col='loss_function',col_wrap=1)
+        plt.savefig(path+'/barplot_2.png')
+    except:
+        logging.warning('Bar plot 2 failed')
+    try:
+        ast.bargrid(r.data,x='first_neuron',y='val_loss',hue='activation',col='hidden_layers')
+        plt.savefig(path+'/barplot_3.png')
+    except:
+        logging.warning('Bar plot 3 failed')
+    try:
+        ast.bargrid(r.data,x='first_neuron',y='val_loss',hue='output_activation',col='hidden_layers')
+        plt.savefig(path+'/barplot_4.png')
+    except:
+        logging.warning('Bar plot 4 failed')
+    try:
+        ast.bargrid(r.data,x='first_neuron',y='val_loss',hue='lr',col='hidden_layers')
+        plt.savefig(path+'/barplot_5.png')
+    except:
+        logging.warning('Bar plot 5 failed')
 
 #################################################################################################
 # HyperRestore #

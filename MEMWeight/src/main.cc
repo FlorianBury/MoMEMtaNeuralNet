@@ -89,30 +89,35 @@ int main(int argc, char** argv) {
     /*
      * Load events from input file, retrieve reconstructed particles and MET
      */
-    TChain chain("t");
-    string INPUT_DIR = "/nfs/scratch/fynu/asaggio/CMSSW_8_0_30/src/cp3_llbb/ZATools/factories_ZA/fourVectors_withMETphi_for_Florian/slurm/output/";
+    TChain chain("tree");
+    //string INPUT_DIR = "/nfs/scratch/fynu/asaggio/CMSSW_8_0_30/src/cp3_llbb/ZATools/factories_ZA/fourVectors_withMETphi_for_Florian/slurm/output/";
+    string INPUT_DIR = "/home/ucl/cp3/fbury/scratch/MoMEMta_output/invalid_TT_weights/";
     string file = INPUT_DIR+FLAGS_input;
     LOG(info)<<"Directory : "+INPUT_DIR;
     LOG(info)<<"Using file : "+FLAGS_input; 
+    bool USE_RECOMPUTE = true;
+    LOG(info)<<"Weights recomputation is enabled";
 
     chain.Add(file.c_str());
     TTreeReader myReader(&chain);
 
-    TTreeReaderValue<LorentzVectorE> lep_plus_p4E(myReader, "lep1_p4");
-    TTreeReaderValue<LorentzVectorE> lep_minus_p4E(myReader, "lep2_p4");
-    TTreeReaderValue<LorentzVectorE> jet1_p4E(myReader, "jet1_p4");
-    TTreeReaderValue<LorentzVectorE> jet2_p4E(myReader, "jet2_p4");
-    TTreeReaderValue<float> t_w(myReader, "total_weight");
-    TTreeReaderValue<float> e_w(myReader,  "event_weight");
-    TTreeReaderValue<float> jjm(myReader, "jj_M");
-    TTreeReaderValue<float> lljjm(myReader, "lljj_M");
-    TTreeReaderValue<float> llm(myReader, "ll_M");
-    TTreeReaderValue<float> m_pt(myReader, "met_pt");
-    TTreeReaderValue<float> m_phi(myReader, "met_phi");
-    TTreeReaderValue<float> l1c(myReader, "lep1_charge");
-    TTreeReaderValue<float> l2c(myReader, "lep2_charge");
+    // TODO : Initial Files -> LorentzVectorE, output LorentzeVector
+    TTreeReaderValue<LorentzVector> lep_plus_p4E(myReader, "lep1_p4");
+    TTreeReaderValue<LorentzVector> lep_minus_p4E(myReader, "lep2_p4");
+    TTreeReaderValue<LorentzVector> jet1_p4E(myReader, "jet1_p4");
+    TTreeReaderValue<LorentzVector> jet2_p4E(myReader, "jet2_p4");
+    // TODO : either float or doubles
+    TTreeReaderValue<double> t_w(myReader, "total_weight");
+    TTreeReaderValue<double> e_w(myReader,  "event_weight");
+    TTreeReaderValue<double> jjm(myReader, "jj_M");
+    TTreeReaderValue<double> lljjm(myReader, "lljj_M");
+    TTreeReaderValue<double> llm(myReader, "ll_M");
+    TTreeReaderValue<double> m_pt(myReader, "met_pt");
+    TTreeReaderValue<double> m_phi(myReader, "met_phi");
+    TTreeReaderValue<double> l1c(myReader, "lep1_charge");
+    TTreeReaderValue<double> l2c(myReader, "lep2_charge");
 
-    //TTreeReaderValue<float> MET_phi(myReader, "MET_phi");
+    //TTreeReaderValue<double> MET_phi(myReader, "MET_phi");
     //TTreeReaderValue<int> leading_lep_PID(myReader, "leadLepPID");
 
     /*
@@ -152,12 +157,12 @@ int main(int argc, char** argv) {
 
     // Construct the ConfigurationReader from the Lua file
     LOG(info) << "Reading configuration files from '" << FLAGS_confs_dir << "'";
-    ConfigurationReader configuration_TTbar(FLAGS_confs_dir + "TTbar_FullyLeptonic.lua");
-    ConfigurationReader configuration_DY(FLAGS_confs_dir + "dy_to_ll_simple.lua");
+    //ConfigurationReader configuration_TTbar(FLAGS_confs_dir + "TTbar_FullyLeptonic.lua");
+    //ConfigurationReader configuration_DY(FLAGS_confs_dir + "dy_to_ll_simple.lua");
 
     // Instantiate MoMEMta using a **frozen** configuration
-    MoMEMta TTbar_weight(configuration_TTbar.freeze());
-    MoMEMta DY_weight(configuration_DY.freeze());
+    //MoMEMta TTbar_weight(configuration_TTbar.freeze());
+    //MoMEMta DY_weight(configuration_DY.freeze());
     
     // To and From parameters
     size_t to = 0;
@@ -221,26 +226,94 @@ int main(int argc, char** argv) {
             swap(lep_plus, lep_minus);
 
         // Compute the weights!
-        auto start_time_DY = system_clock::now();
-        std::vector<std::pair<double, double>> DY_weights = DY_weight.computeWeights({lep_minus, lep_plus, bjet1, bjet2, isr});
-        auto end_time_DY = system_clock::now();
-        auto start_time_TT = system_clock::now();
-        std::vector<std::pair<double, double>> TTbar_weights = TTbar_weight.computeWeights({lep_minus, lep_plus, bjet1, bjet2},met_p4);
-        auto end_time_TT = system_clock::now();
-
-        // Retrieve the weight and uncertainty
-        weight_TT = TTbar_weights.back().first;
-        weight_TT_err = TTbar_weights.back().second;
-        weight_DY = DY_weights.back().first;
-        weight_DY_err = DY_weights.back().second;
-        weight_DY_time = std::chrono::duration_cast<milliseconds>(end_time_DY - start_time_DY).count();
-        weight_TT_time = std::chrono::duration_cast<milliseconds>(end_time_TT - start_time_TT).count();
-
         LOG(info) << "Event " << myReader.GetCurrentEntry();
-        LOG(info)<<" -> DY result: " << weight_DY << " +- " << weight_DY_err;
-        LOG(info) << "Weight computed in " << weight_DY_time << "ms";
-        LOG(info)<<" -> TT result: " << weight_TT << " +- " << weight_TT_err;
-        LOG(info) << "Weight computed in " << weight_TT_time << "ms";
+
+        // TT weights
+        bool failed_TT = false;
+        int n_start_TT = 20000;
+        weight_TT_time = 0;
+        LOG(debug)<<"Starting TT weight computation";
+        do {
+            int rand_num = rand()%1000;
+            failed_TT = false;
+            LOG(info)<<"Random number for seed : "<<rand_num;
+            LOG(info)<<"Starting eval : "<<n_start_TT<<"\tMax eval : "<<n_start_TT*20;
+
+            ParameterSet lua_parameters;
+            lua_parameters.set("random", rand_num);
+            lua_parameters.set("n_start_TT", n_start_TT);
+            lua_parameters.set("max_eval", n_start_TT*20);
+            
+            ConfigurationReader configuration_TTbar(FLAGS_confs_dir + "TTbar_FullyLeptonic.lua",lua_parameters);
+
+            // Instantiate MoMEMta using a **frozen** configuration
+            MoMEMta TTbar_weight(configuration_TTbar.freeze());
+
+
+           // Retrieve the weight and uncertainty for TT
+            auto start_time_TT = system_clock::now();
+            std::vector<std::pair<double, double>> TTbar_weights = TTbar_weight.computeWeights({lep_minus, lep_plus, bjet1, bjet2},met_p4);
+            auto end_time_TT = system_clock::now();
+
+            weight_TT = TTbar_weights.back().first;
+            weight_TT_err = TTbar_weights.back().second;
+            weight_TT_time += std::chrono::duration_cast<milliseconds>(end_time_TT - start_time_TT).count();
+
+            LOG(info)<<" -> TT result: " << weight_TT << " +- " << weight_TT_err;
+            LOG(info) << "Weight computed in " << weight_TT_time << "ms";
+
+            // If weights did not converge 
+            if (USE_RECOMPUTE == true and weight_TT<weight_TT_err){ 
+                LOG(warning) << "TT weights dit not converge, will increase precision";
+                failed_TT = true;
+                n_start_TT += 50000;
+            }
+        }
+        while (failed_TT);
+
+
+        // DY weights 
+        LOG(debug)<<"Starting DY weight computation";
+    
+        bool failed_DY = false;
+        int n_start_DY = 20000;
+        weight_DY_time = 0;
+        do {
+            int rand_num = rand()%1000;
+            failed_DY = false;
+            LOG(info)<<"Random number for seed : "<<rand_num;
+            LOG(info)<<"Starting eval : "<<n_start_DY<<"\tMax eval : "<<n_start_DY*20;
+
+            ParameterSet lua_parameters;
+            lua_parameters.set("random", rand_num);
+            lua_parameters.set("n_start_DY", n_start_DY);
+            lua_parameters.set("max_eval", n_start_DY*20);
+            
+            ConfigurationReader configuration_DY(FLAGS_confs_dir + "dy_to_ll_simple.lua",lua_parameters);
+
+            // Instantiate MoMEMta using a **frozen** configuration
+            MoMEMta DY_weight(configuration_DY.freeze());
+
+            // Retrieve the weight and uncertainty for DY
+            auto start_time_DY = system_clock::now();
+            std::vector<std::pair<double, double>> DY_weights = DY_weight.computeWeights({lep_minus, lep_plus, bjet1, bjet2, isr});
+            auto end_time_DY = system_clock::now();
+
+            weight_DY = DY_weights.back().first;
+            weight_DY_err = DY_weights.back().second;
+            weight_DY_time += std::chrono::duration_cast<milliseconds>(end_time_DY - start_time_DY).count();
+
+            LOG(info)<<" -> DY result: " << weight_DY << " +- " << weight_DY_err;
+            LOG(info) << "Weight computed in " << weight_DY_time << "ms";
+            // If weights did not converge 
+            if (USE_RECOMPUTE == true && weight_DY<weight_DY_err){ 
+                LOG(warning) << "DY weights dit not converge, will increase precision";
+                failed_DY = true;
+                n_start_DY += 50000;
+            }
+ 
+       }
+        while (failed_DY);
 
         // Other values in branches
         total_weight = *t_w;

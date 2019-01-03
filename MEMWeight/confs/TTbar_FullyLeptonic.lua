@@ -47,10 +47,11 @@ load_modules(matrix_element_lib)
 
 -- Configuration of Cuba
 cuba = {
-    relative_accuracy = 0.05,
+    seed =  random, 
+    relative_accuracy = 0.01,
     verbosity = 3,
-    max_eval = 500000,
-    n_start = 15000,
+    max_eval = max_eval,
+    n_start = n_start,
 }
 
 -- The transfer functions take as input the particles passed in the computeWeights() function,

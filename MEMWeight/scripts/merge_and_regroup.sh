@@ -1,6 +1,6 @@
 #!/bin/bash
 
-path="/home/ucl/cp3/fbury/scratch/MoMEMta_output/slurm/*"
+path="/home/ucl/cp3/fbury/scratch/MoMEMta_output/slurm/*$1*"
 
 for dir in $path; do
     # Extract name of root file from directory #

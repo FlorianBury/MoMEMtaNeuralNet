@@ -60,8 +60,6 @@ def get_options():
         help='Wether to concatenate the csv files from different slurm jobs into a main one, \
               please provide the path to the csv files')
 
-
-
     opt = parser.parse_args()
 
     if opt.scan!='' or opt.report!='' or opt.output!='':
@@ -78,6 +76,8 @@ def get_options():
         logging.warning('Since you have specified a split, all the other arguments will be skipped')
     if opt.csv!='' and (opt.report!='' or opt.output!='' or opt.scan!=''):
         logging.warning('Since you have specified a csv concatenation, all the other arguments will be skipped')
+    if opt.report!='' and (opt.output!='' or opt.scan!=''):
+        logging.warning('Since you have specified a scan report, all the other arguments will be skipped')
 
     return opt
 
@@ -101,6 +101,11 @@ def main():
     main_path = parameters.main_path
     path_to_files = parameters.path_to_files
     path_out = parameters.path_out
+
+    # Make path model #
+    path_model = os.path.join(main_path,'model')
+    if not os.path.exists(path_model):
+        os.mkdir(path_model)
 
     #############################################################################################
     # Splitting into sub-dicts and slurm submission #
@@ -130,6 +135,20 @@ def main():
         dict_TT.WriteToFile()
 
         sys.exit()
+
+    #############################################################################################
+    # Reporting given scan in csv file #
+    #############################################################################################
+    if opt.report != '':
+        if opt.DY: 
+            logging.info('Reporting DY case')
+            HyperReport(os.path.join(path_model,opt.report+'_DY.csv'),'DY')
+        if opt.TT:
+            logging.info('Reporting TT case')
+            HyperReport(os.path.join(path_model,opt.report+'_TT.csv'),'TT')
+
+        sys.exit()
+
     #############################################################################################
     # Data Input and preprocessing #
     #############################################################################################
@@ -246,10 +265,6 @@ def main():
     #############################################################################################
     # DNN #
     #############################################################################################
-        # Make path #
-    path_model = os.path.join(main_path,'model')
-    if not os.path.exists(path_model):
-        os.mkdir(path_model)
 
     if opt.scan != '':
         # DY network #
@@ -271,14 +286,6 @@ def main():
             HyperDeploy(h_TT,name_TT,-1)
             #HyperDeploy(h_TT,path_model+opt.scan+'_cross_val_TT',idx_TT)
         
-    if opt.report != '':
-        if opt.DY: 
-            logging.info('Reporting DY case')
-            HyperReport(os.path.join(path_model,opt.report+'_DY.csv'),'DY')
-        if opt.TT:
-            logging.info('Reporting TT case')
-            HyperReport(os.path.join(path_model,opt.report+'_TT.csv'),'TT')
-
     if opt.output!='': 
         if opt.DY:
             logging.info('Restoring DY model')

@@ -23,7 +23,7 @@ config = Configuration()
 config.sbatch_partition = 'cp3'
 config.sbatch_qos = 'cp3'
 #config.sbatch_workdir = '.'
-config.sbatch_time = '0-4:00'
+config.sbatch_time = '0-5:00'
 #config.sbatch_mem = '2048'
 #config.sbatch_additionalOptions = []
 config.inputSandboxContent = []#['confs/*']
@@ -32,11 +32,10 @@ config.inputParamsNames = ['from', 'to', 'input', 'output']
 config.inputParams = []
 
 config.payload = """
-{executable_path} --from ${{from}} --to ${{to}} --input ${{input}} --output ${{output}} 
+{executable_path} --from ${{from}} --to ${{to}} --input ${{input}} --output ${{output}} --verbose 
 """
 #--confs-dir "../confs/"
 
-INPUT_DIR = '/nfs/scratch/fynu/asaggio/CMSSW_8_0_30/src/cp3_llbb/ZATools/factories_ZA/fourVectors_for_Florian/slurm/output/'
 datasets = {
         'TTbar': args.max#,
         #'TW': 20000,
@@ -54,7 +53,7 @@ order = [
     #'TW',
     #'TbarW'
     ]
-events_per_jobs = 400
+events_per_jobs = 50
 
 #if round(args.max/events_per_jobs)>5000:
 #    n_jobs = 2000
