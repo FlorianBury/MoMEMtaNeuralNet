@@ -5,6 +5,7 @@ import json
 import shutil
 import pickle
 import logging
+import csv
 
 import array
 import numpy as np
@@ -135,7 +136,7 @@ def HyperScan(x_train,y_train,name,sample,task):
     #sys.exit()
     no = 1
     name = name+'_'+sample+task.replace('.pkl','')
-    path_name = parameters.main_path+name
+    path_name = os.path.join(parameters.main_path,'model',name)
     while os.path.exists(path_name+str(no)+'.csv'):
         no +=1
 
@@ -163,12 +164,20 @@ def HyperScan(x_train,y_train,name,sample,task):
     logging.debug('Details')
     logging.debug(h.details)
 
+    # Move csv file to model dir #
+    if task == '': # if not split+submit -> because submit will put it in slurm dir
+        try:
+            shutil.move(name+'_'+str(no)+'.csv',os.path.join(parameters.main_path,'model',name+'_'+str(no)+'.csv'))
+        except:
+            logging.warning('[WARNING] Could not move file to model folder')
+            logging.warning('\tAttempted to move '+(os.path.abspath(name+'_'+str(no)+'.csv') +' -> ' +os.path.join(parameters.main_path,'model',name+'_'+str(no)+'.csv'))) 
+
     return h, name+'_'+str(no)
 
 #################################################################################################
 # HyperEvaluate #
 #################################################################################################
-def HyperEvaluate(h,x_test,y_test,folds=5):
+def HyperEvaluate(h,x_test,y_test,folds=5,name=''):
     """
     Performs the cross-validation of the different models
     Inputs :
@@ -180,6 +189,8 @@ def HyperEvaluate(h,x_test,y_test,folds=5):
             output testing values (aka : weight), not used during learning
         - folds : int (default = 5)
             Number of cross-validation folds
+        - name : str
+            Name of the csv file (without .csv) created by the scan
     Outputs :
         - idx_best_eval : idx
             Index of best model according to cross-validation
@@ -248,6 +259,27 @@ def HyperEvaluate(h,x_test,y_test,folds=5):
 
     # WARNING : model id's starts with 0 BUT on panda dataframe h.data, models start at 1
 
+    # Input scan csv file #
+    try:
+        with open(os.path.join(os.getcwd(),name+'.csv'), 'r') as the_file:
+            lis=[line for line in the_file]  
+            
+        # Append the list with the error of each model #
+        lis[0] = lis[0].rstrip() 
+        lis[0] +=',eval_error,eval_std_error\n'
+        for i in range(1,len(lis)):
+            lis[i] = lis[i].rstrip()
+            lis[i] += (',%0.5f,%0.5f\n'%(scores[i-1][0],scores[i-1][1]))
+
+        # Re-write the csv file #
+        with open(os.path.join(parameters.main_path,'model',name+'.csv'), 'w') as the_file:
+            for line in lis:
+                the_file.write(line)
+    except:
+        logging.warning('Could not append csv file with the model error')
+
+    
+
     return idx_best_eval
 
 #################################################################################################
@@ -279,10 +311,10 @@ def HyperDeploy(h,name,best):
     Deploy(h,model_name=name,best_idx=idx,metric='val_loss',asc=True)
 
     try:
-        shutil.move(name+'.zip',os.path.join(parameters.main_path,'model'))
+        shutil.move(name+'.zip',os.path.join(parameters.main_path,'model',name+'.zip'))
     except:
         logging.warning('[WARNING] Could not move file to model folder, maybe folder does not exits of file already present')
-        logging.warning('\tAttempted to move '+os.getcwd()+name+'.zip'+'  ->  '+parameters.main_path+'/model/'+name+'.zip') 
+        logging.warning('\tAttempted to move '+name+'.zip'+'  ->  '+os.path.join(parameters.main_path,'model',name+'.zip')) 
 
 
 #################################################################################################

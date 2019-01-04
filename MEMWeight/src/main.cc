@@ -238,6 +238,8 @@ int main(int argc, char** argv) {
             failed_TT = false;
             LOG(info)<<"Random number for seed : "<<rand_num;
             LOG(info)<<"Starting eval : "<<n_start_TT<<"\tMax eval : "<<n_start_TT*20;
+            if (n_start_TT>=2000000)
+                break;
 
             ParameterSet lua_parameters;
             lua_parameters.set("random", rand_num);
@@ -266,7 +268,7 @@ int main(int argc, char** argv) {
             if (USE_RECOMPUTE == true and weight_TT<weight_TT_err){ 
                 LOG(warning) << "TT weights dit not converge, will increase precision";
                 failed_TT = true;
-                n_start_TT += 50000;
+                n_start_TT += 200000;
             }
         }
         while (failed_TT);
@@ -283,6 +285,8 @@ int main(int argc, char** argv) {
             failed_DY = false;
             LOG(info)<<"Random number for seed : "<<rand_num;
             LOG(info)<<"Starting eval : "<<n_start_DY<<"\tMax eval : "<<n_start_DY*20;
+            if (n_start_DY>=2000000)
+                break;
 
             ParameterSet lua_parameters;
             lua_parameters.set("random", rand_num);
@@ -309,7 +313,7 @@ int main(int argc, char** argv) {
             if (USE_RECOMPUTE == true && weight_DY<weight_DY_err){ 
                 LOG(warning) << "DY weights dit not converge, will increase precision";
                 failed_DY = true;
-                n_start_DY += 50000;
+                n_start_DY += 200000;
             }
  
        }

@@ -89,9 +89,16 @@ class SplitTraining:
 #################################################################################################
     
 def DictSplit(params_per_job,name):
+        
     # Retrieve Hyperparameter dict #    
     p = parameters.p
 
+    if param_per_job == -1: # params_per_job = number of params in set  
+        tot = 0
+        for val in p.values():
+            tot += len(val)
+        param_per_job = tot
+        logging.info('Single dict of %d parameters has been created'%(param_per_job))
     # Split into sub dict #
     SplitTraining(p,params_per_job=params_per_job,dir_name=name)
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import re
+import glob
 import csv
 import os
 import sys
@@ -43,7 +44,7 @@ def get_options():
     # Splitting and submitting arguments #
     b = parser.add_argument_group('Splitting and submitting arguments')
     b.add_argument('-split','--split', action='store', required=False, type=int, default=0,
-        help='Number of parameter sets per jobs to be used for splitted training for slurm submission')
+        help='Number of parameter sets per jobs to be used for splitted training for slurm submission (if -1, will create a single subdict)')
     b.add_argument('-submit','--submit', action='store', required=False, default='', type=str,
         help='Wether to submit on slurm and nname for the save (must have specified --split)')
 
@@ -52,7 +53,11 @@ def get_options():
     c.add_argument('-r','--report', action='store', required=False, type=str, default='',
         help='Name of the csv file for the reporting (without .csv)')
     c.add_argument('-o','--output', action='store', required=False, type=str, default='',                                                                                                          
-        help='Applies the provided model name (without .zip and type, aka DY or TT) on test set and outputs root trees') 
+        help='Applies the provided model name (without .zip and type, aka DY or TT) on test set and outputs root trees (must specify --TT or --DY') 
+    c.add_argument('-inv_dy','--invalid_DY', action='store_true', required=False, default=False,
+        help='Weheter to also apply the output to the invalid DY weights (must be used with --output)')
+    c.add_argument('-inv_tt','--invalid_TT', action='store_true', required=False, default=False,
+        help='Weheter to also apply the output to the invalid TT weights (must be used with --output)')
 
     # Concatenating csv files arguments #
     d = parser.add_argument_group('Concatenating csv files arguments')
@@ -62,7 +67,7 @@ def get_options():
 
     opt = parser.parse_args()
 
-    if opt.scan!='' or opt.report!='' or opt.output!='':
+    if opt.scan!='' or opt.report!='' :
         if not opt.DY and not opt.TT:
             logging.critical('Either -dy or -tt must be specified')  
             sys.exit(1)
@@ -78,6 +83,9 @@ def get_options():
         logging.warning('Since you have specified a csv concatenation, all the other arguments will be skipped')
     if opt.report!='' and (opt.output!='' or opt.scan!=''):
         logging.warning('Since you have specified a scan report, all the other arguments will be skipped')
+    if opt.output == '' and (opt.invalid_DY or opt.invalid_TT):
+        logging.critical('You must specify the model with --output')
+        sys.exit(1)
 
     return opt
 
@@ -186,7 +194,7 @@ def main():
     logging.info('TT sample size : {}'.format(data_TT.shape[0]))
 
     # Weight equalization #
-    weight_HToZA = weight_HToZA/np.sum(weight_HToZA)*1000
+    weight_HToZA = weight_HToZA/np.sum(weight_HToZA)*10000
     weight_DY = weight_DY/np.sum(weight_DY)*10000
     weight_TT = weight_TT/np.sum(weight_TT)*10000
     if np.sum(weight_HToZA) != np.sum(weight_DY) or np.sum(weight_HToZA) != np.sum(weight_TT) or np.sum(weight_TT) != np.sum(weight_DY):
@@ -272,7 +280,7 @@ def main():
             logging.info('Starting scan DY case')
             h_DY, name_DY = HyperScan(x_train,np.c_[w_train,y_train[:,0]],name=opt.scan,sample='DY',task=opt.task)
             logging.info('Starting evaluation DY case')
-            idx_DY = HyperEvaluate(h_DY,x_test,y_test[:,0],folds=5) 
+            idx_DY = HyperEvaluate(h_DY,x_test,y_test[:,0],folds=5,name=name_DY) 
             logging.info('Starting deployment TT case')
             HyperDeploy(h_DY,name_DY,-1)
             #HyperDeploy(h_DY,name_DY,idx_DY)
@@ -287,27 +295,95 @@ def main():
             #HyperDeploy(h_TT,path_model+opt.scan+'_cross_val_TT',idx_TT)
         
     if opt.output!='': 
-        if opt.DY:
-            logging.info('Restoring DY model')
-            out_DY = HyperRestore(x_test,os.path.join(path_model,opt.output+'.zip'))
-        if opt.TT:
-            logging.info('Restoring TT model')
-            out_TT = HyperRestore(x_test,os.path.join(path_model,opt.output+'.zip'))
+        # Make path #
+        path_model_output = os.path.join(path_out,opt.output)
+        if not os.path.exists(path_model_output):
+            os.makedirs(path_model_output)
 
-        # de-preprocess, concatenate and dtype#
-        inputs = x_test*scaler.scale_+scaler.mean_
-        output = np.c_[inputs,w_test,y_test] # without NN output
-        output.dtype = [('lep1_px','float64'),('lep1_py','float64'),('lep1_pz','float64'),('lep1_E','float64'),('lep2_px','float64'),('lep2_py','float64'),('lep2_pz','float64'),('lep2_E','float64'),('jet1_px','float64'),('jet1_py','float64'),('jet1_pz','float64'),('jet1_E','float64'),('jet2_px','float64'),('jet2_py','float64'),('jet2_pz','float64'),('jet2_E','float64'),('met_pt','float64'),('met_phi','float64'),('weight','float64'),('MEM_weight_DY','float64'),('MEM_weight_TT','float64')]
-        if opt.DY:
-            output = np.c_[output,out_DY]
-            output.dtype = np.append(output.dtype,('output_DY','float64'))
-        if opt.TT:
-            output = np.c_[output,out_TT]
-            output.dtype = np.append(output.dtype,('output_TT','float64'))
+        # Get output, concatenate and make root file # 
+        def produce_output(inputs,weights,MEM,tag):
+            # De-preprocess inputs #
+            inputs_unscaled = inputs*scaler.scale_+scaler.mean_
+            # Concatenate #
+            output = np.c_[inputs_unscaled,weights,MEM] # without NN output
+            dtype = [('lep1_px','float64'),('lep1_py','float64'),('lep1_pz','float64'),('lep1_E','float64'),('lep2_px','float64'),('lep2_py','float64'),('lep2_pz','float64'),('lep2_E','float64'),('jet1_px','float64'),('jet1_py','float64'),('jet1_pz','float64'),('jet1_E','float64'),('jet2_px','float64'),('jet2_py','float64'),('jet2_pz','float64'),('jet2_E','float64'),('met_pt','float64'),('met_phi','float64'),('weight','float64'),('MEM_weight_DY','float64'),('MEM_weight_TT','float64')]
 
-        output_name = os.path.join(path_out,opt.output,'output_'+opt.output)
-        array2root(output,output_name,mode='recreate') 
-        logging.info('Output saved as : '+output_name)
+            try:
+                out_DY = HyperRestore(inputs,os.path.join(path_model,opt.output+'_DY_1.zip'))
+                output = np.c_[output,out_DY]
+                dtype.append(('output_DY','float64'))
+                logging.info('Applying DY model')
+            except:
+                logging.warning('Could not find the DY model')
+            try:
+                out_TT = HyperRestore(inputs,os.path.join(path_model,opt.output+'_TT_1.zip'))
+                output = np.c_[output,out_TT]
+                dtype.append[('output_TT','float64')]
+                logging.info('Applying TT model')
+            except:
+                logging.warning('Could not find the TT model')
+
+            # Save root file #
+            output.dtype = dtype
+            output_name = os.path.join(path_model_output,tag+'.root')
+            array2root(output,output_name,mode='recreate')
+            logging.info('Output saved as : '+output_name)
+
+        # Use it on different samples #
+        produce_output(inputs=x_test_HToZA,weights=w_test_HToZA,MEM=y_test_HToZA,tag='HToZA')
+        produce_output(inputs=x_test_DY,weights=w_test_DY,MEM=y_test_DY,tag='DY')
+        produce_output(inputs=x_test_TT,weights=w_test_TT,MEM=y_test_TT,tag='TT')
+
+        # Same but for invalid weights #
+        def loop_invalid(path,tag):
+            for inv_file in glob.glob(path+'*.root'):
+                inv_name = inv_file.replace(path,'').replace('.root','') 
+                # Get data #
+                data_inv, weight_inv = LoopOverTrees(input_dir=path,variables=variables,weight='total_weight',reweight_to_cross_section=False,part_name=inv_name)
+                if data_inv.shape[0]==0: # There is no invalid weights in this case
+                    continue
+                # Separate and process #
+                inv_inputs = scaler.transform(data_inv[:,:18])
+                inv_MEM = -np.log10(data_inv[:,18:])
+                # Concatenate #
+                full_outputs = np.c_[data_inv[:,:18],weight_inv,inv_MEM]
+                dtype = [('lep1_px','float64'),('lep1_py','float64'),('lep1_pz','float64'),('lep1_E','float64'),('lep2_px','float64'),('lep2_py','float64'),('lep2_pz','float64'),('lep2_E','float64'),('jet1_px','float64'),('jet1_py','float64'),('jet1_pz','float64'),('jet1_E','float64'),('jet2_px','float64'),('jet2_py','float64'),('jet2_pz','float64'),('jet2_E','float64'),('met_pt','float64'),('met_phi','float64'),('weight','float64'),('MEM_weight_DY','float64'),('MEM_weight_TT','float64')]
+                # NN Outputs #
+                try:
+                    inv_outputs_DY = HyperRestore(inv_inputs,os.path.join(path_model,opt.output+'_DY_1.zip'))
+                    full_outputs = np.c_[full_outputs,inv_outputs_DY]
+                    dtype.append(('output_DY','float64'))
+                    logging.info('Applying DY model')
+                except:
+                    logging.warning('Could not find the DY model')
+                try:
+                    inv_outputs_TT = HyperRestore(inv_inputs,os.path.join(path_model,opt.output+'_TT_1.zip'))
+                    full_outputs = np.c_[full_outputs,inv_outputs_TT]
+                    dtype.append(('output_TT','float64'))
+                    logging.info('Applying TT model')
+                except:
+                    logging.warning('Could not find the TT model')
+                
+                # Save to file #
+                full_outputs.dtype = dtype
+                output_name = os.path.join(path_model_output,'invalid_'+tag+'_'+inv_name+'.root')
+                array2root(full_outputs,output_name,mode='recreate')
+                logging.info('Output saved as : '+output_name)
+
+        # Depending on user request #
+        if opt.invalid_DY:
+            logging.info('='*80)
+            logging.info('Starting invalid DY output')
+            loop_invalid(path=parameters.path_invalid_DY,tag='DY')
+
+        if opt.invalid_TT:
+            logging.info('='*80)
+            logging.info('Starting invalid TT output')
+            loop_invalid(path=parameters.path_invalid_TT,tag='TT')
+
+
+                
+            
 
         
    
