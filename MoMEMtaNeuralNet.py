@@ -6,6 +6,7 @@ import csv
 import os
 import sys
 import logging
+import copy
 
 import argparse
 import numpy as np
@@ -17,6 +18,7 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
 # Personal files #
+from NeuralNet import HyperModel
 from submit_on_slurm import submit_on_slurm
 from generate_mask import GenerateMask
 from split_training import DictSplit
@@ -53,17 +55,23 @@ def get_options():
     c.add_argument('-r','--report', action='store', required=False, type=str, default='',
         help='Name of the csv file for the reporting (without .csv)')
     c.add_argument('-o','--output', action='store', required=False, type=str, default='',                                                                                                          
-        help='Applies the provided model name (without .zip and type, aka DY or TT) on test set and outputs root trees (must specify --TT or --DY') 
+        help='Applies the provided model name (without .zip and type, aka DY or TT) on test set and outputs root trees \
+             (no need for -tt or -dy, if the models are there it will find them)') 
     c.add_argument('-inv_dy','--invalid_DY', action='store_true', required=False, default=False,
-        help='Weheter to also apply the output to the invalid DY weights (must be used with --output)')
+        help='Wether to also apply the output to the invalid DY weights (must be used with --output)')
     c.add_argument('-inv_tt','--invalid_TT', action='store_true', required=False, default=False,
-        help='Weheter to also apply the output to the invalid TT weights (must be used with --output)')
+        help='Wether to also apply the output to the invalid TT weights (must be used with --output)')
 
     # Concatenating csv files arguments #
     d = parser.add_argument_group('Concatenating csv files arguments')
     d.add_argument('-csv','--csv', action='store', required=False, type=str, default='',                                                                                                          
         help='Wether to concatenate the csv files from different slurm jobs into a main one, \
               please provide the path to the csv files')
+
+    # Additional arguments #
+    e = parser.add_argument_group('Additional arguments')
+    e.add_argument('-v','--verbose', action='store_true', required=False, default=False,
+        help='Show DEGUG logging')
 
     opt = parser.parse_args()
 
@@ -93,15 +101,19 @@ def main():
     #############################################################################################
     # Preparation #
     #############################################################################################
-    # Logging #
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s - %(levelname)s - %(message)s')
 
     # Get options from user #
     opt = get_options()
 
-    # Private modules # TODO : move the out 
-    from NeuralNet import HyperScan, HyperReport, HyperEvaluate, HyperDeploy, HyperRestore
+    # Logging #
+    if opt.verbose:
+        logging.basicConfig(level=logging.DEBUG,
+                            format='%(asctime)s - %(levelname)s - %(message)s')
+    else:
+        logging.basicConfig(level=logging.INFO,
+                            format='%(asctime)s - %(levelname)s - %(message)s')
+
+    # Private modules containing Pyroot #
     from import_tree import LoopOverTrees, Tree2Numpy
     from root_numpy import array2root
     # Needed because PyROOT messes with argparse
@@ -129,7 +141,7 @@ def main():
         sys.exit()
 
     #############################################################################################
-    # Splitting into sub-dicts and slurm submission #
+    # CSV concatenation #
     #############################################################################################
     if opt.csv!='':
         logging.info('Concatenating csv files from : %s'%(opt.csv))
@@ -149,11 +161,11 @@ def main():
     #############################################################################################
     if opt.report != '':
         if opt.DY: 
-            logging.info('Reporting DY case')
-            HyperReport(os.path.join(path_model,opt.report+'_DY.csv'),'DY')
+            instance = HyperModel(opt.report,'DY')
+            instance.HyperReport()
         if opt.TT:
-            logging.info('Reporting TT case')
-            HyperReport(os.path.join(path_model,opt.report+'_TT.csv'),'TT')
+            instance = HyperModel(opt.report,'TT')
+            instance.HyperReport()
 
         sys.exit()
 
@@ -277,22 +289,16 @@ def main():
     if opt.scan != '':
         # DY network #
         if opt.DY:
-            logging.info('Starting scan DY case')
-            h_DY, name_DY = HyperScan(x_train,np.c_[w_train,y_train[:,0]],name=opt.scan,sample='DY',task=opt.task)
-            logging.info('Starting evaluation DY case')
-            idx_DY = HyperEvaluate(h_DY,x_test,y_test[:,0],folds=5,name=name_DY) 
-            logging.info('Starting deployment TT case')
-            HyperDeploy(h_DY,name_DY,-1)
-            #HyperDeploy(h_DY,name_DY,idx_DY)
+            instance = HyperModel(opt.scan,'DY')
+            instance.HyperScan(x_train,np.c_[w_train,y_train[:,0]],task=opt.task)
+            instance.HyperEvaluate(x_test,y_test[:,0],folds=5) 
+            instance.HyperDeploy(best='eval_error')
         # TT network #
         if opt.TT:
-            logging.info('Starting scan TT case')
-            h_TT, name_TT = HyperScan(x_train,np.c_[w_train,y_train[:,1]],name=opt.scan,sample='TT',task=opt.task)
-            logging.info('Starting evaluation TT case')
-            idx_TT = HyperEvaluate(h_TT,x_test,y_test[:,1],folds=5) 
-            logging.info('Starting deployment TT case')
-            HyperDeploy(h_TT,name_TT,-1)
-            #HyperDeploy(h_TT,path_model+opt.scan+'_cross_val_TT',idx_TT)
+            instance = HyperModel(opt.scan,'TT')
+            instance.HyperScan(x_train,np.c_[w_train,y_train[:,0]],task=opt.task)
+            instance.HyperEvaluate(x_test,y_test[:,0],folds=5) 
+            instance.HyperDeploy(best='eval_error')
         
     if opt.output!='': 
         # Make path #
@@ -300,26 +306,51 @@ def main():
         if not os.path.exists(path_model_output):
             os.makedirs(path_model_output)
 
+        # Make basic dtype #
+        dtype_base = [('lep1_px','float64'),
+                 ('lep1_py','float64'),
+                 ('lep1_pz','float64'),
+                 ('lep1_E','float64'),
+                 ('lep2_px','float64'),
+                 ('lep2_py','float64'),
+                 ('lep2_pz','float64'),
+                 ('lep2_E','float64'),
+                 ('jet1_px','float64'),
+                 ('jet1_py','float64'),
+                 ('jet1_pz','float64'),
+                 ('jet1_E','float64'),
+                 ('jet2_px','float64'),
+                 ('jet2_py','float64'),
+                 ('jet2_pz','float64'),
+                 ('jet2_E','float64'),
+                 ('met_pt','float64'),
+                 ('met_phi','float64'),
+                 ('weight','float64'),
+                 ('MEM_weight_DY','float64'),
+                 ('MEM_weight_TT','float64')]
+
         # Get output, concatenate and make root file # 
         def produce_output(inputs,weights,MEM,tag):
             # De-preprocess inputs #
             inputs_unscaled = inputs*scaler.scale_+scaler.mean_
             # Concatenate #
             output = np.c_[inputs_unscaled,weights,MEM] # without NN output
-            dtype = [('lep1_px','float64'),('lep1_py','float64'),('lep1_pz','float64'),('lep1_E','float64'),('lep2_px','float64'),('lep2_py','float64'),('lep2_pz','float64'),('lep2_E','float64'),('jet1_px','float64'),('jet1_py','float64'),('jet1_pz','float64'),('jet1_E','float64'),('jet2_px','float64'),('jet2_py','float64'),('jet2_pz','float64'),('jet2_E','float64'),('met_pt','float64'),('met_phi','float64'),('weight','float64'),('MEM_weight_DY','float64'),('MEM_weight_TT','float64')]
+            dtype = copy.deepcopy(dtype_base)
 
             try:
-                out_DY = HyperRestore(inputs,os.path.join(path_model,opt.output+'_DY_1.zip'))
+                logging.info('Applying DY model')
+                instance = HyperModel(opt.output,'DY')
+                out_DY = instance.HyperRestore(inputs)
                 output = np.c_[output,out_DY]
                 dtype.append(('output_DY','float64'))
-                logging.info('Applying DY model')
             except:
                 logging.warning('Could not find the DY model')
             try:
-                out_TT = HyperRestore(inputs,os.path.join(path_model,opt.output+'_TT_1.zip'))
-                output = np.c_[output,out_TT]
-                dtype.append[('output_TT','float64')]
                 logging.info('Applying TT model')
+                instance = HyperModel(opt.output,'TT')
+                out_TT = instance.HyperRestore(inputs)
+                output = np.c_[output,out_TT]
+                dtype.append(('output_TT','float64'))
             except:
                 logging.warning('Could not find the TT model')
 
@@ -330,9 +361,15 @@ def main():
             logging.info('Output saved as : '+output_name)
 
         # Use it on different samples #
+        logging.info(' HToZA sample '.center(80,'*'))
         produce_output(inputs=x_test_HToZA,weights=w_test_HToZA,MEM=y_test_HToZA,tag='HToZA')
+        logging.info('')
+        logging.info(' DY sample '.center(80,'*'))
         produce_output(inputs=x_test_DY,weights=w_test_DY,MEM=y_test_DY,tag='DY')
+        logging.info('')
+        logging.info(' TT sample '.center(80,'*'))
         produce_output(inputs=x_test_TT,weights=w_test_TT,MEM=y_test_TT,tag='TT')
+        logging.info('')
 
         # Same but for invalid weights #
         def loop_invalid(path,tag):
@@ -347,20 +384,22 @@ def main():
                 inv_MEM = -np.log10(data_inv[:,18:])
                 # Concatenate #
                 full_outputs = np.c_[data_inv[:,:18],weight_inv,inv_MEM]
-                dtype = [('lep1_px','float64'),('lep1_py','float64'),('lep1_pz','float64'),('lep1_E','float64'),('lep2_px','float64'),('lep2_py','float64'),('lep2_pz','float64'),('lep2_E','float64'),('jet1_px','float64'),('jet1_py','float64'),('jet1_pz','float64'),('jet1_E','float64'),('jet2_px','float64'),('jet2_py','float64'),('jet2_pz','float64'),('jet2_E','float64'),('met_pt','float64'),('met_phi','float64'),('weight','float64'),('MEM_weight_DY','float64'),('MEM_weight_TT','float64')]
+                dtype = copy.deepcopy(dtype_base)
                 # NN Outputs #
                 try:
-                    inv_outputs_DY = HyperRestore(inv_inputs,os.path.join(path_model,opt.output+'_DY_1.zip'))
+                    logging.info('Applying DY model')
+                    instance = HyperModel(opt.output,'DY')
+                    inv_outputs_DY = instance.HyperRestore(inv_inputs)
                     full_outputs = np.c_[full_outputs,inv_outputs_DY]
                     dtype.append(('output_DY','float64'))
-                    logging.info('Applying DY model')
                 except:
                     logging.warning('Could not find the DY model')
                 try:
-                    inv_outputs_TT = HyperRestore(inv_inputs,os.path.join(path_model,opt.output+'_TT_1.zip'))
+                    logging.info('Applying TT model')
+                    instance = HyperModel(opt.output,'TT')
+                    inv_outputs_TT = instance.HyperRestore(inv_inputs)
                     full_outputs = np.c_[full_outputs,inv_outputs_TT]
                     dtype.append(('output_TT','float64'))
-                    logging.info('Applying TT model')
                 except:
                     logging.warning('Could not find the TT model')
                 
@@ -372,18 +411,13 @@ def main():
 
         # Depending on user request #
         if opt.invalid_DY:
-            logging.info('='*80)
-            logging.info('Starting invalid DY output')
+            logging.info('Starting invalid DY output'.center(80,'*'))
             loop_invalid(path=parameters.path_invalid_DY,tag='DY')
 
         if opt.invalid_TT:
-            logging.info('='*80)
-            logging.info('Starting invalid TT output')
+            logging.info('Starting invalid TT output'.center(80,'*'))
             loop_invalid(path=parameters.path_invalid_TT,tag='TT')
 
-
-                
-            
 
         
    

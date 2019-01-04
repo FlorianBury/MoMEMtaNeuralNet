@@ -24,7 +24,7 @@ p = {
     'first_neuron' : [50],
     'activation' : [selu],
     'dropout' : [0],
-    'hidden_layers' : [6,7,8],
+    'hidden_layers' : [6],
     'output_activation' : [relu],
     'l2' : [0],   
     'optimizer' : [Adam],  

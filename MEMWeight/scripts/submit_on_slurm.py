@@ -23,7 +23,7 @@ config = Configuration()
 config.sbatch_partition = 'cp3'
 config.sbatch_qos = 'cp3'
 #config.sbatch_workdir = '.'
-config.sbatch_time = '0-8:00'
+config.sbatch_time = '0-12:00'
 #config.sbatch_mem = '2048'
 #config.sbatch_additionalOptions = []
 config.inputSandboxContent = []#['confs/*']
@@ -53,7 +53,7 @@ order = [
     #'TW',
     #'TbarW'
     ]
-events_per_jobs = 50
+events_per_jobs = 20
 
 #if round(args.max/events_per_jobs)>5000:
 #    n_jobs = 2000

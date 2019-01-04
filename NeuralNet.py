@@ -91,365 +91,333 @@ def InterpolationModel(x_train,y_train,x_val,y_val,params):
 
     return out,model
 
-#################################################################################################
-# HyperScan #
-#################################################################################################
-def HyperScan(x_train,y_train,name,sample,task):
-    """
-    Performs the scan for hyperparameters
-    Inputs :
-        - x_train : numpy array [:,18]
-            input training values (aka : 4-vec of 4 particles + MET)
-        - y_train : numpy array [:,2]
-            y_train = [weights, outputs (aka MEM weights)] 
-        - name : str
-            name of the dataset
-        - sample : str
-            name of the sample time : either DY or TT
-        - task : str
-            name of the dict to be used if specified (otherwise, use the full one)
-    Outputs :
-        - h = Class Scan() object
-            object from class Scan to be used by other functions
-    Reference : /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/scan/Scan.py
-    """
-    # Talos hyperscan parameters #
-    if task!='': # if task is specified load it otherwise get it from parameters.py
-        with open(os.path.join(parameters.main_path,'split',name,task), 'rb') as f:
-            p = pickle.load(f)
-    else: # We need the full dict
-        p = parameters.p
+class HyperModel:
+    #################################################################################################
+    # __init ___#
+    #################################################################################################
+    def __init__(self,name,sample):
+        self.name = name
+        self.sample = sample
+        logging.info((' Starting '+self.sample+' case ').center(80,'='))
 
-    #p = {
-    #        'lr' : 0.001,
-    #        'first_neuron' : 20,
-    #        'activation' : tanh,
-    #        'dropout' : 0.5,
-    #        'hidden_layers' : 1,
-    #        'output_activation' : relu,
-    #        'epochs' : 50,
-    #        'batch_size' : 5,
-    #        'loss_function' : binary_crossentropy,
-    #        'optimizer': RMSprop
-    #    }
-    #out, model = InterpolationModel(x_train,y_train,x_train,y_train,p)
-    #sys.exit()
-    no = 1
-    name = name+'_'+sample+task.replace('.pkl','')
-    path_name = os.path.join(parameters.main_path,'model',name)
-    while os.path.exists(path_name+str(no)+'.csv'):
-        no +=1
+    #################################################################################################
+    # HyperScan #
+    #################################################################################################
+    def HyperScan(self,x_train,y_train,task):
+        """
+        Performs the scan for hyperparameters
+        Inputs :
+            - x_train : numpy array [:,18]
+                input training values (aka : 4-vec of 4 particles + MET)
+            - y_train : numpy array [:,2]
+                y_train = [weights, outputs (aka MEM weights)] 
+            - name : str
+                name of the dataset
+            - sample : str
+                name of the sample time : either DY or TT
+            - task : str
+                name of the dict to be used if specified (otherwise, use the full one)
+        Outputs :
+            - h = Class Scan() object
+                object from class Scan to be used by other functions
+        Reference : /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/scan/Scan.py
+        """
+        logging.info(' Starting scan '.center(80,'-'))
 
+        # Records #
+        self.x_train = x_train
+        self.y_train = y_train
+        self.task = task
 
-    parallel_gpu_jobs(0.5)
-    h = Scan(  x=x_train,
-               y=y_train,
-               params=p,
-               dataset_name=name,
-               experiment_no=str(no),
-               model=InterpolationModel,
-               val_split=0.3,
-               reduction_metric='val_loss',
-               #grid_downsample=0.1,
-               #random_method='lhs',
-               #reduction_method='spear',
-               #reduction_window=1000,
-               #reduction_interval=100,
-               #last_epoch_value=True,
-               print_params=True
-            )
+        # Talos hyperscan parameters #
+        if self.task!='': # if task is specified load it otherwise get it from parameters.py
+            with open(os.path.join(parameters.main_path,'split',self.name,self.task), 'rb') as f:
+                self.p = pickle.load(f)
+        else: # We need the full dict
+            self.p = parameters.p
 
-    # returns the experiment configuration details
-    logging.info('='*80)
-    logging.debug('Details')
-    logging.debug(h.details)
+        #p = {
+        #        'lr' : 0.001,
+        #        'first_neuron' : 20,
+        #        'activation' : tanh,
+        #        'dropout' : 0.5,
+        #        'hidden_layers' : 1,
+        #        'output_activation' : relu,
+        #        'epochs' : 50,
+        #        'batch_size' : 5,
+        #        'loss_function' : binary_crossentropy,
+        #        'optimizer': RMSprop
+        #    }
+        #out, model = InterpolationModel(x_train,y_train,x_train,y_train,p)
+        #sys.exit()
+        no = 1
+        self.name = self.name+'_'+self.sample+self.task.replace('.pkl','')
+        self.path_model = os.path.join(parameters.main_path,'model',self.name)
+        while os.path.exists(self.name+str(no)+'.csv'):
+            no +=1
+        
+        self.name_model = self.name+'_'+str(no)
 
-    # Move csv file to model dir #
-    if task == '': # if not split+submit -> because submit will put it in slurm dir
-        try:
-            shutil.move(name+'_'+str(no)+'.csv',os.path.join(parameters.main_path,'model',name+'_'+str(no)+'.csv'))
-        except:
-            logging.warning('[WARNING] Could not move file to model folder')
-            logging.warning('\tAttempted to move '+(os.path.abspath(name+'_'+str(no)+'.csv') +' -> ' +os.path.join(parameters.main_path,'model',name+'_'+str(no)+'.csv'))) 
+        parallel_gpu_jobs(0.5)
+        self.h = Scan(  x=self.x_train,
+                   y=self.y_train,
+                   params=self.p,
+                   dataset_name=self.name,
+                   experiment_no=str(no),
+                   model=InterpolationModel,
+                   val_split=0.3,
+                   reduction_metric='val_loss',
+                   #grid_downsample=0.1,
+                   #random_method='lhs',
+                   #reduction_method='spear',
+                   #reduction_window=1000,
+                   #reduction_interval=100,
+                   #last_epoch_value=True,
+                   print_params=True
+                )
 
-    return h, name+'_'+str(no)
+        # returns the experiment configuration details
+        logging.info('='*80)
+        logging.debug('Details')
+        logging.debug(self.h.details)
 
 #################################################################################################
 # HyperEvaluate #
 #################################################################################################
-def HyperEvaluate(h,x_test,y_test,folds=5,name=''):
-    """
-    Performs the cross-validation of the different models
-    Inputs :
-        - h = Class Scan() object
-            object from class Scan coming from HyperScan
-        - x_test : numpy array [:,18]
-            input testing values (aka : 4-vec of 4 particles + MET)
-        - y_test : numpy array [:,1]
-            output testing values (aka : weight), not used during learning
-        - folds : int (default = 5)
-            Number of cross-validation folds
-        - name : str
-            Name of the csv file (without .csv) created by the scan
-    Outputs :
-        - idx_best_eval : idx
-            Index of best model according to cross-validation
+    def HyperEvaluate(self,x_test,y_test,folds=5):
+        """
+        Performs the cross-validation of the different models
+        Inputs :
+            - h = Class Scan() object
+                object from class Scan coming from HyperScan
+            - x_test : numpy array [:,18]
+                input testing values (aka : 4-vec of 4 particles + MET)
+            - y_test : numpy array [:,1]
+                output testing values (aka : weight), not used during learning
+            - folds : int (default = 5)
+                Number of cross-validation folds
+            - name : str
+                Name of the csv file (without .csv) created by the scan
+        Outputs :
+            - idx_best_eval : idx
+                Index of best model according to cross-validation
 
-    Reference :
-        /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/commands/evaluate.py
-    """
+        Reference :
+            /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/commands/evaluate.py
+        """
+        logging.info(' Starting evaluation '.center(80,'-'))
+
+        # Records #
+        self.x_test = x_test
+        self.y_test = y_test
 
 
-    # Predict to get number of round #
-    r = Reporting(h)
-    n_rounds = r.rounds()
+        # Predict to get number of round #
+        r = Reporting(self.h)
+        n_rounds = r.rounds()
 
-    # Evaluation #
-    logging.info('='*80)
-    scores = []
-    idx_best_model = best_model(h, 'val_loss', asc=True)
+        # Evaluation #
+        logging.info('='*80)
+        scores = []
+        self.idx_best_model = best_model(self.h, 'val_loss', asc=True)
 
-    for i in range(0,n_rounds):
-        e = Evaluate(h)
-        score = e.evaluate(x=x_test,
-                           y=y_test,
-                           model_id = i,
-                           folds=folds,
-                           shuffle=True,
-                           metric='val_loss',
-                           average='macro',
-                           asc=True  # because loss
-                          )
-        score.append(i) # score = [mean(error),std(error),model_index]
-        scores.append(score)
+        for i in range(0,n_rounds):
+            e = Evaluate(self.h)
+            score = e.evaluate(x=self.x_test,
+                               y=self.y_test,
+                               model_id = i,
+                               folds=folds,
+                               shuffle=True,
+                               metric='val_loss',
+                               average='macro',
+                               asc=True  # because loss
+                              )
+            score.append(i) # score = [mean(error),std(error),model_index]
+            scores.append(score)
 
-    # Sort scores #
-    sorted_scores = sorted(scores,key=lambda x : x[0])
-    idx_best_eval = sorted_scores[0][2]
+        # Sort scores #
+        sorted_scores = sorted(scores,key=lambda x : x[0])
+        self.idx_best_eval = sorted_scores[0][2]
 
-    # Print ordered scores #
-    count = 0
-    for m_err,std_err, idx in sorted_scores:
-        count += 1
-        if count == 10:
-            logging.info('...')
-        if count >= 10 and n_rounds-count>5: # avoids printing intermediate useless states
-            continue
-        # Print model and error in order #
-        logging.info('Model index %d -> Error = %0.5f (+/- %0.5f))'%(idx,m_err,std_err))
-        if idx==idx_best_model:
-            logging.info('\t-> Best model from val_loss')
+        # Print ordered scores #
+        count = 0
+        for m_err,std_err, idx in sorted_scores:
+            count += 1
+            if count == 10:
+                logging.info('...')
+            if count >= 10 and n_rounds-count>5: # avoids printing intermediate useless states
+                continue
+            # Print model and error in order #
+            logging.info('Model index %d -> Error = %0.5f (+/- %0.5f))'%(idx,m_err,std_err))
+            if idx==self.idx_best_model:
+                logging.info('\t-> Best model from val_loss')
 
-    logging.info('='*80)
+        logging.info('='*80)
 
-    # Prints best model accordind to cross-validation and val_loss #
+        # Prints best model accordind to cross-validation and val_loss #
 
-    logging.info('Best model from val_loss -> id %d'%(idx_best_model))
-    logging.info('Eval error : %0.5f (+/- %0.5f))'%(scores[idx_best_model][0],scores[idx_best_model][1]))
-    logging.debug(h.data.iloc[idx_best_model,:])
-    logging.info('-'*80)
+        logging.info('Best model from val_loss -> id %d'%(self.idx_best_model))
+        logging.info('Eval error : %0.5f (+/- %0.5f))'%(scores[self.idx_best_model][0],scores[self.idx_best_model][1]))
+        logging.info(self.h.data.iloc[self.idx_best_model,:])
+        logging.info('-'*80)
 
-    logging.info('Best model from cross validation -> id %d'%(idx_best_eval))
-    if idx_best_eval==idx_best_model:
-        logging.info('Same model')
-    else:
-        logging.info('Eval error : %0.5f (+/- %0.5f))'%(scores[idx_best_eval][0],scores[idx_best_eval][1]))
-        logging.debug(h.data.iloc[idx_best_eval,:])
-    logging.info('-'*80)
+        logging.info('Best model from cross validation -> id %d'%(self.idx_best_eval))
+        if self.idx_best_eval==self.idx_best_model:
+            logging.info('Same model')
+        else:
+            logging.info('Eval error : %0.5f (+/- %0.5f))'%(scores[self.idx_best_eval][0],self.scores[self.idx_best_eval][1]))
+            logging.info(self.h.data.iloc[self.idx_best_eval,:])
+        logging.info('-'*80)
 
-    # WARNING : model id's starts with 0 BUT on panda dataframe h.data, models start at 1
+        # WARNING : model id's starts with 0 BUT on panda dataframe h.data, models start at 1
 
-    # Input scan csv file #
-    try:
-        with open(os.path.join(os.getcwd(),name+'.csv'), 'r') as the_file:
-            lis=[line for line in the_file]  
-            
-        # Append the list with the error of each model #
-        lis[0] = lis[0].rstrip() 
-        lis[0] +=',eval_error,eval_std_error\n'
-        for i in range(1,len(lis)):
-            lis[i] = lis[i].rstrip()
-            lis[i] += (',%0.5f,%0.5f\n'%(scores[i-1][0],scores[i-1][1]))
+        # Add error to csv file #
+        print (self.name_model)
+        print (self.name_model+'.csv')
+        try:
+            # Input scan csv file #
+            with open(os.path.abspath(self.name_model+'.csv'), 'r') as the_file:
+                lis=[line for line in the_file]  
+                
+            # Append the list with the error of each model #
+            lis[0] = lis[0].rstrip() 
+            lis[0] +=',eval_error,eval_std_error\n'
+            for i in range(1,len(lis)):
+                lis[i] = lis[i].rstrip()
+                lis[i] += (',%0.5f,%0.5f\n'%(scores[i-1][0],scores[i-1][1]))
 
-        # Re-write the csv file #
-        with open(os.path.join(parameters.main_path,'model',name+'.csv'), 'w') as the_file:
-            for line in lis:
-                the_file.write(line)
-    except:
-        logging.warning('Could not append csv file with the model error')
-
-    
-
-    return idx_best_eval
+            # Re-write the csv file #
+            with open(os.path.abspath(self.name_model+'.csv'), 'w') as the_file:
+                for line in lis:
+                    the_file.write(line)
+        except:
+            logging.warning('Could not append csv file with the model error')
 
 #################################################################################################
 # HyperDeploy #
 #################################################################################################
-def HyperDeploy(h,name,best):
-    """
-    Performs the cross-validation of the different models
-    Inputs :
-        - h = Class Scan() object
-            object from class Scan coming from HyperScan
-        - name : str
-            Name of the model package to be saved on disk
-        - best : int
-            index of the best model
-                -> -1 : not used HyperEvaluate => select the one with lowest val_loss
-                -> >0 : comes from HyperEvaluate => the one with best error from cross-validation
+    def HyperDeploy(self,best='eval_error'):
+        """
+        Performs the cross-validation of the different models
+        Inputs :
+            - h = Class Scan() object
+                object from class Scan coming from HyperScan
+            - name : str
+                Name of the model package to be saved on disk
+            - best : str
+                index of the best model
+                    -> 'eval_error' (default) : Select the one with best error from cross-validation
+                    -> 'val_loss' : Select the one with lowest val_loss
 
-    Reference :
-        /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/commands/deploy.py
-    """
+        Reference :
+            /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/commands/deploy.py
+        """
+        logging.info(' Starting deployment '.center(80,'-'))
 
-    if best == -1:
-        idx = best_model(h, 'val_loss', asc=True)
-    else: # From HyperEvaluate
-        idx = best
+        # Check arguments #
+        if best != 'val_loss' and best != 'eval_error' : 
+            logging.critical('Model not saved as .zip due to incorrect best model parameter')
+        if self.idx_best_model==self.idx_best_eval:
+            logging.warning('Best models according to val_loss and cross-validation are the same')
 
+        # Save models #
+        if best == 'val_loss':
+            Deploy(self.h,model_name=self.name_model,best_idx=self.idx_best_model,metric='val_loss',asc=True)
+            logging.warning('Bets model saved according to val_loss')
+        if best == 'eval_error':
+            Deploy(self.h,model_name=self.name_model,best_idx=self.idx_best_eval,metric='val_loss',asc=True)
 
-    Deploy(h,model_name=name,best_idx=idx,metric='val_loss',asc=True)
-
-    try:
-        shutil.move(name+'.zip',os.path.join(parameters.main_path,'model',name+'.zip'))
-    except:
-        logging.warning('[WARNING] Could not move file to model folder, maybe folder does not exits of file already present')
-        logging.warning('\tAttempted to move '+name+'.zip'+'  ->  '+os.path.join(parameters.main_path,'model',name+'.zip')) 
-
+        # Move csv file to model dir #
+        if self.task == '': # if not split+submit -> because submit will put it in slurm dir
+            try:
+                shutil.move(self.name_model+'.csv',os.path.join(parameters.main_path,'model',self.name_model+'.csv'))
+            except:
+                logging.warning('[WARNING] Could not move file to model folder')
+                logging.warning('\tAttempted to move '+(os.path.abspath(self.name_model+'.csv') +' -> ' +os.path.join(parameters.main_path,'model',self.name_model+'.csv'))) 
+        
+        # Move zip file to model dir #
+        if self.task == '': # if not split+submit -> because submit will put it in slurm dir
+            try:
+                shutil.move(self.name_model+'.zip',os.path.join(parameters.main_path,'model',self.name_model+'.zip'))
+            except:
+                logging.warning('[WARNING] Could not move file to model folder')
+                logging.warning('\tAttempted to move '+(os.path.abspath(self.name_model+'.zip') +' -> ' +os.path.join(parameters.main_path,'model',self.name_model+'.zip'))) 
 
 #################################################################################################
 # HyperReport #
 #################################################################################################
-def HyperReport(name,sample):
-    """
-    Reports the model from csv file of previous scan
-    Plot several quantities and comparisons in dir /$name/
-    Inputs :
-        - name : str
-            Name of the csv file
-        - sample : str
-            either TT or DY 
-    Reference :
-    """
-    r = Reporting(name)
+    def HyperReport(self):
+        """
+        Reports the model from csv file of previous scan
+        Plot several quantities and comparisons in dir /$name/
+        Inputs :
+            - name : str
+                Name of the csv file
+            - sample : str
+                either TT or DY 
+        Reference :
+        """
+        logging.info(' Starting reporting '.center(80,'-'))
 
-    # returns the results dataframe
-    logging.info('='*80)
-    logging.info('Complete data after n_round = %d'%(r.rounds()))
-    logging.debug(r.data)
-    # Lowest val_loss #
-    logging.info('-'*80)
-    logging.info('Lowest val_loss = %0.5f obtained after %0.f rounds'%(r.low('val_loss'),r.rounds2high('val_loss')))
+        # Get reporting #
+        r = Reporting(os.path.join('model',self.name+'_'+self.sample+'_1'+'.csv'))
 
-    # Best params #
-    logging.info('='*80)
-    logging.info('Best parameters sets')
-    sorted_data = r.data.sort_values('val_loss',ascending=True)
-    for i in range(0,3):
+        # returns the results dataframe
+        logging.info('='*80)
+        logging.info('Complete data after n_round = %d'%(r.rounds()))
+        logging.debug(r.data)
+
+        # Lowest val_loss #
         logging.info('-'*80)
-        logging.info('Best params n°%d'%(i+1))
-        logging.info(sorted_data.iloc[i])
+        logging.info('Lowest val_loss = %0.5f obtained after %0.f rounds'%(r.low('val_loss'),r.rounds2high('val_loss')))
 
-    logging.info('='*80)
+        # Best params #
+        logging.info('='*80)
+        logging.info('Best parameters sets')
+        sorted_data = r.data.sort_values('val_loss',ascending=True)
+        for i in range(0,5):
+            logging.info('-'*80)
+            logging.info('Best params n°%d'%(i+1))
+            try:
+                logging.info(sorted_data.iloc[i])
+            except:
+                logging.warning('\tNo more parameters')
+                break
 
-    # Few plots #
-    path_plot = os.path.join(parameters.main_path,name.replace('.csv',''),'')
-    if not os.path.isdir(path_plot):
-        os.makedirs(path_plot)
-    PlotScans(data=r.data,path=path_plot)
+        logging.info('='*80)
 
-    return
-
-
-    logging.info('Starting plot section')
-    # Correlation #
-    try:
-        r.plot_corr(metric='val_loss')
-        plt.savefig(path+'/correlation.png')
-    except:
-        logging.warning('Correlation plot failed')
-
-    # val_loss VS loss #
-    try:
-        r.plot_regs('loss','val_loss')
-        plt.savefig(path+'/val_loss_VS_loss.png')
-    except:
-        logging.warning('loss-val_loss regression plot failed')
-
-    # lr vs batch #
-    try:
-        ast.bargrid(r.data,x='lr',y='val_loss',hue='batch_size')
-        plt.savefig(path+'/lr_VS_batch.png')
-    except:
-        logging.warning('lr-batch plot failed')
-
-    ast.bargrid(r.data,x='lr',y='val_loss',hue='batch_size')
-    plt.savefig(path+'/lr_VS_batch.png')
-
-    # KDE #
-    try:
-        r.plot_kde('val_loss')
-        plt.savefig(path+'/KDE_val_loss.png')
-    except:
-        logging.warning('KDE val_loss plot failed')
-
-    #r.plot_kde(x='val_loss',y='lr')
-    try:
-        ast.kde(r.data,x='val_loss',y='lr',x_label='val_loss',y_label='learning_rate')
-        plt.savefig(path+'/KDE_val_loss_lr.png')
-    except:
-        logging.warning('KDE val_loss-lr plot failed')
-
-    # Plot bars #
-    try:
-        ast.bargrid(r.data,x='epochs',y='val_loss',hue='batch_size',col='optimizer',col_wrap=2)
-        plt.savefig(path+'/barplot_1.png')
-    except:
-        logging.warning('Bar plot 1 failed')
-    try:
-        ast.bargrid(r.data,x='epochs',y='val_loss',hue='batch_size',col='loss_function',col_wrap=1)
-        plt.savefig(path+'/barplot_2.png')
-    except:
-        logging.warning('Bar plot 2 failed')
-    try:
-        ast.bargrid(r.data,x='first_neuron',y='val_loss',hue='activation',col='hidden_layers')
-        plt.savefig(path+'/barplot_3.png')
-    except:
-        logging.warning('Bar plot 3 failed')
-    try:
-        ast.bargrid(r.data,x='first_neuron',y='val_loss',hue='output_activation',col='hidden_layers')
-        plt.savefig(path+'/barplot_4.png')
-    except:
-        logging.warning('Bar plot 4 failed')
-    try:
-        ast.bargrid(r.data,x='first_neuron',y='val_loss',hue='lr',col='hidden_layers')
-        plt.savefig(path+'/barplot_5.png')
-    except:
-        logging.warning('Bar plot 5 failed')
+        # Generate dir #
+        path_plot = os.path.join(parameters.main_path,self.name+'_'+self.sample)
+        if not os.path.isdir(path_plot):
+            os.makedirs(path_plot)
+        
+        # Make plots #
+        PlotScans(data=r.data,path=path_plot)
 
 #################################################################################################
 # HyperRestore #
 #################################################################################################
-def HyperRestore(inputs,path):
-    """
-    Retrieve a zip containing the best model, parameters, x and y data, ... and restores it
-    Produces an output from the input numpy array
-    Inputs :
-        - inputs :  numpy array [:,18]
-            Inputs to be evaluated
-        - path : str
-            path to the model archive
-    Outputs
-        - output : numpy array [:,1]
-            output of the given model
+    def HyperRestore(self,inputs):
+        """
+        Retrieve a zip containing the best model, parameters, x and y data, ... and restores it
+        Produces an output from the input numpy array
+        Inputs :
+            - inputs :  numpy array [:,18]
+                Inputs to be evaluated
+            - path : str
+                path to the model archive
+        Outputs
+            - output : numpy array [:,1]
+                output of the given model
 
-    Reference :
-        /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/commands/restore.py
-    """
-    # Restore model #
-    a = Restore(path)
+        Reference :
+            /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/commands/restore.py
+        """
+        logging.info(' Starting restoration '.center(80,'-'))
+        # Restore model #
+        a = Restore(os.path.join(parameters.main_path,'model',self.name+'_'+self.sample+'_1.zip'))
 
-    # Output of the model #
-    outputs = a.model.predict(inputs)
+        # Output of the model #
+        outputs = a.model.predict(inputs)
 
-    return outputs
+        return outputs

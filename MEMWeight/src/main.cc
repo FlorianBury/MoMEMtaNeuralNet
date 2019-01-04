@@ -189,6 +189,7 @@ int main(int argc, char** argv) {
      * Loop over all input events
      */
     while (myReader.Next()) {
+        LOG(info) << "=====================================================================";
         LOG(info) << "Processing entry " << myReader.GetCurrentEntry() << " up to " << to;
         selected++;
         /*
@@ -232,14 +233,17 @@ int main(int argc, char** argv) {
         bool failed_TT = false;
         int n_start_TT = 20000;
         weight_TT_time = 0;
-        LOG(debug)<<"Starting TT weight computation";
+        LOG(info) << "---------------------------------------------------------------------";
+        LOG(info)<<"Starting TT weight computation";
         do {
+            if (n_start_TT>=2000000){
+                LOG(error)<<"Weights did not converge despite higher precision";
+                break;
+            }
             int rand_num = rand()%1000;
             failed_TT = false;
             LOG(info)<<"Random number for seed : "<<rand_num;
             LOG(info)<<"Starting eval : "<<n_start_TT<<"\tMax eval : "<<n_start_TT*20;
-            if (n_start_TT>=2000000)
-                break;
 
             ParameterSet lua_parameters;
             lua_parameters.set("random", rand_num);
@@ -275,18 +279,21 @@ int main(int argc, char** argv) {
 
 
         // DY weights 
-        LOG(debug)<<"Starting DY weight computation";
+        LOG(info) << "---------------------------------------------------------------------";
+        LOG(info)<<"Starting DY weight computation";
     
         bool failed_DY = false;
         int n_start_DY = 20000;
         weight_DY_time = 0;
         do {
+            if (n_start_DY>=2000000){
+                LOG(error)<<"Weights did not converge despite higher precision";
+                break;
+            }
             int rand_num = rand()%1000;
             failed_DY = false;
             LOG(info)<<"Random number for seed : "<<rand_num;
             LOG(info)<<"Starting eval : "<<n_start_DY<<"\tMax eval : "<<n_start_DY*20;
-            if (n_start_DY>=2000000)
-                break;
 
             ParameterSet lua_parameters;
             lua_parameters.set("random", rand_num);

@@ -44,7 +44,7 @@ def submit_on_slurm(name):
     slurm_config.inputSandboxDir = slurm_config.batchScriptsDir
     slurm_config.stageoutDir = os.path.join(slurm_working_dir, 'output')
     slurm_config.stageoutLogsDir = os.path.join(slurm_working_dir, 'logs')
-    slurm_config.stageoutFiles = ["*.csv"]
+    slurm_config.stageoutFiles = ["*.csv","*.zip"]
 
     #slurm_config.payload = config.payload.format(scan=name,task=task)
     slurm_config.payload = config.payload.format(script=out_dir+"/MoMEMtaNeuralNet.py")
