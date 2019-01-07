@@ -35,6 +35,14 @@ class SplitTraining:
         # Generate grid #
         self.param_log, self.param_grid = self._generate_grid()
         logging.info("Number of hyperparameters : "+str(self.param_grid.shape[0]))
+        if self.param_grid.shape[0] < self.params_per_job: # If more params_per_job than actual parameters, equal them
+            self.params_per_job = self.param_grid.shape[0] 
+            logging.warning('You specified a number of parameters per job higher than the actual number of parameters, will use the latter')
+        if self.params_per_job == -1: # params_per_job = number of params in set  
+            self.params_per_job = self.param_grid.shape[0]
+            logging.info('Single dict of %d parameters has been created'%(self.params_per_job))
+
+
 
         # Split the list into dict #
         self.list_dict = self._split_dict()
@@ -74,20 +82,23 @@ class SplitTraining:
         return _list_dict
 
     def _save_as_pickle(self):
-        # Remove dir if already exist #
+        # Remove content of dir if already exists #
         path_dict = os.path.join(parameters.main_path,'split',self.dir_name)
+        logging.debug('Directory containing the dict : %s'%(path_dict))
         if os.path.exists(path_dict):
-            shutil.rmtree(path_dict) 
-
-        # Create dir #
-        os.makedirs(path_dict)
+            logging.debug('Removing older files')
+            for file_pkl in glob.glob(os.path.join(path_dict,'*.pkl')):
+                logging.debug('Removed file %s'%(file_pkl)) 
+                os.remove(file_pkl)
+        else:
+            os.makedirs(path_dict)
 
         # Dump each dict into separate pkl file #
         for i,d in enumerate(self.list_dict):
             logging.debug("Writing the dict - current status : %d/%d"%(i,len(self.list_dict)))
             with open(path_dict+'/dict_'+str(i)+'.pkl', 'wb') as f: 
                 pickle.dump(d, f)  
-        logging.info('Generated %d dict of parameters at \n\t%s'%(len(self.list_dict),path_dict))
+        logging.info('Generated %d dict of parameters at \t%s'%(len(self.list_dict),path_dict))
 
 #################################################################################################
 # DictSplit #
@@ -98,14 +109,7 @@ def DictSplit(params_per_job,name):
     # Retrieve Hyperparameter dict #    
     p = parameters.p
 
-    if params_per_job == -1: # params_per_job = number of params in set  
-        tot = 0
-        for val in p.values():
-            tot += len(val)
-        params_per_job = tot
-        logging.info('Single dict of %d parameters has been created'%(params_per_job))
-
-    # Split into sub dict #
+       # Split into sub dict #
     SplitTraining(p,params_per_job=params_per_job,dir_name=name)
 
 if __name__ == '__main__':

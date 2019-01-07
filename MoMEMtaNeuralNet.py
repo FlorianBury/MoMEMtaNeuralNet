@@ -43,12 +43,14 @@ def get_options():
     a.add_argument('-task','--task', action='store', required=False, type=str, default='',
         help='Name of dict to be used for scan (Used by function itself when submitting jobs or DEBUG)')
 
-    # Splitting and submitting arguments #
-    b = parser.add_argument_group('Splitting and submitting arguments')
+    # Splitting and submitting jobs arguments #
+    b = parser.add_argument_group('Splitting and submitting jobs arguments')
     b.add_argument('-split','--split', action='store', required=False, type=int, default=0,
         help='Number of parameter sets per jobs to be used for splitted training for slurm submission (if -1, will create a single subdict)')
     b.add_argument('-submit','--submit', action='store', required=False, default='', type=str,
         help='Wether to submit on slurm and nname for the save (must have specified --split)')
+    b.add_argument('-debug','--debug', action='store_true', required=False, default=False,
+        help='Debug mode of the slurm submission, does everything except submit the jobs')
 
     # Analyzing or producing outputs for given model (csv or zip file) #
     c = parser.add_argument_group('Analyzing or producing outputs for given model (csv or zip file)')
@@ -136,7 +138,10 @@ def main():
 
         if opt.submit!='':
             logging.info('Submitting jobs')
-            submit_on_slurm(name=opt.submit)
+            if not opt.debug:
+                submit_on_slurm(name=opt.submit)
+            else:
+                logging.info("Don't worry, the jobs were not sent")
         sys.exit()
 
     #############################################################################################
