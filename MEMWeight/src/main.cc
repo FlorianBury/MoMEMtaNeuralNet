@@ -269,10 +269,10 @@ int main(int argc, char** argv) {
             LOG(info) << "Weight computed in " << weight_TT_time << "ms";
 
             // If weights did not converge 
-            if (USE_RECOMPUTE == true and weight_TT<weight_TT_err){ 
+            if (USE_RECOMPUTE == true and weight_TT<=weight_TT_err){ 
                 LOG(warning) << "TT weights dit not converge, will increase precision";
                 failed_TT = true;
-                n_start_TT += 200000;
+                n_start_TT += 400000;
             }
         }
         while (failed_TT);
@@ -317,10 +317,10 @@ int main(int argc, char** argv) {
             LOG(info)<<" -> DY result: " << weight_DY << " +- " << weight_DY_err;
             LOG(info) << "Weight computed in " << weight_DY_time << "ms";
             // If weights did not converge 
-            if (USE_RECOMPUTE == true && weight_DY<weight_DY_err){ 
+            if (USE_RECOMPUTE == true && weight_DY<=weight_DY_err){ 
                 LOG(warning) << "DY weights dit not converge, will increase precision";
                 failed_DY = true;
-                n_start_DY += 200000;
+                n_start_DY += 400000;
             }
  
        }

@@ -7,6 +7,7 @@ import json
 import shutil
 import pickle
 import pprint
+import logging
 
 import numpy as np
 import itertools
@@ -33,6 +34,7 @@ class SplitTraining:
 
         # Generate grid #
         self.param_log, self.param_grid = self._generate_grid()
+        logging.info("Number of hyperparameters : "+str(self.param_grid.shape[0]))
 
         # Split the list into dict #
         self.list_dict = self._split_dict()
@@ -51,6 +53,7 @@ class SplitTraining:
     def _split_dict(self):
         _list_dict = []
         i = 0
+        count = 0
         for param in self.param_grid:
             if i==0:
                 # Initialize dict #
@@ -63,10 +66,11 @@ class SplitTraining:
                 one_dict[k].append(p)
 
             i += 1
+            count += 1
             if i == self.params_per_job:
                 i=0
                 _list_dict.append(one_dict)
-
+            logging.debug("Creating the list - current status : %d/%d"%(count,self.param_grid.shape[0]))
         return _list_dict
 
     def _save_as_pickle(self):
@@ -80,9 +84,10 @@ class SplitTraining:
 
         # Dump each dict into separate pkl file #
         for i,d in enumerate(self.list_dict):
+            logging.debug("Writing the dict - current status : %d/%d"%(i,len(self.list_dict)))
             with open(path_dict+'/dict_'+str(i)+'.pkl', 'wb') as f: 
                 pickle.dump(d, f)  
-        print ('[INFO] Generated ',len(self.list_dict),' dict of parameters at \n\t',path_dict)
+        logging.info('Generated %d dict of parameters at \n\t%s'%(len(self.list_dict),path_dict))
 
 #################################################################################################
 # DictSplit #
@@ -99,6 +104,7 @@ def DictSplit(params_per_job,name):
             tot += len(val)
         params_per_job = tot
         logging.info('Single dict of %d parameters has been created'%(params_per_job))
+
     # Split into sub dict #
     SplitTraining(p,params_per_job=params_per_job,dir_name=name)
 
