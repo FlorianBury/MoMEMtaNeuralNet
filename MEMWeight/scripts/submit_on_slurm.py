@@ -1,5 +1,6 @@
 #! /bin/env python
 
+import glob
 import argparse
 import copy
 import os
@@ -15,6 +16,7 @@ parser = argparse.ArgumentParser(description='Compute weights on the cluster.')
 parser.add_argument('-n', '--name', type=str, help='Name of the production', required=True)
 parser.add_argument('-i', '--input', type=str, help='Input file', required=True)
 parser.add_argument('-m', '--max', type=int, help='Maximum number of events to process', required=True)
+parser.add_argument('-c', '--check', type=str, help='Check the given path and avoids to send the outputs already been processed', required=False,default='')
 
 args = parser.parse_args()
 
@@ -23,7 +25,7 @@ config = Configuration()
 config.sbatch_partition = 'cp3'
 config.sbatch_qos = 'cp3'
 #config.sbatch_workdir = '.'
-config.sbatch_time = '0-12:00'
+config.sbatch_time = '0-5:00'
 #config.sbatch_mem = '2048'
 #config.sbatch_additionalOptions = []
 config.inputSandboxContent = []#['confs/*']
@@ -53,7 +55,7 @@ order = [
     #'TW',
     #'TbarW'
     ]
-events_per_jobs = 20
+events_per_jobs = 5
 
 #if round(args.max/events_per_jobs)>5000:
 #    n_jobs = 2000
@@ -89,8 +91,23 @@ for dataset in order:
 
     print ('Sending %0.f jobs'%(len(jobs)))        
 
+    # Check #
+    list_check = []
+    if args.check != '':
+        print (args.check)
+        for f in glob.glob(args.check+'/*.root'):
+            filename = f.replace(args.check,'')
+            list_check.append(filename)
+        if len(list_check)==0:
+            print ('Wait ... could not find previous root files, is the path correct ?')
+            sys.exit(1)
+
+    # Detail jobs #
     for i, job in enumerate(jobs):
         job_output = "{}_{}.root".format(output, i)
+        if job_output in list_check:
+            print (job_output+' -> Already done')
+            continue
         slurm_config.inputParams.append([job[0], job[1],args.input, job_output])
 
     # Submit job!

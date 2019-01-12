@@ -69,11 +69,17 @@ class ConcatenateCSV:
             # Write each test line by line #
             for i in range(0,self.counter): # loop over the elements values of the dict
                 test_line = []
-                valid_test = True # If valid, can append to file 
-                for val in self.dict_tot.values(): # only select the i-th element
+                valid_loss = True 
+                valid_error = True # If valid, can append to file 
+                for key,val in self.dict_tot.items(): # only select the i-th element
                     # check if negative values -> likely an overflow #
-                    if not isinstance(val[i],str) and val[i]<0:
-                        valid_test = False
+                    if key == 'val_loss' and val[i]<0:
+                        valid_loss = False
+                        logging.warning('Val_loss negative (%0.5f), will remove it from full csv file'%(val[i]))
+                    # check overflow in eval_error #
+                    if key == 'eval_error' and val[i]>100:
+                        valid_error = False
+                        logging.warning('Eval_error too large (%0.2f), will remove it from full csv file'%(val[i]))
                             
                     # Check if string -> acti or opt -> must correct #
                     if isinstance(val[i],str):
@@ -84,14 +90,16 @@ class ConcatenateCSV:
                     else:
                         test_line.append(val[i])
 
-                if valid_test:
+                if valid_error:
                     w.writerow(test_line)
-                else:
+                    
+                if not valid_error or not valid_loss:
                     invalid_counter += 1
-                    logging.debug(test_line)
+                    logging.debug("Negative val_loss or overflow in eval_error")
+                    # We don't want these values anyway because eval_error will be the largest 
 
         logging.info('CSV file saved as %s'%(self.path_out))
-        logging.info('Invalid line, total %d/%d'%(invalid_counter,self.counter))
+        logging.info('Invalid cases (overflow), total %d/%d'%(invalid_counter,self.counter))
 
 def _correct(obj):
     # Corrects the <function relu at 0x{12}> -> relu

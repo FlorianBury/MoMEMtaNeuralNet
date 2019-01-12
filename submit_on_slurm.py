@@ -22,7 +22,7 @@ def submit_on_slurm(name):
     config.sbatch_partition = 'cp3'
     config.sbatch_qos = 'cp3'
     config.sbatch_workdir = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/'
-    config.sbatch_time = '0-8:00'
+    config.sbatch_time = '0-2:00'
     config.sbatch_mem = '4048'
     config.sbatch_additionalOptions = []
     config.inputSandboxContent = []

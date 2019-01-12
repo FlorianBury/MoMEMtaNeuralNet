@@ -272,8 +272,6 @@ class HyperModel:
         # WARNING : model id's starts with 0 BUT on panda dataframe h.data, models start at 1
 
         # Add error to csv file #
-        print (self.name_model)
-        print (self.name_model+'.csv')
         try:
             # Input scan csv file #
             with open(os.path.abspath(self.name_model+'.csv'), 'r') as the_file:
@@ -360,21 +358,35 @@ class HyperModel:
         logging.info(' Starting reporting '.center(80,'-'))
 
         # Get reporting #
-        r = Reporting(os.path.join('model',self.name+'_'+self.sample+'_1'+'.csv'))
+        report_file = os.path.join('model',self.name+'_'+self.sample+'_1'+'.csv')
+        if os.path.exists(report_file):
+            r = Reporting(report_file)
+        else:
+            logging.critical('Could not find %s'%(report_file))
+            sys.exit(1)
 
         # returns the results dataframe
         logging.info('='*80)
         logging.info('Complete data after n_round = %d'%(r.rounds()))
         logging.debug(r.data)
 
-        # Lowest val_loss #
+        # Lowest eval_error #
         logging.info('-'*80)
-        logging.info('Lowest val_loss = %0.5f obtained after %0.f rounds'%(r.low('val_loss'),r.rounds2high('val_loss')))
+        try:
+            logging.info('Lowest eval_error = %0.5f obtained after %0.f rounds'%(r.low('eval_error'),r.rounds2high('eval_error')))
+        except:
+            logging.warning("Could not find key 'eval_error', will switch to 'val_loss'")
+            logging.info('Lowest val_loss = %0.5f obtained after %0.f rounds'%(r.low('val_loss'),r.rounds2high('val_loss')))
 
         # Best params #
         logging.info('='*80)
         logging.info('Best parameters sets')
-        sorted_data = r.data.sort_values('val_loss',ascending=True)
+        try:
+            sorted_data = r.data.sort_values('eval_error',ascending=True)
+        except:
+            logging.warning("Could not find key 'eval_error', will swith to val_loss")
+            sorted_data = r.data.sort_values('val_loss',ascending=True)
+
         for i in range(0,5):
             logging.info('-'*80)
             logging.info('Best params n°%d'%(i+1))
@@ -387,10 +399,11 @@ class HyperModel:
         logging.info('='*80)
 
         # Generate dir #
-        path_plot = os.path.join(parameters.main_path,self.name+'_'+self.sample)
+        path_plot = os.path.join(parameters.main_path,'model',self.name+'_'+self.sample)
         if not os.path.isdir(path_plot):
             os.makedirs(path_plot)
         
+        logging.info('Starting plots')
         # Make plots #
         PlotScans(data=r.data,path=path_plot)
 
