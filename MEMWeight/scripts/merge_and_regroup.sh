@@ -9,9 +9,10 @@ for dir in $path; do
     fi
     name=$(echo $dir | cut -c70-)
     echo "Directory : "$dir
+    echo "Name : "$name
 
     # Indide output #
-    pushd $dir"/output/"  
+    pushd $dir"/output/" > /dev/null
     pwd
 
     if [ -f "output.root" ]; then
@@ -23,6 +24,6 @@ for dir in $path; do
     mv output.root $name".root"
     mv $name".root" ../../
 
-    popd 
+    popd > /dev/null
 
 done 

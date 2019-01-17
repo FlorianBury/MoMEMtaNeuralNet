@@ -36,6 +36,12 @@ def setTDRStyle():
   tdrStyle.SetFrameLineColor(1)
   tdrStyle.SetFrameLineStyle(1)
   tdrStyle.SetFrameLineWidth(1)
+
+# For teh Legend
+  tdrStyle.SetLegendBorderSize(1)
+  tdrStyle.SetLegendFillColor(0)
+  tdrStyle.SetLegendFont(42)
+  tdrStyle.SetLegendTextSize(0.)
   
 #For the histo:
   #tdrStyle.SetHistFillColor(1)

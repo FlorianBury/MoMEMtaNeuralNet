@@ -231,24 +231,23 @@ def main():
     x_test_DY = data_DY[mask_DY==False,:18]
     x_test_TT = data_TT[mask_TT==False,:18]
 
-    y_train_HToZA = -np.log10(data_HToZA[mask_HToZA==True,18:])
-    y_train_DY = -np.log10(data_DY[mask_DY==True,18:])
-    y_train_TT = -np.log10(data_TT[mask_TT==True,18:])
-    y_test_HToZA = -np.log10(data_HToZA[mask_HToZA==False,18:])
-    y_test_DY = -np.log10(data_DY[mask_DY==False,18:])
-    y_test_TT = -np.log10(data_TT[mask_TT==False,18:])
+    # Rescale outputs #
+    max_log_weight = np.amax(np.concatenate((data_HToZA[:,18:],data_DY[:,18:],data_TT[:,18:]),axis=0),axis=0)
 
+    y_train_HToZA = -np.log10(data_HToZA[mask_HToZA==True,18:]/max_log_weight)
+    y_train_DY = -np.log10(data_DY[mask_DY==True,18:]/max_log_weight)
+    y_train_TT = -np.log10(data_TT[mask_TT==True,18:]/max_log_weight)
+    y_test_HToZA = -np.log10(data_HToZA[mask_HToZA==False,18:]/max_log_weight)
+    y_test_DY = -np.log10(data_DY[mask_DY==False,18:]/max_log_weight)
+    y_test_TT = -np.log10(data_TT[mask_TT==False,18:]/max_log_weight)
+    
     w_train_HToZA = weight_HToZA[mask_HToZA==True]
     w_train_DY = weight_DY[mask_DY==True]
     w_train_TT = weight_TT[mask_TT==True]
     w_test_HToZA = weight_HToZA[mask_HToZA==False]
     w_test_DY = weight_DY[mask_DY==False]
     w_test_TT = weight_TT[mask_TT==False]
-   
-    #x_train_HToZA, x_test_HToZA, y_train_HToZA, y_test_HToZA, w_train_HToZA, w_test_HToZA = train_test_split(data_HToZA[:,:18],-np.log10(data_HToZA[:,18:]),weight_HToZA,test_size=0.3,shuffle=True)
-    #x_train_DY, x_test_DY, y_train_DY, y_test_DY, w_train_DY, w_test_DY = train_test_split(data_DY[:,:18],-np.log10(data_DY[:,18:]),weight_DY,test_size=0.3,shuffle=True)
-    #x_train_TT, x_test_TT, y_train_TT, y_test_TT, w_train_TT, w_test_TT = train_test_split(data_TT[:,:18],-np.log10(data_TT[:,18:]),weight_TT,test_size=0.3,shuffle=True)
-
+        
     # y -> [weight_DY, weight_TT]
 
     #all_train = np.concatenate((x_train_HToZA,x_train_DY,x_train_TT),axis=0)
@@ -306,9 +305,15 @@ def main():
         
     if opt.output!='': 
         # Make path #
-        path_model_output = os.path.join(path_out,opt.output)
+        path_model_output = os.path.join(path_out,opt.output,'valid_weights')
+        path_model_output_inv_dy = os.path.join(path_out,opt.output,'invalid_DY_weights')
+        path_model_output_inv_tt = os.path.join(path_out,opt.output,'invalid_TT_weights')
         if not os.path.exists(path_model_output):
             os.makedirs(path_model_output)
+        if not os.path.exists(path_model_output_inv_dy):
+            os.makedirs(path_model_output_inv_dy)
+        if not os.path.exists(path_model_output_inv_tt):
+            os.makedirs(path_model_output_inv_tt)
 
         # Make basic dtype #
         dtype_base = [('lep1_px','float64'),
@@ -409,7 +414,13 @@ def main():
                 
                 # Save to file #
                 full_outputs.dtype = dtype
-                output_name = os.path.join(path_model_output,'invalid_'+tag+'_'+inv_name+'.root')
+                if tag=='DY':
+                    output_name = os.path.join(path_model_output_inv_dy,inv_name+'.root')
+                elif tag=='TT':
+                    output_name = os.path.join(path_model_output_inv_tt,inv_name+'.root')
+                else:
+                    logging.error('Incorrect tag for invalid evaluation')
+
                 array2root(full_outputs,output_name,mode='recreate')
                 logging.info('Output saved as : '+output_name)
 

@@ -69,9 +69,9 @@ def InterpolationModel(x_train,y_train,x_val,y_val,params):
     #utils.print_summary(model=model) #used to print model
 
     # Callbacks #
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=10, verbose=1, mode='min')
-    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, verbose=1, mode='min', epsilon=0.00001, cooldown=0, min_lr=0.00001)
-    Callback_list = [early_stopping]
+    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=20, verbose=1, mode='min')
+    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, verbose=1, mode='min', epsilon=0.001, cooldown=0, min_lr=0.00001)
+    Callback_list = [early_stopping,reduceLR]
 
     # Compile #
     model.compile(optimizer=params['optimizer'](lr_normalizer(params['lr'], params['optimizer'])),
@@ -405,7 +405,7 @@ class HyperModel:
         
         logging.info('Starting plots')
         # Make plots #
-        PlotScans(data=r.data,path=path_plot)
+        PlotScans(data=r.data,path=path_plot,tag=self.sample)
 
 #################################################################################################
 # HyperRestore #
