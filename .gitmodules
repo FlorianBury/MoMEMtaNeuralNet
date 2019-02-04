@@ -1,6 +1,8 @@
 [submodule "talos"]
 	path = talos
 	url = git@github.com:FlorianBury/talos.git
+        branch = MoMEMtaNeuralNet
 [submodule "TalosGithub"]
 	path = TalosGithub
 	url = git@github.com:FlorianBury/talos.git
+        branch = MoMEMtaNeuralNet
