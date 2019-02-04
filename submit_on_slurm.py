@@ -31,7 +31,7 @@ def submit_on_slurm(name):
     config.inputParams = []
 
     config.payload = """
-    python {script} --scan ${{scan}} --task ${{task}} --DY --TT  
+    python {script} --scan ${{scan}} --task ${{task}} --TT  
     """
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')

@@ -69,7 +69,7 @@ def InterpolationModel(x_train,y_train,x_val,y_val,params):
     #utils.print_summary(model=model) #used to print model
 
     # Callbacks #
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0.0001, patience=20, verbose=1, mode='min')
+    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0., patience=10, verbose=1, mode='min')
     reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, verbose=1, mode='min', epsilon=0.001, cooldown=0, min_lr=0.00001)
     Callback_list = [early_stopping,reduceLR]
 
@@ -265,7 +265,7 @@ class HyperModel:
         if self.idx_best_eval==self.idx_best_model:
             logging.info('Same model')
         else:
-            logging.info('Eval error : %0.5f (+/- %0.5f))'%(scores[self.idx_best_eval][0],self.scores[self.idx_best_eval][1]))
+            logging.info('Eval error : %0.5f (+/- %0.5f))'%(scores[self.idx_best_eval][0],scores[self.idx_best_eval][1]))
             logging.info(self.h.data.iloc[self.idx_best_eval,:])
         logging.info('-'*80)
 
@@ -321,7 +321,7 @@ class HyperModel:
         # Save models #
         if best == 'val_loss':
             Deploy(self.h,model_name=self.name_model,best_idx=self.idx_best_model,metric='val_loss',asc=True)
-            logging.warning('Bets model saved according to val_loss')
+            logging.warning('Best model saved according to val_loss')
         if best == 'eval_error':
             Deploy(self.h,model_name=self.name_model,best_idx=self.idx_best_eval,metric='val_loss',asc=True)
 

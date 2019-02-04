@@ -11,9 +11,10 @@ from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT
 import CMS_lumi
 import tdrstyle
 
-from Classes import Plot_TH1, Plot_TH2, Plot_Ratio_TH1#, PlotOnCanvas
+from Classes import Plot_TH1, Plot_TH2, Plot_Ratio_TH1, Plot_ROC, LoopPlotOnCanvas, MakeROCPlot
 
 gROOT.SetBatch(True)
+ROOT.gErrorIgnoreLevel = 2000#[ROOT.kPrint, ROOT.kInfo]#, kWarning, kError, kBreak, kSysError, kFatal;
 
 def main():
     #############################################################################################
@@ -38,96 +39,174 @@ def main():
     #############################################################################################
     INPUT_DIR = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/'
     INPUT_VALID = os.path.join(INPUT_DIR,'NNOutput',opt.model,'valid_weights')
-    INPUT_INVALID_DY = os.path.join(INPUT_DIR,'NNOutput',opt.model,'invalid_DY_weights')
-    INPUT_INVALID_TT = os.path.join(INPUT_DIR,'NNOutput',opt.model,'invalid_TT_weights')
+    INPUT_INVALID = os.path.join(INPUT_DIR,'NNOutput',opt.model,'invalid_{}_weights')
+
+    OUTPUT_PDF = os.path.join(os.getcwd(),'PDF',opt.model)
+    OUTPUT_YAML= os.path.join(os.getcwd(),'YAML')
+    if not os.path.exists(OUTPUT_PDF):
+        os.makedirs(OUTPUT_PDF)
+    if not os.path.exists(OUTPUT_YAML):
+        os.makedirs(OUTPUT_YAML)
 
     # List that will gather the root ZA_plotter_allhistos #
-    list_histo = []
+    list_histo_valid = []
+    list_histo_invalid = []
 
-    #############################################################################################
-    # Valid weights output #
-    #############################################################################################
+
+    ######################################## VALID ##############################################
     logging.info('Starting Plotting the valid weights')
     f_valid =  glob.glob(INPUT_VALID+'/*.root')
 
     if len(f_valid) == 0:
         logging.error('Could not find the valid weights at %s'%(INPUT_VALID))
-        sys.exit(1)
 
+    # Start ROC curve #
+    instance_ROC_MEM = Plot_ROC('MEM_weight_TT','MEM_weight_DY','MEM')
+    instance_ROC_DNN = Plot_ROC('output_TT','output_DY','DNN')
     # Loop over files #
     for f in f_valid:
         filename = f.replace(INPUT_VALID+'/','').replace('.root','')
-        logging.info('Processing %s'%(filename))
+        logging.info('Processing valid weights from %s'%(filename))
         
         # Particularize TH1 YAML file #
         with open('TH1.yml.tpl') as tpl_handle:
             tpl = tpl_handle.read()
-            tpl = tpl.format(file=f, name=filename)
-            with open('TH1_'+filename+'.yml', 'w') as out_yml:
+            tpl = tpl.format(file=f, name=filename, cut="''",category='')
+            with open(OUTPUT_YAML+'/TH1_'+filename+'.yml', 'w') as out_yml:
                 out_yml.write(tpl)
 
-         # Particularize TH1 YAML file #
+         # Particularize TH1 Ratio YAML file #
         with open('TH1Ratio.yml.tpl') as tpl_handle:
             tpl = tpl_handle.read()
-            tpl = tpl.format(file=f, name=filename)
-            with open('TH1Ratio_'+filename+'.yml', 'w') as out_yml:
+            tpl = tpl.format(file=f, name=filename, cut="''",category='')
+            with open(OUTPUT_YAML+'/TH1Ratio_'+filename+'.yml', 'w') as out_yml:
                 out_yml.write(tpl)
 
         # Particularize TH2 YAML file #
         with open('TH2.yml.tpl') as tpl_handle:
             tpl = tpl_handle.read()
-            tpl = tpl.format(file=f, name=filename)
-            with open('TH2_'+filename+'.yml', 'w') as out_yml:
+            tpl = tpl.format(file=f, name=filename, cut="''",category='')
+            with open(OUTPUT_YAML+'/TH2_'+filename+'.yml', 'w') as out_yml:
                 out_yml.write(tpl)
         
         # Parse and load YAML file #
-        with open('TH1_'+filename+'.yml', 'r') as stream:
+        with open(OUTPUT_YAML+'/TH1_'+filename+'.yml', 'r') as stream:
             config_TH1 = yaml.load(stream) # Dict of dicts 
-        with open('TH1Ratio_'+filename+'.yml', 'r') as stream:
+        with open(OUTPUT_YAML+'/TH1Ratio_'+filename+'.yml', 'r') as stream:
             config_TH1_ratio = yaml.load(stream) # Dict of dicts 
-        with open('TH2_'+filename+'.yml', 'r') as stream:
+        with open(OUTPUT_YAML+'/TH2_'+filename+'.yml', 'r') as stream:
             config_TH2 = yaml.load(stream) # Dict of dicts 
+
+        # If DY or TT, add to ROC #
+        if os.path.basename(f).startswith('DY'):
+            instance_ROC_MEM.AddToROC(f,'tree','DY')
+            instance_ROC_DNN.AddToROC(f,'tree','DY')
+        elif os.path.basename(f).startswith('TT'):
+            instance_ROC_MEM.AddToROC(f,'tree','TT')
+            instance_ROC_DNN.AddToROC(f,'tree','TT')
+
          
-        
+        # Create list of histo # 
         for name,dict_histo in config_TH1.items():
             logging.info('\tPlot %s'%(name))
             instance = Plot_TH1(**dict_histo)
-            instance.ReturnHisto()
-            list_histo.append(instance)
+            instance.MakeHisto()
+            list_histo_valid.append(instance)
 
         for name,dict_histo in config_TH1_ratio.items():
             logging.info('\tPlot %s'%(name))
             instance = Plot_Ratio_TH1(**dict_histo)
-            instance.ReturnHisto()
-            list_histo.append(instance)
+            instance.MakeHisto()
+            list_histo_valid.append(instance)
 
         for name,dict_histo in config_TH2.items():
             logging.info('\tPlot %s'%(name))
             instance = Plot_TH2(**dict_histo)
-            instance.ReturnHisto()
-            list_histo.append(instance)
+            instance.MakeHisto()
+            list_histo_valid.append(instance)
+
+    instance_ROC_MEM.ProcessROC()
+    instance_ROC_DNN.ProcessROC()
+    MakeROCPlot([instance_ROC_MEM],os.path.join(OUTPUT_PDF,'ROC_MEM'))
+    MakeROCPlot([instance_ROC_DNN],os.path.join(OUTPUT_PDF,'ROC_DNN'))
+    MakeROCPlot([instance_ROC_MEM,instance_ROC_DNN],os.path.join(OUTPUT_PDF,'ROC_MEM_vs_DNN'))
+    
+    ####################################### INVALID #############################################
+    invalid_cat = ['DY','TT']
+
+
+    # Loop over invalid categories #
+    for cat in invalid_cat:
+        f_inv = glob.glob(INPUT_INVALID.format(cat)+'/*.root')
+        temp_list = []
+        if len(f_inv) == 0:
+            logging.error('Could not find the invalid weights at %s'%(INPUT_VALID.format(cat)))
+        # Start ROC curve #
+        instance_ROC_MEM = Plot_ROC('MEM_weight_TT','MEM_weight_DY','Invalid {} MEM'.format(cat),"MEM_weight_{0}>MEM_weight_{0}_err".format(cat))
+        instance_ROC_DNN = Plot_ROC('output_TT','output_DY','Invalid {} DNN'.format(cat),"MEM_weight_{0}>MEM_weight_{0}_err".format(cat))
+
+        # Loop over files over one category #
+        for f in f_inv:
+            filename = f.replace(INPUT_INVALID.format(cat)+'/','').replace('_invalid_{}.root'.format(cat),'')
+            logging.info('Processing invalid %s weights from %s'%(cat,filename))
+
+            # If DY or TT, add to ROC #
+            if os.path.basename(f).startswith('DY'):
+                instance_ROC_MEM.AddToROC(f,'tree','DY')
+                instance_ROC_DNN.AddToROC(f,'tree','DY')
+            elif os.path.basename(f).startswith('TT'):
+                instance_ROC_MEM.AddToROC(f,'tree','TT')
+                instance_ROC_DNN.AddToROC(f,'tree','TT')
+
+
+             # Particularize TH1 Ratio YAML file #
+            with open('TH1Ratio.yml.tpl') as tpl_handle:
+                tpl = tpl_handle.read()
+                tpl = tpl.format(file=f, name=filename, cut="'MEM_weight_{0}>MEM_weight_{0}_err'".format(cat),category='Invalid {}'.format(cat))
+                with open(OUTPUT_YAML+'/TH1Ratio_INV_{}_'.format(cat)+filename+'.yml', 'w') as out_yml:
+                    out_yml.write(tpl)
+
+            with open('TH2.yml.tpl') as tpl_handle:
+                tpl = tpl_handle.read()
+                tpl = tpl.format(file=f, name=filename, cut="'MEM_weight_{0}>MEM_weight_{0}_err'".format(cat),category='Invalid {}'.format(cat))
+                with open(OUTPUT_YAML+'/TH2_INV_{}_'.format(cat)+filename+'.yml', 'w') as out_yml:
+                    out_yml.write(tpl)
+
+            # Parse and load YAML file #
+            with open(OUTPUT_YAML+'/TH1Ratio_INV_{}_'.format(cat)+filename+'.yml', 'r') as stream:
+                config_TH1_ratio = yaml.load(stream) # Dict of dicts 
+            with open(OUTPUT_YAML+'/TH2_INV_{}_'.format(cat)+filename+'.yml', 'r') as stream:
+                config_TH2 = yaml.load(stream) # Dict of dicts 
+             
+            # Create list of histo # 
+            for name,dict_histo in config_TH1_ratio.items():
+                logging.info('\tPlot %s'%(name))
+                instance = Plot_Ratio_TH1(**dict_histo)
+                instance.MakeHisto()
+                temp_list.append(instance)
+            for name,dict_histo in config_TH2.items():
+                logging.info('\tPlot %s'%(name))
+                instance = Plot_TH2(**dict_histo)
+                instance.MakeHisto()
+                temp_list.append(instance)
+
+        # Make and save ROC #
+        instance_ROC_MEM.ProcessROC()
+        instance_ROC_DNN.ProcessROC()
+        MakeROCPlot([instance_ROC_MEM],os.path.join(OUTPUT_PDF,'Invalid_{}_ROC_MEM'.format(cat)))
+        MakeROCPlot([instance_ROC_DNN],os.path.join(OUTPUT_PDF,'Invalid_{}_ROC_DNN'.format(cat)))
+        MakeROCPlot([instance_ROC_MEM,instance_ROC_DNN],os.path.join(OUTPUT_PDF,'Invalid_{}_ROC_MEM_vs_DNN'.format(cat)))
+    
+        # Append in list #
+        list_histo_invalid.append(temp_list)
+
     #############################################################################################
     # Save histograms #
     #############################################################################################
-    # Save to root file #
-    f_root = TFile(opt.model+".root", "recreate")
-    for idx,inst in enumerate(list_histo,1):
-            # inst is a class object -> inst.histo = TH1/TH2
-            if idx==1:
-                c2 = TCanvas()
-                c2.Print(opt.model+'.pdf[')
-                inst.PlotOnCanvas(pdf_name=opt.model+'.pdf')
-            elif idx==len(list_histo):
-                inst.PlotOnCanvas(pdf_name=opt.model+'.pdf')
-                c2 = TCanvas()
-                c2.Print(opt.model+'.pdf]')
-            else:
-                inst.PlotOnCanvas(pdf_name=opt.model+'.pdf')
-
-            #for h in inst.histo:
-            #    print (type(h))
-            #inst.histo.Write()
-
+    LoopPlotOnCanvas(os.path.join(OUTPUT_PDF,opt.model+'_valid'),list_histo_valid)
+    for i,cat in enumerate(invalid_cat):
+        LoopPlotOnCanvas(os.path.join(OUTPUT_PDF,opt.model+'_invalid_{}'.format(cat)),list_histo_invalid[i])
+    logging.info("All Canvas have been printed")
 
         
         

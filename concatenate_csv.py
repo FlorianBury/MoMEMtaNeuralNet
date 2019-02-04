@@ -77,7 +77,7 @@ class ConcatenateCSV:
                         valid_loss = False
                         logging.warning('Val_loss negative (%0.5f), will remove it from full csv file'%(val[i]))
                     # check overflow in eval_error #
-                    if key == 'eval_error' and val[i]>100:
+                    if key == 'eval_error' and val[i]>1000:
                         valid_error = False
                         logging.warning('Eval_error too large (%0.2f), will remove it from full csv file'%(val[i]))
                             

@@ -73,7 +73,6 @@ def CopyZip(path_in,path_out):
     # Unzip in tmp dir #
     with zipfile.ZipFile(path_in,"r") as zip_ref:
         tmp_dir = os.path.join(dir_in,'tmp_'+name_in.replace('.zip',''))
-        print (tmp_dir)
         zip_ref.extractall(tmp_dir)
     # Loop over the tmp dir  and rename each file accordint to desired output #
     for f in glob.glob(tmp_dir+'/*'):
