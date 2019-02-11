@@ -10,6 +10,7 @@ import pprint
 import logging
 
 import numpy as np
+import pandas as pd
 import itertools
 
 from talos.parameters.ParamGrid import ParamGrid
@@ -101,16 +102,94 @@ class SplitTraining:
         logging.info('Generated %d dict of parameters at \t%s'%(len(self.list_dict),path_dict))
 
 #################################################################################################
+# CheckResubmit #
+#################################################################################################
+class ResubmitSplitting(SplitTraining):
+    def __init__(self,p,params_per_job,path_success,dir_name):
+        SplitTraining.__init__(self,p=p,params_per_job=params_per_job,dir_name=dir_name)
+        self.path_success = path_success
+        self.GetSuccessingJobs()
+        
+    def GetSuccessingJobs(self):
+        # get success list of csv #
+        csv_files = glob.glob(self.path_success+'/*.csv')
+        if len(csv_files) == 0:
+            logging.warning('No successed jobs were found')
+        # Get the pandas dataframe of all the trials #
+        full_list = []
+        for csv_file in csv_files:
+            full_list.append(pd.read_csv(csv_file))
+        df = pd.concat(full_list)
+
+        # Get the parameters names from dict #
+        names = list(self.params.keys())
+        names_from_df = list(df.columns.values)
+        if 'lr.1' in names_from_df:
+            logging.debug('Learning rate normalization has been used, will correct for that')
+            idx = names.index('lr')
+            names[idx] = 'lr.1'
+
+        # Select corresponding df columns #
+        success_trials = df[df.columns.intersection(names)].values
+        all_trials = self.param_grid[:,:-1]
+        if success_trials.shape[0] == 0:
+            logging.warning('All the jobs have been completed, no need to resubmit')
+            sys.exit()
+
+        # Look for matches #
+        count = 0
+        match_arr = np.array([],dtype=bool)
+        for i in range(all_trials.shape[0]):
+            #print (all_trials[i,:])
+            match = self.FindMatch(success_trials,all_trials[i,:])
+            match_arr = np.append(match_arr,match)
+            if match :
+                count += 1
+        if count != success_trials.shape[0]:
+            logging.critical('Matches between successful trials and full config is inconsistent, will exit to avoid mistakes')
+            sys.exit()
+        self.param_grid = self.param_grid[match_arr==False]
+        
+        # Split the list into dict #
+        logging.info('New set of dict has been generated for the resubmit')
+        self.dir_name += '_resubmit'
+        self.list_dict = self._split_dict()
+
+        # Save as pickle file #
+        self._save_as_pickle()
+
+    def FindMatch(self,list_params,the_param):
+        for row in range(list_params.shape[0]):
+            for col in range(list_params.shape[1]):
+                param1 = list_params[row,col] # param1 = from the list, param2 from the searched one
+                param2 = the_param[col]
+                if isinstance(param1,float) or isinstance(param1,int):
+                    match = bool(param1 == param2)
+                if isinstance(param1,str):
+                    match = bool(param1.find(param2.__name__) != -1)
+                    
+                if not match: # At first different element, get next config
+                    break
+            if match: # Found a match, return and end
+                return True
+
+        if not match: # At the end, if not match return it
+            return False
+                
+        
+        
+#################################################################################################
 # DictSplit #
 #################################################################################################
     
-def DictSplit(params_per_job,name):
+def DictSplit(params_per_job,name,resubmit=''):
         
     # Retrieve Hyperparameter dict #    
     p = parameters.p
 
        # Split into sub dict #
-    SplitTraining(p,params_per_job=params_per_job,dir_name=name)
+    if resubmit == '':
+        SplitTraining(p,params_per_job=params_per_job,dir_name=name)
+    else:
+        ResubmitSplitting(p,params_per_job=params_per_job,path_success=resubmit,dir_name=name)
 
-if __name__ == '__main__':
-    main()

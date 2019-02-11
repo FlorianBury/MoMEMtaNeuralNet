@@ -1,33 +1,36 @@
 MEM_weight_DY:
   filename: {file}
   tree: tree
-  variable: -TMath::Log10(MEM_weight_DY)
-  name: {category}_{name}_sample_MEM_weight_DY
+  variable: -TMath::Log10(weight_DY)
+  weight: total_weight
+  name: {category}_{name}_sample_weight_DY
   cut: {cut}
   bins: 150
   xmin: 15
   xmax: 45
   title: '{category} {name} sample : MEM weight DY'
   xlabel: -log_{{10}}(weight)
-  ylabel: Events
+  ylabel: Weighted events
 
 MEM_weight_TT:
   filename: {file}
   tree: tree
-  variable: -TMath::Log10(MEM_weight_TT)
-  name: {category}_{name}_sample_MEM_weight_TT
+  variable: -TMath::Log10(weight_TT)
+  weight: total_weight
+  name: {category}_{name}_sample_weight_TT
   cut: {cut}
   bins: 150
   xmin: 15
   xmax: 45
   title: '{category} {name} sample : MEM weight TT'
   xlabel: -log_{{10}}(weight)
-  ylabel: Events
+  ylabel: Weighted events
 
 DNN_weight_DY:
   filename: {file}
   tree: tree
   variable: -TMath::Log10(output_DY)
+  weight: total_weight
   name: {category}_{name}_sample_DNN_weight_DY
   cut: {cut}
   bins: 150
@@ -35,12 +38,13 @@ DNN_weight_DY:
   xmax: 45
   title: '{category} {name} sample : DNN weight DY'
   xlabel: -log_{{10}}(weight)
-  ylabel: Events
+  ylabel: Weighted events
 
 DNN_weight_TT:
   filename: {file}
   tree: tree
   variable: -TMath::Log10(output_TT)
+  weight: total_weight
   name: {category}_{name}_sample_DNN_weight_TT
   cut: {cut}
   bins: 150
@@ -48,12 +52,13 @@ DNN_weight_TT:
   xmax: 45
   title: '{category} {name} sample : DNN weight TT'
   xlabel: -log_{{10}}(weight)
-  ylabel: Events
+  ylabel: Weighted events
 
 Discriminant_MEM:
   filename: {file}
   tree: tree
-  variable: MEM_weight_TT/(MEM_weight_TT+MEM_weight_DY)
+  variable: weight_TT/(weight_TT+weight_DY)
+  weight: total_weight
   name: {category}_{name}_sample_MEM_Discriminant
   cut: {cut}
   bins: 50
@@ -61,12 +66,13 @@ Discriminant_MEM:
   xmax: 1
   title: '{category} {name} sample : MEM Discriminant '
   xlabel: Discriminant
-  ylabel: Events
+  ylabel: Weighted events
 
 Discriminant_DNN:
   filename: {file}
   tree: tree
   variable: output_TT/(output_TT+output_DY)
+  weight: total_weight
   name: {category}_{name}_sample_DNN_Discriminant
   cut: {cut}
   bins: 50
@@ -74,7 +80,7 @@ Discriminant_DNN:
   xmax: 1
   title: '{category} {name} sample : DNN Discriminant '
   xlabel: Discriminant
-  ylabel: Events
+  ylabel: Weighted events
 
 
 

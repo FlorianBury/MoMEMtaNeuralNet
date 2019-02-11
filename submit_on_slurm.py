@@ -15,14 +15,13 @@ from CP3SlurmUtils.Exceptions import CP3SlurmUtilsException
 # Personal files #
 import parameters
 
-
-def submit_on_slurm(name):
+def submit_on_slurm(name,debug=False):
     config = Configuration()
 
     config.sbatch_partition = 'cp3'
     config.sbatch_qos = 'cp3'
     config.sbatch_workdir = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/'
-    config.sbatch_time = '0-2:00'
+    config.sbatch_time = '0-4:00'
     config.sbatch_mem = '4048'
     config.sbatch_additionalOptions = []
     config.inputSandboxContent = []
@@ -56,7 +55,12 @@ def submit_on_slurm(name):
     # Submit job!
 
     logging.info("Submitting job...")
-    submitWorker = SubmitWorker(slurm_config, submit=True, yes=True, debug=False, quiet=False)
-    submitWorker()
-    logging.info("Done")
+    if not debug:
+        submitWorker = SubmitWorker(slurm_config, submit=True, yes=True, debug=False, quiet=False)
+        submitWorker()
+        logging.info("Done")
+    else:
+        logging.info(slurm_config.payload)
+        logging.info(slurm_config.inputParams)
+        logging.info('... don\'t worry, jobs not sent')
 

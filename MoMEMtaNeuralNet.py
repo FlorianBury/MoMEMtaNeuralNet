@@ -48,7 +48,9 @@ def get_options():
     b.add_argument('-split','--split', action='store', required=False, type=int, default=0,
         help='Number of parameter sets per jobs to be used for splitted training for slurm submission (if -1, will create a single subdict)')
     b.add_argument('-submit','--submit', action='store', required=False, default='', type=str,
-        help='Wether to submit on slurm and nname for the save (must have specified --split)')
+        help='Wether to submit on slurm and name for the save (must have specified --split)')
+    b.add_argument('-resubmit','--resubmit', action='store', required=False, default='', type=str,
+        help='Wether to resubmit failed jobs given a specific path containing the jobs that succeded')
     b.add_argument('-debug','--debug', action='store_true', required=False, default=False,
         help='Debug mode of the slurm submission, does everything except submit the jobs')
 
@@ -132,16 +134,16 @@ def main():
     # Splitting into sub-dicts and slurm submission #
     #############################################################################################
     if opt.split!=0:
-        DictSplit(opt.split,opt.submit)
+        DictSplit(opt.split,opt.submit,opt.resubmit)
         
         logging.info('Splitting jobs done')
 
         if opt.submit!='':
             logging.info('Submitting jobs')
-            if not opt.debug:
-                submit_on_slurm(name=opt.submit)
+            if opt.resubmit:
+                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug)
             else:
-                logging.info("Don't worry, the jobs were not sent")
+                submit_on_slurm(name=opt.submit,debug=opt.debug)
         sys.exit()
 
     #############################################################################################
@@ -179,40 +181,28 @@ def main():
     # Input path #
     logging.info('Starting histograms input')
 
-    variables = ['lep1_p4.Px()',
-                 'lep1_p4.Py()',
-                 'lep1_p4.Pz()',
-                 'lep1_p4.E()',
-                 'lep2_p4.Px()',
-                 'lep2_p4.Py()',
-                 'lep2_p4.Pz()',
-                 'lep2_p4.E()',
-                 'jet1_p4.Px()',
-                 'jet1_p4.Py()',
-                 'jet1_p4.Pz()',
-                 'jet1_p4.E()',
-                 'jet2_p4.Px()',
-                 'jet2_p4.Py()',
-                 'jet2_p4.Pz()',
-                 'jet2_p4.E()',
-                 'met_pt',
-                 'met_phi',
-                 'weight_DY',
-                 'weight_TT',
-                 'weight_DY_err',
-                 'weight_TT_err',
-                 'weight_DY_time',
-                 'weight_TT_time'] # TODO : also save weights intact
+    # Import variables from parameters.py
+    variables = parameters.inputs+parameters.outputs+parameters.other_variables
+    NIn = len(parameters.inputs)
+    NOut = len(parameters.outputs)
+    NOther = len(parameters.other_variables)
 
+    # Import arrays #
     logging.info('HToZA samples')
-    data_HToZA, weight_HToZA = LoopOverTrees(input_dir=path_to_files,variables=variables,weight='total_weight',reweight_to_cross_section=False,part_name='HToZA')
+    data_HToZA, weight_HToZA = LoopOverTrees(input_dir=path_to_files,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=False,part_name='HToZA')
     logging.info('HToZA sample size : {}'.format(data_HToZA.shape[0]))
     logging.info('DY samples')
-    data_DY, weight_DY = LoopOverTrees(input_dir=path_to_files,variables=variables,weight='total_weight',reweight_to_cross_section=True,part_name='DY')
+    data_DY, weight_DY = LoopOverTrees(input_dir=path_to_files,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=True,part_name='DY')
     logging.info('DY sample size : {}'.format(data_DY.shape[0]))
     logging.info('TT samples')
-    data_TT, weight_TT = LoopOverTrees(input_dir=path_to_files,variables=variables,weight='total_weight',reweight_to_cross_section=True,part_name='TT',n=500000)
+    data_TT, weight_TT = LoopOverTrees(input_dir=path_to_files,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=True,part_name='TT',n=500000)
     logging.info('TT sample size : {}'.format(data_TT.shape[0]))
+
+    # Save weights in data #
+    data_HToZA = np.append(data_HToZA,weight_HToZA,axis=1)
+    data_DY = np.append(data_DY,weight_DY,axis=1)
+    data_TT = np.append(data_TT,weight_TT,axis=1)
+    NOther+=1
 
     # Weight equalization #
     weight_HToZA = weight_HToZA/np.sum(weight_HToZA)*10000 # because event_weight is not correct
@@ -229,28 +219,28 @@ def main():
     mask_DY = GenerateMask(data_DY.shape[0],'DY')
     mask_TT = GenerateMask(data_TT.shape[0],'TT')
        # Needs to keep the same testing set for the evaluation of model that was selected earlier
-    x_train_HToZA = data_HToZA[mask_HToZA==True,:18]
-    x_train_DY = data_DY[mask_DY==True,:18]
-    x_train_TT = data_TT[mask_TT==True,:18]
-    x_test_HToZA = data_HToZA[mask_HToZA==False,:18]
-    x_test_DY = data_DY[mask_DY==False,:18]
-    x_test_TT = data_TT[mask_TT==False,:18]
+    x_train_HToZA = data_HToZA[mask_HToZA==True,:NIn]
+    x_train_DY = data_DY[mask_DY==True,:NIn]
+    x_train_TT = data_TT[mask_TT==True,:NIn]
+    x_test_HToZA = data_HToZA[mask_HToZA==False,:NIn]
+    x_test_DY = data_DY[mask_DY==False,:NIn]
+    x_test_TT = data_TT[mask_TT==False,:NIn]
 
     # Rescale outputs #
     #max_log_weight = np.amax(np.concatenate((data_HToZA[:,18:],data_DY[:,18:],data_TT[:,18:]),axis=0),axis=0)
     max_log_weight = 1
 
-    y_train_HToZA = -np.log10(data_HToZA[mask_HToZA==True,18:20]/max_log_weight)
-    y_train_DY = -np.log10(data_DY[mask_DY==True,18:20]/max_log_weight)
-    y_train_TT = -np.log10(data_TT[mask_TT==True,18:20]/max_log_weight)
-    y_test_HToZA = -np.log10(data_HToZA[mask_HToZA==False,18:20]/max_log_weight)
-    y_test_DY = -np.log10(data_DY[mask_DY==False,18:20]/max_log_weight)
-    y_test_TT = -np.log10(data_TT[mask_TT==False,18:20]/max_log_weight)
+    y_train_HToZA = -np.log10(data_HToZA[mask_HToZA==True,NIn:NIn+NOut]/max_log_weight)
+    y_train_DY = -np.log10(data_DY[mask_DY==True,NIn:NIn+NOut]/max_log_weight)
+    y_train_TT = -np.log10(data_TT[mask_TT==True,NIn:NIn+NOut]/max_log_weight)
+    y_test_HToZA = -np.log10(data_HToZA[mask_HToZA==False,NIn:NIn+NOut]/max_log_weight)
+    y_test_DY = -np.log10(data_DY[mask_DY==False,NIn:NIn+NOut]/max_log_weight)
+    y_test_TT = -np.log10(data_TT[mask_TT==False,NIn:NIn+NOut]/max_log_weight)
 
     # Variables outside training #
-    z_test_HToZA = data_HToZA[mask_HToZA==False,20:]
-    z_test_DY = data_DY[mask_DY==False,20:]
-    z_test_TT = data_TT[mask_TT==False,20:]
+    z_test_HToZA = data_HToZA[mask_HToZA==False,NIn+NOut:NIn+NOut+NOther]
+    z_test_DY = data_DY[mask_DY==False,NIn+NOut:NIn+NOut+NOther]
+    z_test_TT = data_TT[mask_TT==False,NIn+NOut:NIn+NOut+NOther]
         # We don't need training because only test is used in output 
     
     # Learning weights #
@@ -263,8 +253,7 @@ def main():
         
     # y -> [weight_DY, weight_TT]
 
-    #all_train = np.concatenate((x_train_HToZA,x_train_DY,x_train_TT),axis=0)
-    all_train = np.concatenate((x_train_HToZA,x_train_DY),axis=0)
+    all_train = np.concatenate((x_train_HToZA,x_train_DY,x_train_TT),axis=0)
     scaler = preprocessing.StandardScaler().fit(all_train)
 
     x_train_HToZA = scaler.transform(x_train_HToZA)
@@ -307,13 +296,13 @@ def main():
         if opt.DY:
             instance = HyperModel(opt.scan,'DY')
             instance.HyperScan(x_train,np.c_[w_train,y_train[:,0]],task=opt.task)
-            instance.HyperEvaluate(x_test,y_test[:,0],folds=5) 
+            #instance.HyperEvaluate(x_test,y_test[:,0],folds=5) 
             instance.HyperDeploy(best='eval_error')
         # TT network #
         if opt.TT:
             instance = HyperModel(opt.scan,'TT')
             instance.HyperScan(x_train,np.c_[w_train,y_train[:,1]],task=opt.task)
-            instance.HyperEvaluate(x_test,y_test[:,1],folds=5) 
+            #instance.HyperEvaluate(x_test,y_test[:,1],folds=5) 
             instance.HyperDeploy(best='eval_error')
         
     if opt.output!='': 
@@ -329,39 +318,15 @@ def main():
             os.makedirs(path_model_output_inv_tt)
 
         # Make basic dtype #
-        dtype_base = [('lep1_px','float64'),
-                 ('lep1_py','float64'),
-                 ('lep1_pz','float64'),
-                 ('lep1_E','float64'),
-                 ('lep2_px','float64'),
-                 ('lep2_py','float64'),
-                 ('lep2_pz','float64'),
-                 ('lep2_E','float64'),
-                 ('jet1_px','float64'),
-                 ('jet1_py','float64'),
-                 ('jet1_pz','float64'),
-                 ('jet1_E','float64'),
-                 ('jet2_px','float64'),
-                 ('jet2_py','float64'),
-                 ('jet2_pz','float64'),
-                 ('jet2_E','float64'),
-                 ('met_pt','float64'),
-                 ('met_phi','float64'),
-                 ('weight','float64'),
-                 ('MEM_weight_DY','float64'),
-                 ('MEM_weight_TT','float64'),
-                 ('MEM_weight_DY_err','float64'),
-                 ('MEM_weight_TT_err','float64'),
-                 ('MEM_weight_DY_time','float64'),
-                 ('MEM_weight_TT_time','float64')]
+        dtype_base = parameters.make_dtype(parameters.inputs+parameters.outputs+parameters.other_variables+parameters.weights)
 
         # Get output, concatenate and make root file # 
-        def produce_output(inputs,weights,MEM,other,tag):
+        def produce_output(inputs,MEM,other,tag):
             # De-preprocess inputs #
             inputs_unscaled = inputs*scaler.scale_+scaler.mean_
             MEM = np.power(10,-MEM) # All in real weights
             # Concatenate #
-            output = np.c_[inputs_unscaled,weights,MEM,other] # without NN output
+            output = np.c_[inputs_unscaled,MEM,other] # without NN output
             dtype = copy.deepcopy(dtype_base)
 
             try:
@@ -389,13 +354,13 @@ def main():
 
         # Use it on different samples #
         logging.info(' HToZA sample '.center(80,'*'))
-        produce_output(inputs=x_test_HToZA,weights=w_test_HToZA,MEM=y_test_HToZA,other=z_test_HToZA,tag='HToZA')
+        produce_output(inputs=x_test_HToZA,MEM=y_test_HToZA,other=z_test_HToZA,tag='HToZA')
         logging.info('')
         logging.info(' DY sample '.center(80,'*'))
-        produce_output(inputs=x_test_DY,weights=w_test_DY,MEM=y_test_DY,other=z_test_DY,tag='DY')
+        produce_output(inputs=x_test_DY,MEM=y_test_DY,other=z_test_DY,tag='DY')
         logging.info('')
         logging.info(' TT sample '.center(80,'*'))
-        produce_output(inputs=x_test_TT,weights=w_test_TT,MEM=y_test_TT,other=z_test_TT,tag='TT')
+        produce_output(inputs=x_test_TT,MEM=y_test_TT,other=z_test_TT,tag='TT')
         logging.info('')
 
         # Same but for invalid weights #
@@ -403,14 +368,17 @@ def main():
             for inv_file in glob.glob(path+'*.root'):
                 inv_name = inv_file.replace(path,'').replace('.root','') 
                 # Get data #
-                data_inv, weight_inv = LoopOverTrees(input_dir=path,variables=variables,weight='total_weight',reweight_to_cross_section=False,part_name=inv_name)
+                variables = parameters.inputs+parameters.outputs+parameters.other_variables
+                data_inv, weight_inv = LoopOverTrees(input_dir=path,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=False,part_name=inv_name)
+                data_inv = np.append(data_inv,weight_inv,axis=1)
                 if data_inv.shape[0]==0: # There is no invalid weights in this case
                     continue
                 # Separate and process #
-                inv_inputs = scaler.transform(data_inv[:,:18])
-                inv_MEM = data_inv[:,18:20]
+                inv_inputs = scaler.transform(data_inv[:,:NIn])
+                inv_MEM = data_inv[:,NIn:NIn+NOut]
                 # Concatenate #
-                full_outputs = np.c_[data_inv[:,:18],weight_inv,inv_MEM,data_inv[:,20:]]
+                full_outputs = np.c_[data_inv[:,:NIn],inv_MEM,data_inv[:,NIn+NOut:NIn+NOut+NOther]]
+
                 dtype = copy.deepcopy(dtype_base)
                 # NN Outputs #
                 try:

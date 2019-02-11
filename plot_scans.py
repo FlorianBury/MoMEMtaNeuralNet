@@ -12,7 +12,7 @@ def PlotScans(data,path,tag):
 
     # Parameters barplot #
     g = sns.relplot(x="hidden_layers",
-                y="eval_error",
+                y="eval_mean",
                 col="first_neuron",
                 hue="activation",
                 style="activation",
@@ -22,7 +22,7 @@ def PlotScans(data,path,tag):
     plt.savefig(os.path.join(path,'barplot_neuron_hidden_activation_'+tag+'.png'))
 
     g = sns.relplot(x="hidden_layers",
-                y="eval_error",
+                y="eval_mean",
                 hue="output_activation",
                 style="output_activation",
                 data=data);
@@ -32,7 +32,7 @@ def PlotScans(data,path,tag):
    #plt.show()
 
     g = sns.relplot(x="l2",
-                y="eval_error",
+                y="eval_mean",
                 col='dropout',
                 data=data);
     g.set(yscale="log");
@@ -42,7 +42,7 @@ def PlotScans(data,path,tag):
 
     # Lr batch catplot #
     g = sns.catplot(x="lr", 
-                y="eval_error",
+                y="eval_mean",
                 hue="batch_size",
                 kind="swarm",
                 data=data);
@@ -68,9 +68,9 @@ def PlotScans(data,path,tag):
     plt.savefig(os.path.join(path,'kde_lr_batch_'+tag+'.png'))                                                                                                                                               
 
     # joinplot eval_erro val_loss #
-    g = sns.lmplot(x='eval_error', y='val_loss',
+    g = sns.lmplot(x='eval_mean', y='val_loss',
                    truncate=True, height=5, data=data)
-    plt.savefig(os.path.join(path,'eval_error_vs_val_loss_'+tag+'.png'))
+    plt.savefig(os.path.join(path,'eval_mean_vs_val_loss_'+tag+'.png'))
     
 
 

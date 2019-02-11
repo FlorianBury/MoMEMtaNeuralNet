@@ -11,6 +11,7 @@ import array
 import numpy as np
 import itertools
 
+from sklearn.model_selection import train_test_split
 
 import keras
 from keras import utils
@@ -24,7 +25,7 @@ from keras.regularizers import l1,l2
 import keras.backend as K
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # removes annoying warning
 
-from talos import Scan, Reporting, Predict, Evaluate, Deploy, Restore
+from talos import Scan, Reporting, Predict, Evaluate, Deploy, Restore, Autom8
 from talos.utils.best_model import *
 from talos.model.layers import *
 from talos.model.normalizers import lr_normalizer
@@ -70,7 +71,7 @@ def InterpolationModel(x_train,y_train,x_val,y_val,params):
 
     # Callbacks #
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0., patience=10, verbose=1, mode='min')
-    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, verbose=1, mode='min', epsilon=0.001, cooldown=0, min_lr=0.00001)
+    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=1, mode='min', epsilon=0.001, cooldown=0, min_lr=0.00001)
     Callback_list = [early_stopping,reduceLR]
 
     # Compile #
@@ -84,7 +85,7 @@ def InterpolationModel(x_train,y_train,x_val,y_val,params):
                     sample_weight=y_train[:,0],
                     epochs=params['epochs'],
                     batch_size=params['batch_size'],
-                    verbose=2,
+                    verbose=1,
                     validation_data=({'IN':x_val},{'OUT':y_val[:,1]},y_val[:,0]),
                     callbacks=Callback_list
                     )
@@ -103,7 +104,7 @@ class HyperModel:
     #################################################################################################
     # HyperScan #
     #################################################################################################
-    def HyperScan(self,x_train,y_train,task):
+    def HyperScan(self,x,y,task):
         """
         Performs the scan for hyperparameters
         Inputs :
@@ -125,8 +126,8 @@ class HyperModel:
         logging.info(' Starting scan '.center(80,'-'))
 
         # Records #
-        self.x_train = x_train
-        self.y_train = y_train
+        self.x = x
+        self.y = y
         self.task = task
 
         # Talos hyperscan parameters #
@@ -136,20 +137,7 @@ class HyperModel:
         else: # We need the full dict
             self.p = parameters.p
 
-        #p = {
-        #        'lr' : 0.001,
-        #        'first_neuron' : 20,
-        #        'activation' : tanh,
-        #        'dropout' : 0.5,
-        #        'hidden_layers' : 1,
-        #        'output_activation' : relu,
-        #        'epochs' : 50,
-        #        'batch_size' : 5,
-        #        'loss_function' : binary_crossentropy,
-        #        'optimizer': RMSprop
-        #    }
-        #out, model = InterpolationModel(x_train,y_train,x_train,y_train,p)
-        #sys.exit()
+        # Check if no already exists then change it -> avoids rewriting  #
         no = 1
         self.name = self.name+'_'+self.sample+self.task.replace('.pkl','')
         self.path_model = os.path.join(parameters.main_path,'model',self.name)
@@ -158,6 +146,10 @@ class HyperModel:
         
         self.name_model = self.name+'_'+str(no)
 
+        # Data spltting splitting #
+        self.x_train, self.x_val, self.y_train, self.y_val = train_test_split(self.x,self.y,train_size=0.7)
+
+        # Define scan object #
         parallel_gpu_jobs(0.5)
         self.h = Scan(  x=self.x_train,
                    y=self.y_train,
@@ -175,6 +167,17 @@ class HyperModel:
                    #last_epoch_value=True,
                    print_params=True
                 )
+
+        self.h_with_eval = Autom8(scan_object = self.h,
+                     x_val = self.x_val,
+                     y_val = self.y_val[:,1], # Other column is weight
+                     n = -1,
+                     folds = 5,
+                     metric = 'val_loss',
+                     asc = True,
+                     shuffle = True,
+                     average = None)  
+        self.h_with_eval.data.to_csv(self.name_model+'.csv') # save to csv including error
 
         # returns the experiment configuration details
         logging.info('='*80)
@@ -315,22 +318,22 @@ class HyperModel:
         # Check arguments #
         if best != 'val_loss' and best != 'eval_error' : 
             logging.critical('Model not saved as .zip due to incorrect best model parameter')
-        if self.idx_best_model==self.idx_best_eval:
-            logging.warning('Best models according to val_loss and cross-validation are the same')
+        #if self.idx_best_model==self.idx_best_eval:
+        #    logging.warning('Best models according to val_loss and cross-validation are the same')
 
         # Save models #
         if best == 'val_loss':
-            Deploy(self.h,model_name=self.name_model,best_idx=self.idx_best_model,metric='val_loss',asc=True)
+            Deploy(self.h,model_name=self.name_model,metric='val_loss',asc=True)
             logging.warning('Best model saved according to val_loss')
         if best == 'eval_error':
-            Deploy(self.h,model_name=self.name_model,best_idx=self.idx_best_eval,metric='val_loss',asc=True)
+            Deploy(self.h,model_name=self.name_model,metric='eval_mean',asc=True)
 
         # Move csv file to model dir #
         if self.task == '': # if not split+submit -> because submit will put it in slurm dir
             try:
                 shutil.move(self.name_model+'.csv',os.path.join(parameters.main_path,'model',self.name_model+'.csv'))
             except:
-                logging.warning('[WARNING] Could not move file to model folder')
+                logging.warning('Could not move file to model folder')
                 logging.warning('\tAttempted to move '+(os.path.abspath(self.name_model+'.csv') +' -> ' +os.path.join(parameters.main_path,'model',self.name_model+'.csv'))) 
         
         # Move zip file to model dir #
@@ -338,7 +341,7 @@ class HyperModel:
             try:
                 shutil.move(self.name_model+'.zip',os.path.join(parameters.main_path,'model',self.name_model+'.zip'))
             except:
-                logging.warning('[WARNING] Could not move file to model folder')
+                logging.warning('Could not move file to model folder')
                 logging.warning('\tAttempted to move '+(os.path.abspath(self.name_model+'.zip') +' -> ' +os.path.join(parameters.main_path,'model',self.name_model+'.zip'))) 
 
 #################################################################################################
@@ -373,18 +376,18 @@ class HyperModel:
         # Lowest eval_error #
         logging.info('-'*80)
         try:
-            logging.info('Lowest eval_error = %0.5f obtained after %0.f rounds'%(r.low('eval_error'),r.rounds2high('eval_error')))
+            logging.info('Lowest eval_error = %0.5f obtained after %0.f rounds'%(r.low('eval_mean'),r.rounds2high('eval_mean')))
         except:
-            logging.warning("Could not find key 'eval_error', will switch to 'val_loss'")
+            logging.warning("Could not find key 'eval_mean', will switch to 'val_loss'")
             logging.info('Lowest val_loss = %0.5f obtained after %0.f rounds'%(r.low('val_loss'),r.rounds2high('val_loss')))
 
         # Best params #
         logging.info('='*80)
         logging.info('Best parameters sets')
         try:
-            sorted_data = r.data.sort_values('eval_error',ascending=True)
+            sorted_data = r.data.sort_values('eval_mean',ascending=True)
         except:
-            logging.warning("Could not find key 'eval_error', will swith to val_loss")
+            logging.warning("Could not find key 'eval_mean', will swith to val_loss")
             sorted_data = r.data.sort_values('val_loss',ascending=True)
 
         for i in range(0,5):

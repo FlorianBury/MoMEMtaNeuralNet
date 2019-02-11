@@ -20,17 +20,57 @@ path_invalid_TT = '/nfs/scratch/fynu/fbury/MoMEMta_output/invalid_TT_weights_rec
 
 # Scan dictionary #
 p = { 
-    'lr' : [0.3], 
+    'lr' : [0.1], 
     'first_neuron' : [50,100,150,200],
-    'activation' : [selu],
-    'dropout' : [0],
-    'hidden_layers' : [4],
-    'output_activation' : [selu],
-    'l2' : [0],
+    'activation' : [relu,selu],
+    'dropout' : [0.01,0.05,0.1],
+    'hidden_layers' : [4,5,6,7],
+    'output_activation' : [relu,selu],
+    'l2' : [0.0,0.05,0.1],
     'optimizer' : [Adam],  
-    'epochs' : [1],   
-    'batch_size' : [100], 
+    'epochs' : [10000],   
+    'batch_size' : [5000], 
     'loss_function' : [mean_squared_error] 
 }    
+
+inputs = [
+         'lep1_p4.Px()',
+         'lep1_p4.Py()',
+         'lep1_p4.Pz()',
+         'lep1_p4.E()',
+         'lep2_p4.Px()',
+         'lep2_p4.Py()',
+         'lep2_p4.Pz()',
+         'lep2_p4.E()',
+         'jet1_p4.Px()',
+         'jet1_p4.Py()',
+         'jet1_p4.Pz()',
+         'jet1_p4.E()',
+         'jet2_p4.Px()',
+         'jet2_p4.Py()',
+         'jet2_p4.Pz()',
+         'jet2_p4.E()',
+         'met_pt',
+         'met_phi',
+         ]
+outputs = [
+         'weight_DY',
+         'weight_TT',
+          ] 
+other_variables = [
+                     'weight_DY_time',
+                     'weight_TT_time',
+                  ]
+weights = ['total_weight']
+
+def make_dtype(list_names):
+    list_dtype = [(name,'float64') for name in list_names]
+    return list_dtype
+        
+
+
+
+                                
+
 
 
