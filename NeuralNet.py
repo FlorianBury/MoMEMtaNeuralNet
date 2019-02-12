@@ -62,12 +62,12 @@ def InterpolationModel(x_train,y_train,x_val,y_val,params):
     L1 = Dense(params['first_neuron'],
                activation=params['activation'],
                kernel_regularizer=l2(params['l2']))(IN)
-    HIDDEN = hidden_layers(params,1).API(L1)
+    HIDDEN = hidden_layers(params,1,batch_normalization=True).API(L1)
     OUT = Dense(1,activation=params['output_activation'],name='OUT')(HIDDEN)
 
     # Define model #
     model = Model(inputs=[IN], outputs=[OUT])
-    #utils.print_summary(model=model) #used to print model
+    utils.print_summary(model=model) #used to print model
 
     # Callbacks #
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0., patience=10, verbose=1, mode='min')

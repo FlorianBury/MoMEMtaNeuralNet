@@ -10,7 +10,7 @@ MEM_weight_DY:
   xmax: 45
   title: '{category} {name} sample : MEM weight DY'
   xlabel: -log_{{10}}(weight)
-  ylabel: Weighted events
+  ylabel: Events
 
 MEM_weight_TT:
   filename: {file}
@@ -24,7 +24,7 @@ MEM_weight_TT:
   xmax: 45
   title: '{category} {name} sample : MEM weight TT'
   xlabel: -log_{{10}}(weight)
-  ylabel: Weighted events
+  ylabel: Events
 
 DNN_weight_DY:
   filename: {file}
@@ -38,7 +38,7 @@ DNN_weight_DY:
   xmax: 45
   title: '{category} {name} sample : DNN weight DY'
   xlabel: -log_{{10}}(weight)
-  ylabel: Weighted events
+  ylabel: Events
 
 DNN_weight_TT:
   filename: {file}
@@ -52,7 +52,7 @@ DNN_weight_TT:
   xmax: 45
   title: '{category} {name} sample : DNN weight TT'
   xlabel: -log_{{10}}(weight)
-  ylabel: Weighted events
+  ylabel: Events
 
 Discriminant_MEM:
   filename: {file}
@@ -66,7 +66,7 @@ Discriminant_MEM:
   xmax: 1
   title: '{category} {name} sample : MEM Discriminant '
   xlabel: Discriminant
-  ylabel: Weighted events
+  ylabel: Events
 
 Discriminant_DNN:
   filename: {file}
@@ -80,7 +80,7 @@ Discriminant_DNN:
   xmax: 1
   title: '{category} {name} sample : DNN Discriminant '
   xlabel: Discriminant
-  ylabel: Weighted events
+  ylabel: Events
 
 
 

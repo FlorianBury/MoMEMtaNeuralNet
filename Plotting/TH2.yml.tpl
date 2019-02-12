@@ -15,7 +15,7 @@ MEM_vs_DNN_weight_DY:
   title: '{category} {name} sample : MEM vs DNN weight DY'
   xlabel: -log_{{10}}(weight from MEM)
   ylabel: -log_{{10}}(weight from DNN)
-  zlabel: Weighted events
+  zlabel: Events
 
 MEM_vs_DNN_weight_TT:
   filename: {file}
@@ -34,4 +34,4 @@ MEM_vs_DNN_weight_TT:
   title: '{category} {name} sample : MEM vs DNN weight TT'
   xlabel: -log_{{10}}(weight from MEM)
   ylabel: -log_{{10}}(weight from DNN)
-  zlabel: Weighted events
+  zlabel: Events

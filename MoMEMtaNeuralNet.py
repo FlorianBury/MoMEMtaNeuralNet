@@ -79,11 +79,12 @@ def get_options():
 
     opt = parser.parse_args()
 
-    if opt.scan!='' or opt.report!='' :
-        if not opt.DY and not opt.TT:
+    if not opt.DY and not opt.TT:
+        if opt.scan!='' or opt.report!='' or opt.submit!='':
             logging.critical('Either -dy or -tt must be specified')  
             sys.exit(1)
-        if opt.split!=0 or opt.submit:
+    if opt.split!=0 or opt.submit:
+        if opt.scan!='' or opt.report!='':
             logging.critical('These parameters cannot be used together')  
             sys.exit(1)
     if opt.submit and opt.split==0:
@@ -141,9 +142,9 @@ def main():
         if opt.submit!='':
             logging.info('Submitting jobs')
             if opt.resubmit:
-                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug)
+                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug,tt=opt.TT,dy=opt.DY)
             else:
-                submit_on_slurm(name=opt.submit,debug=opt.debug)
+                submit_on_slurm(name=opt.submit,debug=opt.debug,tt=opt.TT,dy=opt.DY)
         sys.exit()
 
     #############################################################################################

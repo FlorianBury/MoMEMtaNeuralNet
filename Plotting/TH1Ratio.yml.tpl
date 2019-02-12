@@ -11,7 +11,7 @@ MEM_ratio_DNN_weight_DY:
   xmax: 45
   title: '{category} {name} sample : Ratio MEM/DNN weight DY'
   xlabel: -log_{{10}}(weight)
-  ylabel: Weighted events
+  ylabel: Events
   legend1: 'MEM'
   legend2: 'DNN' 
 
@@ -28,7 +28,7 @@ MEM_ratio_DNN_weight_TT:
   xmax: 45
   title: '{category} {name} sample : Ratio MEM/DNN weight TT'
   xlabel: -log_{{10}}(weight)
-  ylabel: Weighted events
+  ylabel: Events
   legend1: 'MEM'
   legend2: 'DNN' 
 
@@ -45,6 +45,6 @@ Discriminant_ratio:
   xmax: 1
   title: '{category} {name} sample : Discriminant Ratio'
   xlabel: Discriminant
-  ylabel: Weighted events
+  ylabel: Events
   legend1: 'MEM'
   legend2: 'DNN' 

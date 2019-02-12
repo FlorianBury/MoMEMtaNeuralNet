@@ -29,7 +29,7 @@ p = {
     'l2' : [0.0,0.05,0.1],
     'optimizer' : [Adam],  
     'epochs' : [10000],   
-    'batch_size' : [5000], 
+    'batch_size' : [500], 
     'loss_function' : [mean_squared_error] 
 }    
 

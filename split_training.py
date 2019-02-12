@@ -19,6 +19,8 @@ from talos import Scan
 # Personal files #
 import parameters 
 
+# TODO : add possiblity to use more than one folder for resubmit
+
 #################################################################################################
 # SplitTraining #
 #################################################################################################
@@ -147,11 +149,15 @@ class ResubmitSplitting(SplitTraining):
                 count += 1
         if count != success_trials.shape[0]:
             logging.critical('Matches between successful trials and full config is inconsistent, will exit to avoid mistakes')
+            logging.debug('Found %d successful trials in full trials compared to %d that should have been found'%(count,success_trials.shape[0]))
             sys.exit()
         self.param_grid = self.param_grid[match_arr==False]
         
         # Split the list into dict #
         logging.info('New set of dict has been generated for the resubmit')
+        logging.debug('Remaining parameters :')
+        for i in range(0,self.param_grid.shape[0]):
+            logging.debug(self.param_grid[i,:])
         self.dir_name += '_resubmit'
         self.list_dict = self._split_dict()
 
