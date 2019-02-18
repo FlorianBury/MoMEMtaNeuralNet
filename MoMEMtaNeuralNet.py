@@ -208,8 +208,6 @@ def main():
     logging.info('DY sample size : {}'.format(data_DY.shape[0]))
     logging.info('TT samples')
     data_TT, weight_TT = LoopOverTrees(input_dir=path_to_files,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=True,part_name='TT',n=500000)
-    logging.info('TT sample size : {}'.format(data_TT.shape[0]))
-
     # Save weights in data #
     data_HToZA = np.append(data_HToZA,weight_HToZA,axis=1)
     data_DY = np.append(data_DY,weight_DY,axis=1)

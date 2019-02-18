@@ -13,8 +13,8 @@ global path_out
 global path_invalid_DY
 global path_invalid_TT
 main_path = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/'   
-path_to_files = '/nfs/scratch/fynu/fbury/MoMEMta_output/valid_weights/'
-path_out = '/nfs/scratch/fynu/fbury/MoMEMta_output/NNOutput/' 
+path_to_files = '/nfs/scratch/fynu/fbury/MoMEMta_output/NNOutput/BestModel_newvar/valid_weights/'
+path_out = '/nfs/scratch/fynu/fbury/MoMEMta_output/Classifier/' 
 path_invalid_DY = '/nfs/scratch/fynu/fbury/MoMEMta_output/invalid_DY_weights_recomputed/'
 path_invalid_TT = '/nfs/scratch/fynu/fbury/MoMEMta_output/invalid_TT_weights_recomputed/'
 
@@ -33,47 +33,15 @@ p = {
     'loss_function' : [mean_squared_error] 
 }    
 repetition = 5
-#inputs = [
-#         'lep1_p4.Px()',
-#         'lep1_p4.Py()',
-#         'lep1_p4.Pz()',
-#         'lep1_p4.E()',
-#         'lep2_p4.Px()',
-#         'lep2_p4.Py()',
-#         'lep2_p4.Pz()',
-#         'lep2_p4.E()',
-#         'jet1_p4.Px()',
-#         'jet1_p4.Py()',
-#         'jet1_p4.Pz()',
-#         'jet1_p4.E()',
-#         'jet2_p4.Px()',
-#         'jet2_p4.Py()',
-#         'jet2_p4.Pz()',
-#         'jet2_p4.E()',
-#         'met_pt',
-#         'met_phi',
-#         ]
-#
+
 inputs = [
-         'lep1_p4.Pt()',
-         'lep1_p4.Eta()',
-         'lep2_p4.Pt()',
-         'lep2_p4.Eta()',
-         'lep2_p4.Phi()-lep1_p4.Phi()',
-         'jet1_p4.Pt()',
-         'jet1_p4.Eta()',
-         'jet1_p4.Phi()-lep1_p4.Phi()',
-         'jet2_p4.Pt()',
-         'jet2_p4.Eta()',
-         'jet2_p4.Phi()-lep1_p4.Phi()',
-         'met_pt*1.1',
-         'met_phi',
-         ]
-outputs = [
          'weight_DY',
          'weight_TT',
           ] 
+output = []
 other_variables = [
+                     'output_DY',
+                     'output_TT',
                      'weight_DY_time',
                      'weight_DY_err',
                      'weight_TT_time',
