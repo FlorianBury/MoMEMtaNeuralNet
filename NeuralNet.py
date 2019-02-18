@@ -42,9 +42,9 @@ import parameters
 from plot_scans import PlotScans
 
 #################################################################################################
-# InterpolationModel #
+# NeuralNetModel #
 #################################################################################################
-def InterpolationModel(x_train,y_train,x_val,y_val,params):
+def NeuralNetModel(x_train,y_train,x_val,y_val,params):
     """
     Keras model for the Neural Network, used to scan the hyperparameter space by Talos
     Inputs :
@@ -156,7 +156,7 @@ class HyperModel:
                    params=self.p,
                    dataset_name=self.name,
                    experiment_no=str(no),
-                   model=InterpolationModel,
+                   model=NeuralNetModel,
                    val_split=0.3,
                    reduction_metric='val_loss',
                    #grid_downsample=0.1,
@@ -165,7 +165,8 @@ class HyperModel:
                    #reduction_window=1000,
                    #reduction_interval=100,
                    #last_epoch_value=True,
-                   print_params=True
+                   print_params=True,
+                   repetition=parameters.repetition,
                 )
 
         self.h_with_eval = Autom8(scan_object = self.h,
@@ -361,7 +362,7 @@ class HyperModel:
         logging.info(' Starting reporting '.center(80,'-'))
 
         # Get reporting #
-        report_file = os.path.join('model',self.name+'_'+self.sample+'_1'+'.csv')
+        report_file = os.path.join('model',self.name+'_'+self.sample+'.csv')
         if os.path.exists(report_file):
             r = Reporting(report_file)
         else:
@@ -429,9 +430,9 @@ class HyperModel:
         Reference :
             /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/commands/restore.py
         """
-        logging.info(' Starting restoration '.center(80,'-'))
+        logging.info((' Starting restoration of sample %s with model %s '%(self.sample,self.name)).center(80,'-'))
         # Restore model #
-        a = Restore(os.path.join(parameters.main_path,'model',self.name+'_'+self.sample+'_1.zip'))
+        a = Restore(os.path.join(parameters.main_path,'model',self.name+'_'+self.sample+'.zip'))
 
         # Output of the model #
         outputs = a.model.predict(inputs)

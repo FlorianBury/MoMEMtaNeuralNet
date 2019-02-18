@@ -71,21 +71,21 @@ def main():
         # Particularize TH1 YAML file #
         with open('TH1.yml.tpl') as tpl_handle:
             tpl = tpl_handle.read()
-            tpl = tpl.format(file=f, name=filename, cut="1",category='')
+            tpl = tpl.format(file=f, name=filename, cut="''",category='')
             with open(OUTPUT_YAML+'/TH1_'+filename+'.yml', 'w') as out_yml:
                 out_yml.write(tpl)
 
          # Particularize TH1 Ratio YAML file #
         with open('TH1Ratio.yml.tpl') as tpl_handle:
             tpl = tpl_handle.read()
-            tpl = tpl.format(file=f, name=filename, cut="1",category='')
+            tpl = tpl.format(file=f, name=filename, cut="''",category='')
             with open(OUTPUT_YAML+'/TH1Ratio_'+filename+'.yml', 'w') as out_yml:
                 out_yml.write(tpl)
 
         # Particularize TH2 YAML file #
         with open('TH2.yml.tpl') as tpl_handle:
             tpl = tpl_handle.read()
-            tpl = tpl.format(file=f, name=filename, cut="1",category='')
+            tpl = tpl.format(file=f, name=filename, cut="''",category='')
             with open(OUTPUT_YAML+'/TH2_'+filename+'.yml', 'w') as out_yml:
                 out_yml.write(tpl)
         
@@ -103,13 +103,13 @@ def main():
                 instance_ROC_MEM.AddToROC(f,'tree','DY')
                 instance_ROC_DNN.AddToROC(f,'tree','DY')
             except Exception as e:
-                logging.warning('Could not plot %s due to %s'%(name,e))
+                logging.warning('Could not plot ROC due to "%s"'%(e))
         elif os.path.basename(f).startswith('TT'):
             try:
                 instance_ROC_MEM.AddToROC(f,'tree','TT')
                 instance_ROC_DNN.AddToROC(f,'tree','TT')
             except Exception as e:
-                logging.warning('Could not plot %s due to %s'%(name,e))
+                logging.warning('Could not plot ROC due to "%s"'%(e))
 
          
         # Create list of histo # 
@@ -120,7 +120,7 @@ def main():
                 instance.MakeHisto()
                 list_histo_valid.append(instance)
             except Exception as e:
-                logging.warning('Could not plot %s due to %s'%(name,e))
+                logging.warning('Could not plot %s due to "%s"'%(name,e))
 
         for name,dict_histo in config_TH1_ratio.items():
             try:
@@ -129,7 +129,7 @@ def main():
                 instance.MakeHisto()
                 list_histo_valid.append(instance)
             except Exception as e:
-                logging.warning('Could not plot %s due to %s'%(name,e))
+                logging.warning('Could not plot %s due to "%s"'%(name,e))
 
         for name,dict_histo in config_TH2.items():
             try:
@@ -138,7 +138,7 @@ def main():
                 instance.MakeHisto()
                 list_histo_valid.append(instance)
             except Exception as e:
-                logging.warning('Could not plot %s due to %s'%(name,e))
+                logging.warning('Could not plot %s due to "%s"'%(name,e))
 
     try:
         instance_ROC_MEM.ProcessROC()
@@ -210,7 +210,7 @@ def main():
                     instance.MakeHisto()
                     temp_list.append(instance)
                 except Exception as e:
-                    logging.warning('Could not plot %s due to %s'%(name,e))
+                    logging.warning('Could not plot %s due to "%s"'%(name,e))
             for name,dict_histo in config_TH2.items():
                 try:
                     logging.info('\tPlot %s'%(name))
@@ -218,7 +218,7 @@ def main():
                     instance.MakeHisto()
                     temp_list.append(instance)
                 except Exception as e:
-                    logging.warning('Could not plot %s due to %s'%(name,e))
+                    logging.warning('Could not plot %s due to "%s"'%(name,e))
 
         # Make and save ROC #
         try:

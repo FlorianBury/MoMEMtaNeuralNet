@@ -98,8 +98,8 @@ if __name__=='__main__':
     countArgs.add_argument('-p','--path', action='store', required=False, help='Path for the count')
     countArgs.add_argument('-i','--input', action='append', nargs='+', required=False, help='List of strings that must be contained')
     countArgs.add_argument('-c','--cut', action='store', default='', type=str, required=False, help='Cuts to be applied')
-    zipArgs = parser.add_argument_group('Count tree events in multiple root files')
-    zipArgs.add_argument('-z','--zip', action='append', nargs=2, required=False, help='List of strings that must be contained')
+    zipArgs = parser.add_argument_group('Concatenate zip files (also modifying names of file sinside the archive')
+    zipArgs.add_argument('-z','--zip', action='append', nargs=2, required=False, help='path to input .zip + path to output .zip')
 
     args = parser.parse_args()
     if args.path is not None:

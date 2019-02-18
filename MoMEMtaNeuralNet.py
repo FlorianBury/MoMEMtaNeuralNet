@@ -65,6 +65,8 @@ def get_options():
         help='Wether to also apply the output to the invalid DY weights (must be used with --output)')
     c.add_argument('-inv_tt','--invalid_TT', action='store_true', required=False, default=False,
         help='Wether to also apply the output to the invalid TT weights (must be used with --output)')
+    c.add_argument('-smear','--smear', action='store', required=False, default=0, type=float,
+        help='Random gaussian variations (must provide the width, eg 0.1) to smear in the inputs')
 
     # Concatenating csv files arguments #
     d = parser.add_argument_group('Concatenating csv files arguments')
@@ -96,7 +98,7 @@ def get_options():
         logging.warning('Since you have specified a csv concatenation, all the other arguments will be skipped')
     if opt.report!='' and (opt.output!='' or opt.scan!=''):
         logging.warning('Since you have specified a scan report, all the other arguments will be skipped')
-    if opt.output == '' and (opt.invalid_DY or opt.invalid_TT):
+    if opt.output == '' and (opt.invalid_DY or opt.invalid_TT or opt.smear!=0):
         logging.critical('You must specify the model with --output')
         sys.exit(1)
 
@@ -121,6 +123,15 @@ def main():
     from import_tree import LoopOverTrees, Tree2Numpy
     from root_numpy import array2root
     # Needed because PyROOT messes with argparse
+
+    logging.info("="*88)
+    logging.info("___  ___     ___  ___ ________  ____        _   _                      _ _   _      _   ")
+    logging.info("|  \/  |     |  \/  ||  ___|  \/  | |      | \ | |                    | | \ | |    | | ") 
+    logging.info("| .  . | ___ | .  . || |__ | .  . | |_ __ _|  \| | ___ _   _ _ __ __ _| |  \| | ___| |_ ")
+    logging.info("| |\/| |/ _ \| |\/| ||  __|| |\/| | __/ _` | . ` |/ _ \ | | | '__/ _` | | . ` |/ _ \ __|")
+    logging.info("| |  | | (_) | |  | || |___| |  | | || (_| | |\  |  __/ |_| | | | (_| | | |\  |  __/ |_ ")
+    logging.info("\_|  |_/\___/\_|  |_/\____/\_|  |_/\__\__,_\_| \_/\___|\__,_|_|  \__,_|_\_| \_/\___|\__|")
+    logging.info("="*88)
 
     main_path = parameters.main_path
     path_to_files = parameters.path_to_files
@@ -227,6 +238,15 @@ def main():
     x_test_DY = data_DY[mask_DY==False,:NIn]
     x_test_TT = data_TT[mask_TT==False,:NIn]
 
+    if opt.smear != 0:
+        logging.warning('A smearing of %0.2f has been applied'%opt.smear)
+        x_train_HToZA = np.random.normal(x_train_HToZA,opt.smear)
+        x_train_DY = np.random.normal(x_train_DY,opt.smear)
+        x_train_TT = np.random.normal(x_train_TT,opt.smear)
+        x_test_HToZA = np.random.normal(x_test_HToZA,opt.smear)
+        x_test_DY = np.random.normal(x_test_DY,opt.smear)
+        x_test_TT = np.random.normal(x_test_TT,opt.smear)
+
     # Rescale outputs #
     #max_log_weight = np.amax(np.concatenate((data_HToZA[:,18:],data_DY[:,18:],data_TT[:,18:]),axis=0),axis=0)
     max_log_weight = 1
@@ -308,9 +328,12 @@ def main():
         
     if opt.output!='': 
         # Make path #
-        path_model_output = os.path.join(path_out,opt.output,'valid_weights')
-        path_model_output_inv_dy = os.path.join(path_out,opt.output,'invalid_DY_weights')
-        path_model_output_inv_tt = os.path.join(path_out,opt.output,'invalid_TT_weights')
+        tmp_output = copy.copy(opt.output)
+        if opt.smear != 0:
+            tmp_output += '_smear_'+str(opt.smear)
+        path_model_output = os.path.join(path_out,tmp_output,'valid_weights')
+        path_model_output_inv_dy = os.path.join(path_out,tmp_output,'invalid_DY_weights')
+        path_model_output_inv_tt = os.path.join(path_out,tmp_output,'invalid_TT_weights')
         if not os.path.exists(path_model_output):
             os.makedirs(path_model_output)
         if not os.path.exists(path_model_output_inv_dy):
@@ -331,21 +354,19 @@ def main():
             dtype = copy.deepcopy(dtype_base)
 
             try:
-                logging.info('Applying DY model')
                 instance = HyperModel(opt.output,'DY')
                 out_DY = np.power(10,-instance.HyperRestore(inputs))
                 output = np.c_[output,out_DY]
                 dtype.append(('output_DY','float64'))
-            except:
-                logging.warning('Could not find the DY model')
+            except Exception as e:
+                logging.warning('Could not find the DY model due to "%s"'%e)
             try:
-                logging.info('Applying TT model')
                 instance = HyperModel(opt.output,'TT')
                 out_TT = np.power(10,-instance.HyperRestore(inputs))
                 output = np.c_[output,out_TT]
                 dtype.append(('output_TT','float64'))
-            except:
-                logging.warning('Could not find the TT model')
+            except Exception as e:
+                logging.warning('Could not find the TT model due to "%s"'%e)
 
             # Save root file #
             output.dtype = dtype
@@ -376,6 +397,11 @@ def main():
                     continue
                 # Separate and process #
                 inv_inputs = scaler.transform(data_inv[:,:NIn])
+
+                # Smearing #
+                if opt.smear != 0:
+                    inv_inputs = np.random.normal(inv_inputs,opt.smear) 
+
                 inv_MEM = data_inv[:,NIn:NIn+NOut]
                 # Concatenate #
                 full_outputs = np.c_[data_inv[:,:NIn],inv_MEM,data_inv[:,NIn+NOut:NIn+NOut+NOther]]
@@ -383,21 +409,19 @@ def main():
                 dtype = copy.deepcopy(dtype_base)
                 # NN Outputs #
                 try:
-                    logging.info('Applying DY model')
                     instance = HyperModel(opt.output,'DY')
                     inv_outputs_DY = np.power(10,-instance.HyperRestore(inv_inputs))
                     full_outputs = np.c_[full_outputs,inv_outputs_DY]
                     dtype.append(('output_DY','float64'))
-                except:
-                    logging.warning('Could not find the DY model')
+                except Exception as e:
+                    logging.warning('Could not find the DY model due to "%s"'%e)
                 try:
-                    logging.info('Applying TT model')
                     instance = HyperModel(opt.output,'TT')
                     inv_outputs_TT = np.power(10,-instance.HyperRestore(inv_inputs))
                     full_outputs = np.c_[full_outputs,inv_outputs_TT]
                     dtype.append(('output_TT','float64'))
-                except:
-                    logging.warning('Could not find the TT model')
+                except Exception as e:
+                    logging.warning('Could not find the TT model due to "%s"'%e)
                 
                 # Save to file #
                 full_outputs.dtype = dtype

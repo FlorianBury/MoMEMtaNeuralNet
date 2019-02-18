@@ -32,6 +32,7 @@ class SplitTraining:
         self.grid_downsample = None
         self.params_per_job = params_per_job
         self.dir_name = dir_name
+        self.repetition = parameters.repetition
     
         self.paramgrid_object = ParamGrid(self)
 
@@ -110,6 +111,7 @@ class ResubmitSplitting(SplitTraining):
     def __init__(self,p,params_per_job,path_success,dir_name):
         SplitTraining.__init__(self,p=p,params_per_job=params_per_job,dir_name=dir_name)
         self.path_success = path_success
+        self.repetition = parameters.repetition
         self.GetSuccessingJobs()
         
     def GetSuccessingJobs(self):
