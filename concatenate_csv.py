@@ -54,7 +54,7 @@ class ConcatenateCSV:
         name_csv = re.sub("[-_]\d+[-_]\d+","",name_csv)    
 
         # Write to file #
-        self.path_out = os.path.join(parameters.main_path,'model',name_csv+'_'+self.sample+'.csv')
+        self.path_out = os.path.join(parameters.main_path,'model',name_csv+'.csv')
         invalid_counter = 0
         with open(self.path_out, 'w') as the_file:
             w = csv.writer(the_file)

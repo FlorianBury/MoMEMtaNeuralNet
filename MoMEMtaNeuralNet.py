@@ -156,14 +156,9 @@ def main():
     #############################################################################################
     if opt.csv!='':
         logging.info('Concatenating csv files from : %s'%(opt.csv))
-        dict_DY = ConcatenateCSV(opt.csv)
-        dict_TT = ConcatenateCSV(opt.csv)
-        
-        dict_DY.Concatenate()
-        dict_DY.WriteToFile()
-
-        dict_TT.Concatenate()
-        dict_TT.WriteToFile()
+        instance = ConcatenateCSV(opt.csv)
+        instance.Concatenate()
+        instance.WriteToFile()
 
         sys.exit()
 
@@ -171,12 +166,8 @@ def main():
     # Reporting given scan in csv file #
     #############################################################################################
     if opt.report != '':
-        if opt.DY: 
-            instance = HyperModel(opt.report)
-            instance.HyperReport()
-        if opt.TT:
-            instance = HyperModel(opt.report)
-            instance.HyperReport()
+        instance = HyperModel(opt.report)
+        instance.HyperReport()
 
         sys.exit()
 
@@ -324,18 +315,22 @@ def main():
         dtype_base = parameters.make_dtype(parameters.inputs+parameters.other_variables+parameters.weights)
 
         # Get output, concatenate and make root file # 
-        def produce_output(inputs,other,tag):
+        def produce_output(inputs_MEM,other,tag):
             # De-preprocess inputs #
-            inputs_unscaled = inputs*scaler.scale_+scaler.mean_
-            inputs_base = np.power(10,-inputs_unscaled) # All in real weights
+            inputs_MEM_unscaled = inputs_MEM*scaler.scale_+scaler.mean_
+            inputs_MEM_base = np.power(10,-inputs_MEM_unscaled) # All in real weights
+            inputs_DNN = -np.log10(other[:,:2])
+            inputs_DNN = scaler.transform(inputs_DNN)
             # Concatenate #
-            output = np.c_[inputs_base,other] # without NN output
+            output = np.c_[inputs_MEM_base,other] # without NN output
             dtype = copy.deepcopy(dtype_base)
 
             instance = HyperModel(opt.output)
-            out = instance.HyperRestore(inputs)
-            output = np.c_[output,out]
-            dtype.extend([('prob_HToZA','float64'),('prob_DY','float64'),('prob_TT','float64')])
+            out_MEM = instance.HyperRestore(inputs_MEM)
+            out_DNN = instance.HyperRestore(inputs_DNN)
+            output = np.c_[output,out_MEM,out_DNN]
+            dtype.extend([('prob_MEM_HToZA','float64'),('prob_MEM_DY','float64'),('prob_MEM_TT','float64')])
+            dtype.extend([('prob_DNN_HToZA','float64'),('prob_DNN_DY','float64'),('prob_DNN_TT','float64')])
 
             # Save root file #
             output.dtype = dtype
@@ -345,13 +340,13 @@ def main():
 
         # Use it on different samples #
         logging.info(' HToZA sample '.center(80,'*'))
-        produce_output(inputs=x_test_HToZA,other=z_test_HToZA,tag='HToZA')
+        produce_output(inputs_MEM=x_test_HToZA,other=z_test_HToZA,tag='HToZA')
         logging.info('')
         logging.info(' DY sample '.center(80,'*'))
-        produce_output(inputs=x_test_DY,other=z_test_DY,tag='DY')
+        produce_output(inputs_MEM=x_test_DY,other=z_test_DY,tag='DY')
         logging.info('')
         logging.info(' TT sample '.center(80,'*'))
-        produce_output(inputs=x_test_TT,other=z_test_TT,tag='TT')
+        produce_output(inputs_MEM=x_test_TT,other=z_test_TT,tag='TT')
         logging.info('')
 
         

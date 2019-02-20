@@ -1,37 +1,59 @@
-MEM_vs_DNN_weight_DY:
+MEM_vs_DNN_prob_HToZA:
   filename: {file}
   tree: tree
-  variablex: -TMath::Log10(weight_DY)
-  variabley: -TMath::Log10(output_DY) 
+  variablex: prob_MEM_HToZA
+  variabley: prob_DNN_HToZA
   weight: total_weight
-  name: {category}_{name}_sample_MEM_vs_DNN_weight_DY
+  name: {category}_{name}_MEM_vs_DNN_prob_HToZA
   cut: {cut}
-  binsx: 150
-  xmin: 15
-  xmax: 45
-  binsy: 150
+  binsx: 100
+  xmin: 0
+  xmax: 1
+  binsy: 100
   ymin: 15
   ymax: 45
-  title: '{category} {name} sample : MEM vs DNN weight DY'
-  xlabel: -log_{{10}}(weight from MEM)
-  ylabel: -log_{{10}}(weight from DNN)
+  title: '{category} {name} sample : MEM vs DNN P(HToZA)'
+  xlabel: Probability from MEM
+  ylabel: Probability from DNN
   zlabel: Events
+  option: 'prof'
 
-MEM_vs_DNN_weight_TT:
+MEM_vs_DNN_prob_DY:
   filename: {file}
   tree: tree
-  variablex: -TMath::Log10(weight_TT)
-  variabley: -TMath::Log10(output_TT)
+  variablex: prob_MEM_DY
+  variabley: prob_DNN_DY
   weight: total_weight
-  name: {category}_{name}_sample_MEM_vs_DNN_weight_TT
+  name: {category}_{name}_MEM_vs_DNN_prob_DY
   cut: {cut}
-  binsx: 150
-  xmin: 15
-  xmax: 45
-  binsy: 150
+  binsx: 100
+  xmin: 0
+  xmax: 1
+  binsy: 100
   ymin: 15
   ymax: 45
-  title: '{category} {name} sample : MEM vs DNN weight TT'
-  xlabel: -log_{{10}}(weight from MEM)
-  ylabel: -log_{{10}}(weight from DNN)
+  title: '{category} {name} sample : MEM vs DNN P(DY)'
+  xlabel: Probability from MEM
+  ylabel: Probability from DNN
   zlabel: Events
+  option: 'prof'
+
+MEM_vs_DNN_prob_TT:
+  filename: {file}
+  tree: tree
+  variablex: prob_MEM_TT
+  variabley: prob_DNN_TT
+  weight: total_weight
+  name: {category}_{name}_MEM_vs_DNN_prob_TT
+  cut: {cut}
+  binsx: 100
+  xmin: 0
+  xmax: 1
+  binsy: 100
+  ymin: 15
+  ymax: 45
+  title: '{category} {name} sample : MEM vs DNN P(TT)'
+  xlabel: Probability from MEM
+  ylabel: Probability from DNN
+  zlabel: Events
+  option: 'prof'

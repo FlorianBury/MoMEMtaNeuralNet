@@ -49,8 +49,6 @@ def submit_on_slurm(name,debug=False):
     for f in glob.glob(os.path.join(parameters.main_path,'split',name,'*.pkl')):
         task = os.path.basename(f)
         slurm_config.inputParams.append([name,task])
-    print (slurm_config)
-    sys.exit()
 
     # Submit job!
 

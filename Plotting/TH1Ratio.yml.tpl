@@ -1,50 +1,51 @@
-MEM_ratio_DNN_weight_DY:
+MEM_ratio_DNN_prob_HToZA:
   filename: {file}
   tree: tree
-  variable1: -TMath::Log10(weight_DY)
-  variable2: -TMath::Log10(output_DY)
+  variable1: prob_MEM_HToZA
+  variable2: prob_DNN_HToZA
   weight: total_weight
-  name: {category}_{name}_sample_MEM_ratio_DNN_weight_DY
+  name: {category}_{name}_MEM_ratio_DNN_prob_HToZA
   cut: {cut}
-  bins: 150
-  xmin: 15
-  xmax: 45
-  title: '{category} {name} sample : Ratio MEM/DNN weight DY'
-  xlabel: -log_{{10}}(weight)
-  ylabel: Events
-  legend1: 'MEM'
-  legend2: 'DNN' 
-
-MEM_ratio_DNN_weight_TT:
-  filename: {file}
-  tree: tree
-  variable1: -TMath::Log10(weight_TT)
-  variable2: -TMath::Log10(output_TT)
-  weight: total_weight
-  name: {category}_{name}_sample_MEM_ratio_DNN_weight_TT
-  cut: {cut}
-  bins: 150
-  xmin: 15
-  xmax: 45
-  title: '{category} {name} sample : Ratio MEM/DNN weight TT'
-  xlabel: -log_{{10}}(weight)
-  ylabel: Events
-  legend1: 'MEM'
-  legend2: 'DNN' 
-
-Discriminant_ratio:
-  filename: {file}
-  tree: tree
-  variable1: weight_TT/(weight_TT+weight_DY)
-  variable2: output_TT/(output_TT+output_DY)
-  weight: total_weight
-  name: {category}_{name}_sample_Discriminant_Ratio
-  cut: {cut}
-  bins: 50
+  bins: 100
   xmin: 0
   xmax: 1
-  title: '{category} {name} sample : Discriminant Ratio'
-  xlabel: Discriminant
+  title: '{category} {name} sample : Ratio MEM/DNN P(HToZA)'
+  xlabel: Probability of HToZA
   ylabel: Events
-  legend1: 'MEM'
-  legend2: 'DNN' 
+  legend1: 'Weights from MEM'
+  legend2: 'Weights from DNN' 
+
+MEM_ratio_DNN_prob_DY:
+  filename: {file}
+  tree: tree
+  variable1: prob_MEM_DY
+  variable2: prob_DNN_DY
+  weight: total_weight
+  name: {category}_{name}_MEM_ratio_DNN_prob_DY
+  cut: {cut}
+  bins: 100
+  xmin: 0
+  xmax: 1
+  title: '{category} {name} sample : Ratio MEM/DNN P(DY)'
+  xlabel: Probability of DY
+  ylabel: Events
+  legend1: 'Weights from MEM'
+  legend2: 'Weights from DNN' 
+
+MEM_ratio_DNN_prob_TT:
+  filename: {file}
+  tree: tree
+  variable1: prob_MEM_TT
+  variable2: prob_DNN_TT
+  weight: total_weight
+  name: {category}_{name}_MEM_ratio_DNN_prob_TT
+  cut: {cut}
+  bins: 100
+  xmin: 0
+  xmax: 1
+  title: '{category} {name} sample : Ratio MEM/DNN P(TT)'
+  xlabel: Probability of TT
+  ylabel: Events
+  legend1: 'Weights from MEM'
+  legend2: 'Weights from DNN' 
+

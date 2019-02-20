@@ -10,39 +10,37 @@ from keras.regularizers import l1,l2
 global main_path
 global path_to_files
 global path_out   
-global path_invalid_DY
-global path_invalid_TT
 main_path = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/'   
 path_to_files = '/nfs/scratch/fynu/fbury/MoMEMta_output/NNOutput/BestModel_newvar/valid_weights/'
 path_out = '/nfs/scratch/fynu/fbury/MoMEMta_output/Classifier/' 
 
 # Scan dictionary #
-#p = { 
-#    'lr' : [0.1], 
-#    'first_neuron' : [10,20,30,40,50],
-#    'activation' : [relu,selu],
-#    'dropout' : [0,0.05,0.1],
-#    'hidden_layers' : [0,1,2,3,4],
-#    'output_activation' : [sigmoid],
-#    'l2' : [0,0.05,0.1],
-#    'optimizer' : [Adam],  
-#    'epochs' : [10000],   
-#    'batch_size' : [100], 
-#    'loss_function' : [binary_crossentropy] 
-#}
 p = { 
-    'lr' : [0.5], 
-    'first_neuron' : [30],
-    'activation' : [selu],
-    'dropout' : [0],
-    'hidden_layers' : [3],
+    'lr' : [0.1], 
+    'first_neuron' : [30,50,100],
+    'activation' : [relu],
+    'dropout' : [0.1,0.2,0.3,0.4,0.5],
+    'hidden_layers' : [2,3,4],
     'output_activation' : [sigmoid],
-    'l2' : [0],
+    'l2' : [0.1,0.2,0.3,0.4,0.5],
     'optimizer' : [Adam],  
-    'epochs' : [1],   
-    'batch_size' : [1000], 
+    'epochs' : [10000],   
+    'batch_size' : [100], 
     'loss_function' : [binary_crossentropy] 
-}     
+}
+#p = { 
+#    'lr' : [0.5], 
+#    'first_neuron' : [30,50,100,200],
+#    'activation' : [selu],
+#    'dropout' : [0],
+#    'hidden_layers' : [3],
+#    'output_activation' : [sigmoid],
+#    'l2' : [0],
+#    'optimizer' : [Adam],  
+#    'epochs' : [1],   
+#    'batch_size' : [1000], 
+#    'loss_function' : [binary_crossentropy] 
+#}     
 repetition = 1
 
 inputs = [

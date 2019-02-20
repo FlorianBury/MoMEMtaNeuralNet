@@ -1,86 +1,84 @@
-MEM_weight_DY:
+prob_MEM_HToZA:
   filename: {file}
   tree: tree
-  variable: -TMath::Log10(weight_DY)
+  variable: prob_MEM_HToZA
   weight: total_weight
-  name: {category}_{name}_sample_weight_DY
+  name: {category}_{name}_prob_MEM_HToZA
   cut: {cut}
-  bins: 150
-  xmin: 15
-  xmax: 45
-  title: '{category} {name} sample : MEM weight DY'
-  xlabel: -log_{{10}}(weight)
-  ylabel: Events
-
-MEM_weight_TT:
-  filename: {file}
-  tree: tree
-  variable: -TMath::Log10(weight_TT)
-  weight: total_weight
-  name: {category}_{name}_sample_weight_TT
-  cut: {cut}
-  bins: 150
-  xmin: 15
-  xmax: 45
-  title: '{category} {name} sample : MEM weight TT'
-  xlabel: -log_{{10}}(weight)
-  ylabel: Events
-
-DNN_weight_DY:
-  filename: {file}
-  tree: tree
-  variable: -TMath::Log10(output_DY)
-  weight: total_weight
-  name: {category}_{name}_sample_DNN_weight_DY
-  cut: {cut}
-  bins: 150
-  xmin: 15
-  xmax: 45
-  title: '{category} {name} sample : DNN weight DY'
-  xlabel: -log_{{10}}(weight)
-  ylabel: Events
-
-DNN_weight_TT:
-  filename: {file}
-  tree: tree
-  variable: -TMath::Log10(output_TT)
-  weight: total_weight
-  name: {category}_{name}_sample_DNN_weight_TT
-  cut: {cut}
-  bins: 150
-  xmin: 15
-  xmax: 45
-  title: '{category} {name} sample : DNN weight TT'
-  xlabel: -log_{{10}}(weight)
-  ylabel: Events
-
-Discriminant_MEM:
-  filename: {file}
-  tree: tree
-  variable: weight_TT/(weight_TT+weight_DY)
-  weight: total_weight
-  name: {category}_{name}_sample_MEM_Discriminant
-  cut: {cut}
-  bins: 50
+  bins: 100
   xmin: 0
   xmax: 1
-  title: '{category} {name} sample : MEM Discriminant '
-  xlabel: Discriminant
+  title: '{category} {name} sample : MEM P(HToZA)'
+  xlabel: Probability of HToZA
   ylabel: Events
 
-Discriminant_DNN:
+prob_MEM_DY:
   filename: {file}
   tree: tree
-  variable: output_TT/(output_TT+output_DY)
+  variable: prob_MEM_DY
   weight: total_weight
-  name: {category}_{name}_sample_DNN_Discriminant
+  name: {category}_{name}_prob_MEM_DY
   cut: {cut}
-  bins: 50
+  bins: 100
   xmin: 0
   xmax: 1
-  title: '{category} {name} sample : DNN Discriminant '
-  xlabel: Discriminant
+  title: '{category} {name} sample : MEM P(DY)'
+  xlabel: Probability of DY
   ylabel: Events
 
+prob_MEM_TT:
+  filename: {file}
+  tree: tree
+  variable: prob_MEM_TT
+  weight: total_weight
+  name: {category}_{name}_prob_MEM_TT
+  cut: {cut}
+  bins: 100
+  xmin: 0
+  xmax: 1
+  title: '{category} {name} sample : MEM P(TT)'
+  xlabel: Probability of TT
+  ylabel: Events
 
+prob_DNN_HToZA:
+  filename: {file}
+  tree: tree
+  variable: prob_DNN_HToZA
+  weight: total_weight
+  name: {category}_{name}_prob_DNN_HToZA
+  cut: {cut}
+  bins: 100
+  xmin: 0
+  xmax: 1
+  title: '{category} {name} sample : DNN P(HToZA)'
+  xlabel: Probability of HToZA
+  ylabel: Events
+
+prob_DNN_DY:
+  filename: {file}
+  tree: tree
+  variable: prob_DNN_DY
+  weight: total_weight
+  name: {category}_{name}_prob_DNN_DY
+  cut: {cut}
+  bins: 100
+  xmin: 0
+  xmax: 1
+  title: '{category} {name} sample : DNN P(DY)'
+  xlabel: Probability of DY
+  ylabel: Events
+
+prob_DNN_TT:
+  filename: {file}
+  tree: tree
+  variable: prob_DNN_TT
+  weight: total_weight
+  name: {category}_{name}_prob_DNN_TT
+  cut: {cut}
+  bins: 100
+  xmin: 0
+  xmax: 1
+  title: '{category} {name} sample : DNN P(TT)'
+  xlabel: Probability of TT
+  ylabel: Events
 

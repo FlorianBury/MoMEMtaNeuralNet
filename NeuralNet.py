@@ -371,16 +371,16 @@ class HyperModel:
         # Lowest eval_error #
         logging.info('-'*80)
         try:
-            logging.info('Lowest eval_error = %0.5f obtained after %0.f rounds'%(r.low('eval_mean'),r.rounds2high('eval_mean')))
+            logging.info('Lowest eval_error = %0.5f obtained after %0.f rounds'%(r.high('eval_mean'),r.rounds2high('eval_mean')))
         except:
             logging.warning("Could not find key 'eval_mean', will switch to 'val_loss'")
-            logging.info('Lowest val_loss = %0.5f obtained after %0.f rounds'%(r.low('val_loss'),r.rounds2high('val_loss')))
+            logging.info('Lowest val_loss = %0.5f obtained after %0.f rounds'%(r.low('val_loss'),r.rounds2low('val_loss')))
 
         # Best params #
         logging.info('='*80)
         logging.info('Best parameters sets')
         try:
-            sorted_data = r.data.sort_values('eval_mean',ascending=True)
+            sorted_data = r.data.sort_values('eval_mean',ascending=False)
         except:
             logging.warning("Could not find key 'eval_mean', will swith to val_loss")
             sorted_data = r.data.sort_values('val_loss',ascending=True)
