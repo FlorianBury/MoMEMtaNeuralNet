@@ -14,6 +14,7 @@ import numpy as np
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 
+from keras.utils import to_categorical
 
 import matplotlib.pyplot as plt
 
@@ -36,10 +37,6 @@ def get_options():
     a = parser.add_argument_group('Scan, deploy and restore arguments')
     a.add_argument('-s','--scan', action='store', required=False, type=str, default='',
         help='Name of the scan to be used (modify scan parameters in NeuralNet.py)')
-    a.add_argument('-dy','--DY', action='store_true', required=False, default=False,
-        help='Use DY MEM weights (must be specified if --scan or --report or --output are used')
-    a.add_argument('-tt','--TT', action='store_true', required=False, default=False,
-        help='Use TT MEM weights (must be specified if --scan or --report or --output are used')
     a.add_argument('-task','--task', action='store', required=False, type=str, default='',
         help='Name of dict to be used for scan (Used by function itself when submitting jobs or DEBUG)')
 
@@ -81,10 +78,6 @@ def get_options():
 
     opt = parser.parse_args()
 
-    if not opt.DY and not opt.TT:
-        if opt.scan!='' or opt.report!='' or opt.submit!='':
-            logging.critical('Either -dy or -tt must be specified')  
-            sys.exit(1)
     if opt.split!=0 or opt.submit:
         if opt.scan!='' or opt.report!='':
             logging.critical('These parameters cannot be used together')  
@@ -153,9 +146,9 @@ def main():
         if opt.submit!='':
             logging.info('Submitting jobs')
             if opt.resubmit:
-                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug,tt=opt.TT,dy=opt.DY)
+                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug)
             else:
-                submit_on_slurm(name=opt.submit,debug=opt.debug,tt=opt.TT,dy=opt.DY)
+                submit_on_slurm(name=opt.submit,debug=opt.debug)
         sys.exit()
 
     #############################################################################################
@@ -163,8 +156,8 @@ def main():
     #############################################################################################
     if opt.csv!='':
         logging.info('Concatenating csv files from : %s'%(opt.csv))
-        dict_DY = ConcatenateCSV(opt.csv,'DY')
-        dict_TT = ConcatenateCSV(opt.csv,'TT')
+        dict_DY = ConcatenateCSV(opt.csv)
+        dict_TT = ConcatenateCSV(opt.csv)
         
         dict_DY.Concatenate()
         dict_DY.WriteToFile()
@@ -179,10 +172,10 @@ def main():
     #############################################################################################
     if opt.report != '':
         if opt.DY: 
-            instance = HyperModel(opt.report,'DY')
+            instance = HyperModel(opt.report)
             instance.HyperReport()
         if opt.TT:
-            instance = HyperModel(opt.report,'TT')
+            instance = HyperModel(opt.report)
             instance.HyperReport()
 
         sys.exit()
@@ -191,12 +184,11 @@ def main():
     # Data Input and preprocessing #
     #############################################################################################
     # Input path #
-    logging.info('Starting histograms input')
+    logging.info('Starting input')
 
     # Import variables from parameters.py
-    variables = parameters.inputs+parameters.outputs+parameters.other_variables
+    variables = parameters.inputs+parameters.other_variables
     NIn = len(parameters.inputs)
-    NOut = len(parameters.outputs)
     NOther = len(parameters.other_variables)
 
     # Import arrays #
@@ -204,10 +196,10 @@ def main():
     data_HToZA, weight_HToZA = LoopOverTrees(input_dir=path_to_files,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=False,part_name='HToZA')
     logging.info('HToZA sample size : {}'.format(data_HToZA.shape[0]))
     logging.info('DY samples')
-    data_DY, weight_DY = LoopOverTrees(input_dir=path_to_files,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=True,part_name='DY')
+    data_DY, weight_DY = LoopOverTrees(input_dir=path_to_files,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=False,part_name='DY')
     logging.info('DY sample size : {}'.format(data_DY.shape[0]))
     logging.info('TT samples')
-    data_TT, weight_TT = LoopOverTrees(input_dir=path_to_files,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=True,part_name='TT',n=500000)
+    data_TT, weight_TT = LoopOverTrees(input_dir=path_to_files,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=False,part_name='TT')
     # Save weights in data #
     data_HToZA = np.append(data_HToZA,weight_HToZA,axis=1)
     data_DY = np.append(data_DY,weight_DY,axis=1)
@@ -225,19 +217,20 @@ def main():
         logging.warning('\tTT : '+str(np.sum(weight_TT)))
 
     # Preprocessing #
-    mask_HToZA = GenerateMask(data_HToZA.shape[0],'HToZA')
-    mask_DY = GenerateMask(data_DY.shape[0],'DY')
-    mask_TT = GenerateMask(data_TT.shape[0],'TT')
+    mask_HToZA = GenerateMask(data_HToZA.shape[0],'HToZA_classifier')
+    mask_DY = GenerateMask(data_DY.shape[0],'DY_classifier')
+    mask_TT = GenerateMask(data_TT.shape[0],'TT_classifier')
        # Needs to keep the same testing set for the evaluation of model that was selected earlier
-    x_train_HToZA = data_HToZA[mask_HToZA==True,:NIn]
-    x_train_DY = data_DY[mask_DY==True,:NIn]
-    x_train_TT = data_TT[mask_TT==True,:NIn]
-    x_test_HToZA = data_HToZA[mask_HToZA==False,:NIn]
-    x_test_DY = data_DY[mask_DY==False,:NIn]
-    x_test_TT = data_TT[mask_TT==False,:NIn]
+    x_train_HToZA = -np.log10(data_HToZA[mask_HToZA==True,:NIn])
+    x_train_DY = -np.log10(data_DY[mask_DY==True,:NIn])
+    x_train_TT = -np.log10(data_TT[mask_TT==True,:NIn])
+    x_test_HToZA = -np.log10(data_HToZA[mask_HToZA==False,:NIn])
+    x_test_DY = -np.log10(data_DY[mask_DY==False,:NIn])
+    x_test_TT = -np.log10(data_TT[mask_TT==False,:NIn])
 
+    # Smearing #
     if opt.smear != 0:
-        logging.warning('A smearing of %0.2f has been applied'%opt.smear)
+        logging.warning('A gaussian smearing of std %0.2f has been applied'%opt.smear)
         x_train_HToZA = np.random.normal(x_train_HToZA,opt.smear)
         x_train_DY = np.random.normal(x_train_DY,opt.smear)
         x_train_TT = np.random.normal(x_train_TT,opt.smear)
@@ -245,21 +238,22 @@ def main():
         x_test_DY = np.random.normal(x_test_DY,opt.smear)
         x_test_TT = np.random.normal(x_test_TT,opt.smear)
 
-    # Rescale outputs #
-    #max_log_weight = np.amax(np.concatenate((data_HToZA[:,18:],data_DY[:,18:],data_TT[:,18:]),axis=0),axis=0)
-    max_log_weight = 1
 
-    y_train_HToZA = -np.log10(data_HToZA[mask_HToZA==True,NIn:NIn+NOut]/max_log_weight)
-    y_train_DY = -np.log10(data_DY[mask_DY==True,NIn:NIn+NOut]/max_log_weight)
-    y_train_TT = -np.log10(data_TT[mask_TT==True,NIn:NIn+NOut]/max_log_weight)
-    y_test_HToZA = -np.log10(data_HToZA[mask_HToZA==False,NIn:NIn+NOut]/max_log_weight)
-    y_test_DY = -np.log10(data_DY[mask_DY==False,NIn:NIn+NOut]/max_log_weight)
-    y_test_TT = -np.log10(data_TT[mask_TT==False,NIn:NIn+NOut]/max_log_weight)
-
+    # Define outputs #
+    y_train_HToZA = np.zeros(x_train_HToZA.shape[0])
+    y_train_DY = np.ones(x_train_DY.shape[0])
+    y_train_TT = np.ones(x_train_TT.shape[0])*2
+    y_test_HToZA = np.zeros(x_test_HToZA.shape[0])
+    y_test_DY = np.ones(x_test_DY.shape[0])
+    y_test_TT = np.ones(x_test_TT.shape[0])*2
+         # output : 0 -> HToZA
+         #          1 -> DY
+         #          2 -> TT
+         # Will categorize after
     # Variables outside training #
-    z_test_HToZA = data_HToZA[mask_HToZA==False,NIn+NOut:NIn+NOut+NOther]
-    z_test_DY = data_DY[mask_DY==False,NIn+NOut:NIn+NOut+NOther]
-    z_test_TT = data_TT[mask_TT==False,NIn+NOut:NIn+NOut+NOther]
+    z_test_HToZA = data_HToZA[mask_HToZA==False,NIn:NIn+NOther]
+    z_test_DY = data_DY[mask_DY==False,NIn:NIn+NOther]
+    z_test_TT = data_TT[mask_TT==False,NIn:NIn+NOther]
         # We don't need training because only test is used in output 
     
     # Learning weights #
@@ -270,8 +264,6 @@ def main():
     w_test_DY = weight_DY[mask_DY==False]
     w_test_TT = weight_TT[mask_TT==False]
         
-    # y -> [weight_DY, weight_TT]
-
     all_train = np.concatenate((x_train_HToZA,x_train_DY,x_train_TT),axis=0)
     scaler = preprocessing.StandardScaler().fit(all_train)
 
@@ -292,6 +284,10 @@ def main():
     y_test = np.concatenate((y_test_HToZA,y_test_DY,y_test_TT),axis=0) 
     w_test = np.concatenate((w_test_HToZA,w_test_DY,w_test_TT),axis=0) 
 
+    # Categorization #
+    y_train = to_categorical(y_train)
+    y_test = to_categorical(y_test)
+
     # Randomization (not show input from same sample in one batch) #
 
     random_train = np.arange(0,x_train.shape[0]) # needed to randomize x,y and w in same fashion
@@ -311,60 +307,35 @@ def main():
     #############################################################################################
 
     if opt.scan != '':
-        # DY network #
-        if opt.DY:
-            instance = HyperModel(opt.scan,'DY')
-            instance.HyperScan(x_train,np.c_[w_train,y_train[:,0]],task=opt.task)
-            #instance.HyperEvaluate(x_test,y_test[:,0],folds=5) 
-            instance.HyperDeploy(best='eval_error')
-        # TT network #
-        if opt.TT:
-            instance = HyperModel(opt.scan,'TT')
-            instance.HyperScan(x_train,np.c_[w_train,y_train[:,1]],task=opt.task)
-            #instance.HyperEvaluate(x_test,y_test[:,1],folds=5) 
-            instance.HyperDeploy(best='eval_error')
+        instance = HyperModel(opt.scan)
+        instance.HyperScan(x_train,np.c_[w_train,y_train],task=opt.task)
+        instance.HyperDeploy(best='eval_error')
         
     if opt.output!='': 
         # Make path #
         tmp_output = copy.copy(opt.output)
         if opt.smear != 0:
             tmp_output += '_smear_'+str(opt.smear)
-        path_model_output = os.path.join(path_out,tmp_output,'valid_weights')
-        path_model_output_inv_dy = os.path.join(path_out,tmp_output,'invalid_DY_weights')
-        path_model_output_inv_tt = os.path.join(path_out,tmp_output,'invalid_TT_weights')
+        path_model_output = os.path.join(path_out,tmp_output)
         if not os.path.exists(path_model_output):
             os.makedirs(path_model_output)
-        if not os.path.exists(path_model_output_inv_dy):
-            os.makedirs(path_model_output_inv_dy)
-        if not os.path.exists(path_model_output_inv_tt):
-            os.makedirs(path_model_output_inv_tt)
 
         # Make basic dtype #
-        dtype_base = parameters.make_dtype(parameters.inputs+parameters.outputs+parameters.other_variables+parameters.weights)
+        dtype_base = parameters.make_dtype(parameters.inputs+parameters.other_variables+parameters.weights)
 
         # Get output, concatenate and make root file # 
-        def produce_output(inputs,MEM,other,tag):
+        def produce_output(inputs,other,tag):
             # De-preprocess inputs #
             inputs_unscaled = inputs*scaler.scale_+scaler.mean_
-            MEM = np.power(10,-MEM) # All in real weights
+            inputs_base = np.power(10,-inputs_unscaled) # All in real weights
             # Concatenate #
-            output = np.c_[inputs_unscaled,MEM,other] # without NN output
+            output = np.c_[inputs_base,other] # without NN output
             dtype = copy.deepcopy(dtype_base)
 
-            try:
-                instance = HyperModel(opt.output,'DY')
-                out_DY = np.power(10,-instance.HyperRestore(inputs))
-                output = np.c_[output,out_DY]
-                dtype.append(('output_DY','float64'))
-            except Exception as e:
-                logging.warning('Could not find the DY model due to "%s"'%e)
-            try:
-                instance = HyperModel(opt.output,'TT')
-                out_TT = np.power(10,-instance.HyperRestore(inputs))
-                output = np.c_[output,out_TT]
-                dtype.append(('output_TT','float64'))
-            except Exception as e:
-                logging.warning('Could not find the TT model due to "%s"'%e)
+            instance = HyperModel(opt.output)
+            out = instance.HyperRestore(inputs)
+            output = np.c_[output,out]
+            dtype.extend([('prob_HToZA','float64'),('prob_DY','float64'),('prob_TT','float64')])
 
             # Save root file #
             output.dtype = dtype
@@ -374,74 +345,14 @@ def main():
 
         # Use it on different samples #
         logging.info(' HToZA sample '.center(80,'*'))
-        produce_output(inputs=x_test_HToZA,MEM=y_test_HToZA,other=z_test_HToZA,tag='HToZA')
+        produce_output(inputs=x_test_HToZA,other=z_test_HToZA,tag='HToZA')
         logging.info('')
         logging.info(' DY sample '.center(80,'*'))
-        produce_output(inputs=x_test_DY,MEM=y_test_DY,other=z_test_DY,tag='DY')
+        produce_output(inputs=x_test_DY,other=z_test_DY,tag='DY')
         logging.info('')
         logging.info(' TT sample '.center(80,'*'))
-        produce_output(inputs=x_test_TT,MEM=y_test_TT,other=z_test_TT,tag='TT')
+        produce_output(inputs=x_test_TT,other=z_test_TT,tag='TT')
         logging.info('')
-
-        # Same but for invalid weights #
-        def loop_invalid(path,tag):
-            for inv_file in glob.glob(path+'*.root'):
-                inv_name = inv_file.replace(path,'').replace('.root','') 
-                # Get data #
-                variables = parameters.inputs+parameters.outputs+parameters.other_variables
-                data_inv, weight_inv = LoopOverTrees(input_dir=path,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=False,part_name=inv_name)
-                data_inv = np.append(data_inv,weight_inv,axis=1)
-                if data_inv.shape[0]==0: # There is no invalid weights in this case
-                    continue
-                # Separate and process #
-                inv_inputs = scaler.transform(data_inv[:,:NIn])
-
-                # Smearing #
-                if opt.smear != 0:
-                    inv_inputs = np.random.normal(inv_inputs,opt.smear) 
-
-                inv_MEM = data_inv[:,NIn:NIn+NOut]
-                # Concatenate #
-                full_outputs = np.c_[data_inv[:,:NIn],inv_MEM,data_inv[:,NIn+NOut:NIn+NOut+NOther]]
-
-                dtype = copy.deepcopy(dtype_base)
-                # NN Outputs #
-                try:
-                    instance = HyperModel(opt.output,'DY')
-                    inv_outputs_DY = np.power(10,-instance.HyperRestore(inv_inputs))
-                    full_outputs = np.c_[full_outputs,inv_outputs_DY]
-                    dtype.append(('output_DY','float64'))
-                except Exception as e:
-                    logging.warning('Could not find the DY model due to "%s"'%e)
-                try:
-                    instance = HyperModel(opt.output,'TT')
-                    inv_outputs_TT = np.power(10,-instance.HyperRestore(inv_inputs))
-                    full_outputs = np.c_[full_outputs,inv_outputs_TT]
-                    dtype.append(('output_TT','float64'))
-                except Exception as e:
-                    logging.warning('Could not find the TT model due to "%s"'%e)
-                
-                # Save to file #
-                full_outputs.dtype = dtype
-                if tag=='DY':
-                    output_name = os.path.join(path_model_output_inv_dy,inv_name+'.root')
-                elif tag=='TT':
-                    output_name = os.path.join(path_model_output_inv_tt,inv_name+'.root')
-                else:
-                    logging.error('Incorrect tag for invalid evaluation')
-
-                array2root(full_outputs,output_name,mode='recreate')
-                logging.info('Output saved as : '+output_name)
-
-        # Depending on user request #
-        if opt.invalid_DY:
-            logging.info('Starting invalid DY output'.center(80,'*'))
-            loop_invalid(path=parameters.path_invalid_DY,tag='DY')
-
-        if opt.invalid_TT:
-            logging.info('Starting invalid TT output'.center(80,'*'))
-            loop_invalid(path=parameters.path_invalid_TT,tag='TT')
-
 
         
    

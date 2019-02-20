@@ -15,7 +15,7 @@ from CP3SlurmUtils.Exceptions import CP3SlurmUtilsException
 # Personal files #
 import parameters
 
-def submit_on_slurm(name,tt,dy,debug=False):
+def submit_on_slurm(name,debug=False):
     config = Configuration()
 
     config.sbatch_partition = 'cp3'
@@ -30,10 +30,6 @@ def submit_on_slurm(name,tt,dy,debug=False):
     config.inputParams = []
 
     config.payload = " python {script} --scan ${{scan}} --task ${{task}} "
-    if tt:
-        config.payload += " --TT"
-    if dy:
-        config.payload += " --DY"
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     out_dir = parameters.main_path
@@ -53,6 +49,8 @@ def submit_on_slurm(name,tt,dy,debug=False):
     for f in glob.glob(os.path.join(parameters.main_path,'split',name,'*.pkl')):
         task = os.path.basename(f)
         slurm_config.inputParams.append([name,task])
+    print (slurm_config)
+    sys.exit()
 
     # Submit job!
 

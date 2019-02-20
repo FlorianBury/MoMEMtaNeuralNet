@@ -18,7 +18,7 @@ from keras import utils
 from keras.layers import Input, Dense, Concatenate, BatchNormalization, LeakyReLU, Lambda, Dropout
 from keras.losses import binary_crossentropy, mean_squared_error
 from keras.optimizers import RMSprop, Adam, Nadam, SGD
-from keras.activations import relu, elu, selu, softmax, tanh
+from keras.activations import relu, elu, selu, softmax, tanh, sigmoid
 from keras.models import Model, model_from_json, load_model
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras.regularizers import l1,l2
@@ -62,8 +62,8 @@ def NeuralNetModel(x_train,y_train,x_val,y_val,params):
     L1 = Dense(params['first_neuron'],
                activation=params['activation'],
                kernel_regularizer=l2(params['l2']))(IN)
-    HIDDEN = hidden_layers(params,1,batch_normalization=True).API(L1)
-    OUT = Dense(1,activation=params['output_activation'],name='OUT')(HIDDEN)
+    HIDDEN = hidden_layers(params,3,batch_normalization=True).API(L1)
+    OUT = Dense(3,activation=params['output_activation'],name='OUT')(HIDDEN)
 
     # Define model #
     model = Model(inputs=[IN], outputs=[OUT])
@@ -75,18 +75,18 @@ def NeuralNetModel(x_train,y_train,x_val,y_val,params):
     Callback_list = [early_stopping,reduceLR]
 
     # Compile #
-    model.compile(optimizer=params['optimizer'](lr_normalizer(params['lr'], params['optimizer'])),
+    model.compile(optimizer=params['optimizer'](),
                   loss={'OUT':params['loss_function']},
                   metrics=['accuracy'])
 
     # Fit #
     out = model.fit({'IN':x_train},
-                    {'OUT':y_train[:,1]},
+                    {'OUT':y_train[:,1:]},
                     sample_weight=y_train[:,0],
                     epochs=params['epochs'],
                     batch_size=params['batch_size'],
-                    verbose=1,
-                    validation_data=({'IN':x_val},{'OUT':y_val[:,1]},y_val[:,0]),
+                    verbose=2,
+                    validation_data=({'IN':x_val},{'OUT':y_val[:,1:]},y_val[:,0]),
                     callbacks=Callback_list
                     )
 
@@ -96,10 +96,8 @@ class HyperModel:
     #################################################################################################
     # __init ___#
     #################################################################################################
-    def __init__(self,name,sample):
+    def __init__(self,name):
         self.name = name
-        self.sample = sample
-        logging.info((' Starting '+self.sample+' case ').center(80,'='))
 
     #################################################################################################
     # HyperScan #
@@ -114,8 +112,6 @@ class HyperModel:
                 y_train = [weights, outputs (aka MEM weights)] 
             - name : str
                 name of the dataset
-            - sample : str
-                name of the sample time : either DY or TT
             - task : str
                 name of the dict to be used if specified (otherwise, use the full one)
         Outputs :
@@ -139,7 +135,7 @@ class HyperModel:
 
         # Check if no already exists then change it -> avoids rewriting  #
         no = 1
-        self.name = self.name+'_'+self.sample+self.task.replace('.pkl','')
+        self.name = self.name+self.task.replace('.pkl','')
         self.path_model = os.path.join(parameters.main_path,'model',self.name)
         while os.path.exists(self.name+str(no)+'.csv'):
             no +=1
@@ -167,17 +163,17 @@ class HyperModel:
                    #last_epoch_value=True,
                    print_params=True,
                    repetition=parameters.repetition,
-                )
+                   )
 
         self.h_with_eval = Autom8(scan_object = self.h,
-                     x_val = self.x_val,
-                     y_val = self.y_val[:,1], # Other column is weight
-                     n = -1,
-                     folds = 5,
-                     metric = 'val_loss',
-                     asc = True,
-                     shuffle = True,
-                     average = None)  
+                x_val = self.x_val,
+                y_val = self.y_val[:,1:], # Other column is weight
+                n = -1,
+                folds = 5,
+                metric = 'val_loss',
+                asc = True,
+                shuffle = True,
+                average = None)  
         self.h_with_eval.data.to_csv(self.name_model+'.csv') # save to csv including error
 
         # returns the experiment configuration details
@@ -228,14 +224,14 @@ class HyperModel:
         for i in range(0,n_rounds):
             e = Evaluate(self.h)
             score = e.evaluate(x=self.x_test,
-                               y=self.y_test,
-                               model_id = i,
-                               folds=folds,
-                               shuffle=True,
-                               metric='val_loss',
-                               average='macro',
-                               asc=True  # because loss
-                              )
+                    y=self.y_test,
+                    model_id = i,
+                    folds=folds,
+                    shuffle=True,
+                    metric='val_loss',
+                    average='macro',
+                    asc=True  # because loss
+                    )
             score.append(i) # score = [mean(error),std(error),model_index]
             scores.append(score)
 
@@ -280,7 +276,7 @@ class HyperModel:
             # Input scan csv file #
             with open(os.path.abspath(self.name_model+'.csv'), 'r') as the_file:
                 lis=[line for line in the_file]  
-                
+
             # Append the list with the error of each model #
             lis[0] = lis[0].rstrip() 
             lis[0] +=',eval_error,eval_std_error\n'
@@ -327,7 +323,7 @@ class HyperModel:
             Deploy(self.h,model_name=self.name_model,metric='val_loss',asc=True)
             logging.warning('Best model saved according to val_loss')
         if best == 'eval_error':
-            Deploy(self.h,model_name=self.name_model,metric='eval_mean',asc=True)
+            Deploy(self.h,model_name=self.name_model,metric='eval_mean',asc=False) # f1-score higher is better
 
         # Move csv file to model dir #
         if self.task == '': # if not split+submit -> because submit will put it in slurm dir
@@ -336,7 +332,7 @@ class HyperModel:
             except:
                 logging.warning('Could not move file to model folder')
                 logging.warning('\tAttempted to move '+(os.path.abspath(self.name_model+'.csv') +' -> ' +os.path.join(parameters.main_path,'model',self.name_model+'.csv'))) 
-        
+
         # Move zip file to model dir #
         if self.task == '': # if not split+submit -> because submit will put it in slurm dir
             try:
@@ -355,14 +351,12 @@ class HyperModel:
         Inputs :
             - name : str
                 Name of the csv file
-            - sample : str
-                either TT or DY 
         Reference :
         """
         logging.info(' Starting reporting '.center(80,'-'))
 
         # Get reporting #
-        report_file = os.path.join('model',self.name+'_'+self.sample+'.csv')
+        report_file = os.path.join('model',self.name+'.csv')
         if os.path.exists(report_file):
             r = Reporting(report_file)
         else:
@@ -403,13 +397,13 @@ class HyperModel:
         logging.info('='*80)
 
         # Generate dir #
-        path_plot = os.path.join(parameters.main_path,'model',self.name+'_'+self.sample)
+        path_plot = os.path.join(parameters.main_path,'model',self.name)
         if not os.path.isdir(path_plot):
             os.makedirs(path_plot)
         
         logging.info('Starting plots')
         # Make plots #
-        PlotScans(data=r.data,path=path_plot,tag=self.sample)
+        PlotScans(data=r.data,path=path_plot,tag='')
 
 #################################################################################################
 # HyperRestore #
@@ -430,9 +424,9 @@ class HyperModel:
         Reference :
             /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/commands/restore.py
         """
-        logging.info((' Starting restoration of sample %s with model %s '%(self.sample,self.name)).center(80,'-'))
+        logging.info((' Starting restoration with model %s '%(self.name)).center(80,'-'))
         # Restore model #
-        a = Restore(os.path.join(parameters.main_path,'model',self.name+'_'+self.sample+'.zip'))
+        a = Restore(os.path.join(parameters.main_path,'model',self.name+'.zip'))
 
         # Output of the model #
         outputs = a.model.predict(inputs)

@@ -12,21 +12,15 @@ import parameters
 
 class ConcatenateCSV:
 
-    def __init__(self,path,sample): 
+    def __init__(self,path): 
         self.path = path
-        self.sample = sample
 
     def Concatenate(self):
         self.dict_tot = {} 
         self.counter = 0
-        if self.sample!='DY' and self.sample!='TT':
-            logging.critical('Sample type (TT or DY) must be used to concatenate csv file')
-            sys.exit(1)
 
         for f in glob.glob(os.path.join(self.path,'*.csv')):
             name = f.replace(self.path,'')
-            if name.find(self.sample) == -1: # if DY or TT not found in the string
-                continue
 
             logging.debug('File : %s'%(name))
 
@@ -48,7 +42,7 @@ class ConcatenateCSV:
 
             logging.debug('\tCurrent number of hyperparameter sets : %d'%(self.counter)) 
 
-        logging.info('Total number of hyperparameter sets in %s sample : %d'%(self.sample,self.counter)) 
+        logging.info('Total number of hyperparameter sets : %d'%(self.counter)) 
         for line in pprint.pformat(self.dict_tot).split('\n'):
             logging.debug(line)
 
