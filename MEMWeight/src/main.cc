@@ -89,36 +89,35 @@ int main(int argc, char** argv) {
     /*
      * Load events from input file, retrieve reconstructed particles and MET
      */
-    TChain chain("tree");
-    //string INPUT_DIR = "/nfs/scratch/fynu/asaggio/CMSSW_8_0_30/src/cp3_llbb/ZATools/factories_ZA/fourVectors_withMETphi_for_Florian/slurm/output/";
-    string INPUT_DIR = "/home/ucl/cp3/fbury/scratch/MoMEMta_output/invalid_TT_weights/";
+    TChain chain("t");
+    string INPUT_DIR = "/nfs/scratch/fynu/asaggio/CMSSW_8_0_30/src/cp3_llbb/ZATools/factories_ZA/fourVectors_withMETphi_for_Florian/slurm/output/";
+    //string INPUT_DIR = "/home/ucl/cp3/fbury/scratch/MoMEMta_output/invalid_TT_weights/";
     string file = INPUT_DIR+FLAGS_input;
     LOG(info)<<"Directory : "+INPUT_DIR;
     LOG(info)<<"Using file : "+FLAGS_input; 
     bool USE_RECOMPUTE = true;
+    bool USE_JEC = true;
     LOG(info)<<"Weights recomputation is enabled";
 
     chain.Add(file.c_str());
     TTreeReader myReader(&chain);
 
     // TODO : Initial Files -> LorentzVectorE, output LorentzeVector
-    TTreeReaderValue<LorentzVector> lep_plus_p4E(myReader, "lep1_p4");
-    TTreeReaderValue<LorentzVector> lep_minus_p4E(myReader, "lep2_p4");
-    TTreeReaderValue<LorentzVector> jet1_p4E(myReader, "jet1_p4");
-    TTreeReaderValue<LorentzVector> jet2_p4E(myReader, "jet2_p4");
+    TTreeReaderValue<LorentzVectorE> lep_plus_p4E(myReader, "lep1_p4");
+    TTreeReaderValue<LorentzVectorE> lep_minus_p4E(myReader, "lep2_p4");
+    TTreeReaderValue<LorentzVectorE> jet1_p4E(myReader, "jet1_p4");
+    TTreeReaderValue<LorentzVectorE> jet2_p4E(myReader, "jet2_p4");
     // TODO : either float or doubles
-    TTreeReaderValue<double> t_w(myReader, "total_weight");
-    TTreeReaderValue<double> e_w(myReader,  "event_weight");
-    TTreeReaderValue<double> jjm(myReader, "jj_M");
-    TTreeReaderValue<double> lljjm(myReader, "lljj_M");
-    TTreeReaderValue<double> llm(myReader, "ll_M");
-    TTreeReaderValue<double> m_pt(myReader, "met_pt");
-    TTreeReaderValue<double> m_phi(myReader, "met_phi");
-    TTreeReaderValue<double> l1c(myReader, "lep1_charge");
-    TTreeReaderValue<double> l2c(myReader, "lep2_charge");
+    TTreeReaderValue<float> t_w(myReader, "total_weight");
+    TTreeReaderValue<float> e_w(myReader,  "event_weight");
+    TTreeReaderValue<float> jjm(myReader, "jj_M");
+    TTreeReaderValue<float> lljjm(myReader, "lljj_M");
+    TTreeReaderValue<float> llm(myReader, "ll_M");
+    TTreeReaderValue<float> m_pt(myReader, "met_pt");
+    TTreeReaderValue<float> m_phi(myReader, "met_phi");
+    TTreeReaderValue<float> l1c(myReader, "lep1_charge");
+    TTreeReaderValue<float> l2c(myReader, "lep2_charge");
 
-    //TTreeReaderValue<double> MET_phi(myReader, "MET_phi");
-    //TTreeReaderValue<int> leading_lep_PID(myReader, "leadLepPID");
 
     /*
      * Define output TTree, which will be a clone of the input tree,
@@ -215,6 +214,21 @@ int main(int argc, char** argv) {
         isr_p4.SetE(std::abs(isr_p4.E()));
         momemta::Particle isr ("isr", isr_p4);
 
+        // JEC to bjets #
+        if (USE_JEC==true){
+            LOG(info)<<"JEC has been applied";
+            auto temp1 = LorentzVectorE {jet1_p4.Pt(),jet1_p4.Eta(),jet1_p4.Phi(),jet1_p4.M()};
+            auto temp2 = LorentzVectorE {jet2_p4.Pt(),jet2_p4.Eta(),jet2_p4.Phi(),jet2_p4.M()};
+            auto previous_Pt_1 = jet1_p4.Pt();
+            auto previous_Pt_2 = jet2_p4.Pt();
+            temp1.SetPt(jet1_p4.Pt()*1.1);
+            temp2.SetPt(jet2_p4.Pt()*1.1);
+            jet1_p4 = LorentzVector { temp1.Px(), temp1.Py(), temp1.Pz(), temp1.E() };
+            jet2_p4 = LorentzVector { temp2.Px(), temp2.Py(), temp2.Pz(), temp2.E() };
+            LOG(info)<<"Jet1 Pt : "<<previous_Pt_1<<" -> "<<jet1_p4.Pt();
+            LOG(info)<<"Jet2 Pt : "<<previous_Pt_2<<" -> "<<jet2_p4.Pt();
+        }
+    
         // Due to numerical instability, the mass can sometimes be negative. If it's the case, change the energy in order to be mass-positive
         normalizeInput(lep_plus.p4);
         normalizeInput(lep_minus.p4);

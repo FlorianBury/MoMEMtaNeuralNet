@@ -55,7 +55,7 @@ order = [
     #'TW',
     #'TbarW'
     ]
-events_per_jobs = 5
+events_per_jobs = 100
 
 #if round(args.max/events_per_jobs)>5000:
 #    n_jobs = 2000

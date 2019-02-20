@@ -16,6 +16,7 @@ MEM_vs_DNN_weight_DY:
   xlabel: -log_{{10}}(weight from MEM)
   ylabel: -log_{{10}}(weight from DNN)
   zlabel: Events
+  option : colz
 
 MEM_vs_DNN_weight_TT:
   filename: {file}
@@ -35,3 +36,4 @@ MEM_vs_DNN_weight_TT:
   xlabel: -log_{{10}}(weight from MEM)
   ylabel: -log_{{10}}(weight from DNN)
   zlabel: Events
+  option : colz
