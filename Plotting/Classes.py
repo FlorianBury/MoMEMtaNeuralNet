@@ -2,11 +2,15 @@ import os
 import sys
 import glob
 import copy
+import math
 import logging
 from array import array
+import numpy as np
 
 import ROOT
-from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT, TGaxis, TPad, TLegend, TImage
+from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT, TGaxis, TPad, TLegend, TImage, gROOT, gPad
+
+from root_numpy import root2array
 
 from sklearn import metrics
 import matplotlib.pyplot as plt
@@ -34,7 +38,7 @@ plt.rc('figure', titlesize=BIGGER_SIZE) # fontsize of the figure title
 
 #####################################     Plot_TH1      #########################################
 class Plot_TH1:
-    def __init__(self,filename,tree,variable,weight,cut,name,bins,xmin,xmax,title,xlabel,ylabel):
+    def __init__(self,filename,tree,variable,weight,cut,name,bins,xmin,xmax,title,xlabel,ylabel,logy):
         self.filename = filename
         self.tree = tree
         self.variable = variable
@@ -47,6 +51,7 @@ class Plot_TH1:
         self.title = title
         self.xlabel = xlabel
         self.ylabel = ylabel
+        self.logy = logy
 
     def MakeHisto(self):
         file_handle = TFile.Open(self.filename)
@@ -59,10 +64,15 @@ class Plot_TH1:
     def PlotOnCanvas(self,pdf_name):
         tdrstyle.setTDRStyle() 
         canvas = TCanvas("c1", "c1", 800, 600)
+        canvas.Divide(1,1)
+        canvas.cd(1)
+        if self.logy:
+            gPad.SetLogy()
+            self.histo.SetMinimum(1)
+        else:
+            self.histo.SetMinimum(0)
         self.histo.SetTitleOffset(1.4,'xyz')
-        self.histo.SetMinimum(0)
         self.histo.SetLineWidth(2)
-
         self.histo.Draw()
 
         canvas.Print(pdf_name,'Title:'+self.title)
@@ -105,14 +115,14 @@ class Plot_TH2:
         canvas = TCanvas("c1", "c1", 800, 600)
         self.histo.SetTitleOffset(1.4,'xyz')
         canvas.SetRightMargin(0.2)
-        self.histo.Draw()
+        self.histo.Draw(self.option)
 
         canvas.Print(pdf_name,'Title:'+self.title)
         canvas.Close()
 
 ####################################    Plot_Ratio_TH1    ########################################
 class Plot_Ratio_TH1:
-    def __init__(self,filename,tree,variable1,variable2,weight,cut,name,bins,xmin,xmax,title,xlabel,ylabel,legend1,legend2):
+    def __init__(self,filename,tree,variable1,variable2,weight,cut,name,bins,xmin,xmax,title,xlabel,ylabel,legend1,legend2,logy):
         self.filename = filename
         self.tree = tree
         self.variable1 = variable1
@@ -128,10 +138,11 @@ class Plot_Ratio_TH1:
         self.ylabel = ylabel
         self.legend1 = legend1
         self.legend2 = legend2
+        self.logy = logy
 
     def MakeHisto(self):
-        instance1 = Plot_TH1(self.filename,self.tree,self.variable1,self.weight,self.cut,self.name,self.bins,self.xmin,self.xmax,self.title,self.xlabel,self.ylabel)
-        instance2 = Plot_TH1(self.filename,self.tree,self.variable2,self.weight,self.cut,self.name,self.bins,self.xmin,self.xmax,self.title,self.xlabel,self.ylabel)
+        instance1 = Plot_TH1(self.filename,self.tree,self.variable1,self.weight,self.cut,self.name,self.bins,self.xmin,self.xmax,self.title,self.xlabel,self.ylabel,self.logy)
+        instance2 = Plot_TH1(self.filename,self.tree,self.variable2,self.weight,self.cut,self.name,self.bins,self.xmin,self.xmax,self.title,self.xlabel,self.ylabel,self.logy)
         instance1.MakeHisto()
         instance2.MakeHisto()
 
@@ -156,6 +167,8 @@ class Plot_Ratio_TH1:
         self.histo1.SetStats(0)
         self.histo1.Draw()
         self.histo2.Draw("same")
+        if self.logy:
+            pad1.SetLogy()
 
         legend = TLegend(0.70,0.72,0.85,0.83)
         legend.SetHeader("Legend","C")
@@ -225,37 +238,29 @@ class Plot_Ratio_TH1:
 
 ####################################      Plot_ROC       ########################################
 class Plot_ROC:
-    def __init__(self,variable1,variable2,weight,title,cut=''):
-        self.variable1 = variable1
-        self.variable2 = variable2
+    def __init__(self,discriminant,weight,title,cut=''):
+        self.discriminant = discriminant
         self.weight = weight
-        self.cut = cut
         self.title = title
-        self.output = []
-        self.target = []
+        self.output = np.array([])
+        self.target = np.array([])
+        self.cut = cut
 
     def AddToROC(self,filename,tree,sample):
-        file_handle = TFile.Open(filename)
-        tree = file_handle.Get(tree)
-        var1 = array('d',[0])
-        var2 = array('d',[0])
-        tree.SetBranchAddress( self.variable1, var1 )
-        tree.SetBranchAddress( self.variable2, var2 )
-        i = 0
-        while tree.GetEntry(i):
-            i += 1
-            self.output.append(var1[0]/(var2[0]+var1[0]))
+        disc = root2array(filename,tree,branches=self.discriminant,selection=self.cut)
+        self.output = np.concatenate((self.output,disc),axis=0)
 
-    
         if sample == 'DY':
-            self.target.extend([0]*i)
+            self.target = np.concatenate((self.target,np.zeros(disc.shape[0])))
         elif sample == 'TT':
-            self.target.extend([1]*i)
+            self.target = np.concatenate((self.target,np.ones(disc.shape[0])))
 
     def ProcessROC(self):
         self.fpr, self.tpr, threshold = metrics.roc_curve(self.target,self.output)
         self.roc_auc = metrics.auc(self.fpr, self.tpr)
-
+        optimal_idx = (np.abs(self.tpr - 0.8)).argmin()
+        optimal_threshold = threshold[optimal_idx]
+        logging.info('\tWorking point for tpr = %0.1f is %0.5f'%(0.8,optimal_threshold))
 
 def MakeROCPlot(list_obj,name):
     # Generate figure #
@@ -265,7 +270,6 @@ def MakeROCPlot(list_obj,name):
     for i,obj in enumerate(list_obj):
         ax.plot(obj.tpr, obj.fpr, label = '%s AUC = %0.5f' % (obj.title,obj.roc_auc))
         ax.grid(True)
-        #plt.title('ROC : %s'%obj.title)
     plt.legend(loc = 'upper left')
     #plt.yscale('symlog',linthreshy=0.0001)
     plt.plot([0, 1], [0, 1],'k--')
@@ -276,27 +280,6 @@ def MakeROCPlot(list_obj,name):
     plt.suptitle(os.path.basename(name.replace('_',' ')))
 
     fig.savefig(name+'.png')#,bbox_inches='tight')
-
-
-        #gROOT.SetBatch(False)
-        #canvas = TCanvas("c1", "c1", 800, 600)
-        #eps = TPad("eps", "eps", 0., 0., 1., 1)
-        #eps.Draw()
-        #ROOT.SetOwnership(canvas, False)
-        #ROOT.SetOwnership(eps, False)
-        #eps.cd()
-        #im = TImage.Open(png_name)
-        #im.SetConstRatio(0)
-        #im.SetImageQuality(ROOT.TAttImage.kImgBest)
-        #im.Draw()
-        #input('What')
-        #canvas.Print(pdf_name,'Title:ROC curve %s'%self.title)
-        #canvas.Close()
-
-        #os.remove(png_name)
-
-
-
 
 #################################################################################################
 """ Function definitions """

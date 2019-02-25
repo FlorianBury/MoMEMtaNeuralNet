@@ -5,14 +5,14 @@
 
 void separate_invalids(const char* dir, TString name);
 
-void process_all_separate(){
+void process_all_separate(const char *path_to_file){
     /* Loads macro */
     //gInterpreter->AddIncludePath("/home/ucl/cp3/fbury/MoMEMta/");
     //gROOT->ProcessLine(".L separate_invalids.C");
     //gROOT->LoadMacro("separate_invalids.C");
 
     /* Defines paths */
-    const char *path_to_file = "/nfs/scratch/fynu/fbury/MoMEMta_output/slurm/";
+    //const char *path_to_file = "/nfs/scratch/fynu/fbury/MoMEMta_output/slurm/";
     char* dir = gSystem->ExpandPathName(path_to_file);
     void* dirp = gSystem->OpenDirectory(dir);
 

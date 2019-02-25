@@ -11,6 +11,7 @@ MEM_weight_DY:
   title: '{category} {name} sample : MEM weight DY'
   xlabel: -log_{{10}}(weight)
   ylabel: Events
+  logy : False
 
 MEM_weight_TT:
   filename: {file}
@@ -25,6 +26,7 @@ MEM_weight_TT:
   title: '{category} {name} sample : MEM weight TT'
   xlabel: -log_{{10}}(weight)
   ylabel: Events
+  logy : False
 
 DNN_weight_DY:
   filename: {file}
@@ -39,6 +41,7 @@ DNN_weight_DY:
   title: '{category} {name} sample : DNN weight DY'
   xlabel: -log_{{10}}(weight)
   ylabel: Events
+  logy : False
 
 DNN_weight_TT:
   filename: {file}
@@ -53,11 +56,12 @@ DNN_weight_TT:
   title: '{category} {name} sample : DNN weight TT'
   xlabel: -log_{{10}}(weight)
   ylabel: Events
+  logy : False
 
 Discriminant_MEM:
   filename: {file}
   tree: tree
-  variable: weight_TT/(weight_TT+weight_DY)
+  variable: weight_TT/(weight_TT+200*weight_DY)
   weight: total_weight
   name: {category}_{name}_sample_MEM_Discriminant
   cut: {cut}
@@ -67,11 +71,12 @@ Discriminant_MEM:
   title: '{category} {name} sample : MEM Discriminant '
   xlabel: Discriminant
   ylabel: Events
+  logy : True
 
 Discriminant_DNN:
   filename: {file}
   tree: tree
-  variable: output_TT/(output_TT+output_DY)
+  variable: output_TT/(output_TT+200*output_DY)
   weight: total_weight
   name: {category}_{name}_sample_DNN_Discriminant
   cut: {cut}
@@ -81,6 +86,7 @@ Discriminant_DNN:
   title: '{category} {name} sample : DNN Discriminant '
   xlabel: Discriminant
   ylabel: Events
+  logy : True
 
 
 

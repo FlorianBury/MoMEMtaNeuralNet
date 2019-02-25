@@ -7,11 +7,11 @@ from keras.activations import relu, elu, selu, softmax, tanh
 from keras.regularizers import l1,l2 
 
 # Global variables #
-global main_path
-global path_to_files
-global path_out   
-global path_invalid_DY
-global path_invalid_TT
+#global main_path
+#global path_to_files
+#global path_out   
+#global path_invalid_DY
+#global path_invalid_TT
 main_path = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/'   
 path_to_files = '/nfs/scratch/fynu/fbury/MoMEMta_output/valid_weights/'
 path_out = '/nfs/scratch/fynu/fbury/MoMEMta_output/NNOutput/' 
@@ -53,7 +53,7 @@ repetition = 5
 #         'met_pt',
 #         'met_phi',
 #         ]
-#
+
 inputs = [
          'lep1_p4.Pt()',
          'lep1_p4.Eta()',

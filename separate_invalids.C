@@ -36,13 +36,12 @@ void separate_invalids(const char* dir, TString name){
     /* Filling loop */
     for(int i=0 ; i<N ; i++){
         tree->GetEntry(i);
-        if (w_DY<w_DY_err) 
+        if (w_DY<=w_DY_err) 
             invalid_DY_tree->Fill();
-        else if (w_TT<w_TT_err)
+        else if (w_TT<=w_TT_err)
             invalid_TT_tree->Fill(); 
         else
             valid_tree->Fill();
-        //std::cout<<i<<"  "<<int(N/100)<<"  "<<i%(int(N/100))<<std::endl;
         if (i%(int(N/100))==0)
             std::cout<<"Status : "<<float(i)/N*100<<"%"<<std::endl;
     }

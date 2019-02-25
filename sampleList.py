@@ -1,10 +1,11 @@
-main_path = '/nfs/scratch/fynu/fbury/MoMEMta_output/'
+samples_path = '/nfs/scratch/fynu/fbury/MoMEMta_output/'
 
 #################### Valid weights #########################
 samples_dict = {}
 
 # HToZA #
 samples_dict['HToZA'] = [
+                            'valid_weights/HToZATo2L2B_MH-1000_MA-200.root',
                             'valid_weights/HToZATo2L2B_MH-1000_MA-500.root',
                             'valid_weights/HToZATo2L2B_MH-1000_MA-50.root',
                             'valid_weights/HToZATo2L2B_MH-2000_MA-1000.root',
@@ -43,69 +44,57 @@ samples_dict['DY'] = [
                       ]
 
 
-#################### Invalid TT weights #########################
-samples_dict['invalid_TT'] = [
-                            'invalid_TT_weights/DYJetsToLL_M.root'
-                            'invalid_TT_weights/DYToLL_0J.root'
-                            'invalid_TT_weights/DYToLL_1J.root'
-                            'invalid_TT_weights/DYToLL_2J.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-1000_MA-200.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-1000_MA-500.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-1000_MA-50.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-2000_MA-1000.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-200_MA-100.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-200_MA-50.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-250_MA-100.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-250_MA-50.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-3000_MA-2000.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-300_MA-100.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-300_MA-200.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-300_MA-50.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-500_MA-100.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-500_MA-200.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-500_MA-300.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-500_MA-400.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-500_MA-50.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-650_MA-50.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-800_MA-100.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-800_MA-200.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-800_MA-400.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-800_MA-50.root'
-                            'invalid_TT_weights/HToZATo2L2B_MH-800_MA-700.root'
-                            'invalid_TT_weights/TT_Other.root'
-                            'invalid_TT_weights/TTTo2L2Nu.root'
-                             ]
-
 #################### Invalid DY weights #########################
 samples_dict['invalid_DY'] = [
-                            'invalid_DY_weights/DYJetsToLL_M.root'
-                            'invalid_DY_weights/DYToLL_0J.root'
-                            'invalid_DY_weights/DYToLL_1J.root'
-                            'invalid_DY_weights/DYToLL_2J.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-1000_MA-200.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-1000_MA-500.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-1000_MA-50.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-2000_MA-1000.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-200_MA-100.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-200_MA-50.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-250_MA-100.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-250_MA-50.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-3000_MA-2000.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-300_MA-100.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-300_MA-200.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-300_MA-50.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-500_MA-100.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-500_MA-200.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-500_MA-300.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-500_MA-400.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-500_MA-50.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-650_MA-50.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-800_MA-100.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-800_MA-200.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-800_MA-400.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-800_MA-50.root'
-                            'invalid_DY_weights/HToZATo2L2B_MH-800_MA-700.root'
-                            'invalid_DY_weights/TT_Other.root'
-                            'invalid_DY_weights/TTTo2L2Nu.root'
+                            'invalid_DY_weights_recomputed/DYToLL_1J_invalid_DY.root',
+                            'invalid_DY_weights_recomputed/DYToLL_2J_invalid_DY.root',
+                            'invalid_DY_weights_recomputed/HToZATo2L2B_MH-250_MA-50_invalid_DY.root',
+                            'invalid_DY_weights_recomputed/HToZATo2L2B_MH-3000_MA-2000_invalid_DY.root',
+                            'invalid_DY_weights_recomputed/HToZATo2L2B_MH-300_MA-200_invalid_DY.root',
+                            'invalid_DY_weights_recomputed/HToZATo2L2B_MH-300_MA-50_invalid_DY.root',
+                            'invalid_DY_weights_recomputed/HToZATo2L2B_MH-500_MA-300_invalid_DY.root',
+                            'invalid_DY_weights_recomputed/HToZATo2L2B_MH-500_MA-400_invalid_DY.root',
+                            'invalid_DY_weights_recomputed/HToZATo2L2B_MH-500_MA-50_invalid_DY.root',
+                            'invalid_DY_weights_recomputed/HToZATo2L2B_MH-800_MA-50_invalid_DY.root',
+                            'invalid_DY_weights_recomputed/HToZATo2L2B_MH-800_MA-700_invalid_DY.root',
+                            'invalid_DY_weights_recomputed/TTTo2L2Nu_invalid_DY.root',
+                             ]
+
+#################### Invalid TT weights #########################
+samples_dict['invalid_TT'] = [
+                            'invalid_TT_weights_recomputed/DYJetsToLL_M_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/DYToLL_1J_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/DYToLL_2J_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-1000_MA-200_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-1000_MA-500_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-1000_MA-50_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-2000_MA-1000_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-250_MA-50_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-3000_MA-2000_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-300_MA-100_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-300_MA-200_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-300_MA-50_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-500_MA-100_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-500_MA-200_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-500_MA-300_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-500_MA-400_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-500_MA-50_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-650_MA-50_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-800_MA-100_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-800_MA-200_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-800_MA-400_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-800_MA-50_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/HToZATo2L2B_MH-800_MA-700_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/TT_Other_invalid_TT.root',
+                            'invalid_TT_weights_recomputed/TTTo2L2Nu_invalid_TT.root',
                             ]
                                                          
+#################### JEC weights #########################
+samples_dict['JEC'] = [
+                            'JEC/TTTo2L2Nu_JEC.root',
+                            'JEC/DYJetsToLL_M_JEC.root',
+                            'JEC/DYToLL_0J_JEC.root',
+                            'JEC/DYToLL_1J_JEC.root',
+                            'JEC/DYToLL_2J_JEC.root',
+                            'JEC/TT_Other_JEC.root',
+                      ]

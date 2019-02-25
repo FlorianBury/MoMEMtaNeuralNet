@@ -1,4 +1,5 @@
 #!/bin/bash
+# Provide the name of the repo -> merge the root files #
 
 path="/home/ucl/cp3/fbury/scratch/MoMEMta_output/slurm/*$1*"
 

@@ -14,6 +14,7 @@ MEM_ratio_DNN_weight_DY:
   ylabel: Events
   legend1: 'MEM'
   legend2: 'DNN' 
+  logy : False
 
 MEM_ratio_DNN_weight_TT:
   filename: {file}
@@ -31,12 +32,13 @@ MEM_ratio_DNN_weight_TT:
   ylabel: Events
   legend1: 'MEM'
   legend2: 'DNN' 
+  logy : False
 
 Discriminant_ratio:
   filename: {file}
   tree: tree
-  variable1: weight_TT/(weight_TT+weight_DY)
-  variable2: output_TT/(output_TT+output_DY)
+  variable1: weight_TT/(weight_TT+200*weight_DY)
+  variable2: output_TT/(output_TT+200*output_DY)
   weight: total_weight
   name: {category}_{name}_sample_Discriminant_Ratio
   cut: {cut}
@@ -48,3 +50,4 @@ Discriminant_ratio:
   ylabel: Events
   legend1: 'MEM'
   legend2: 'DNN' 
+  logy : True

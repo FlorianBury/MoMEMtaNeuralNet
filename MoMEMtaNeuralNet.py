@@ -23,6 +23,8 @@ from submit_on_slurm import submit_on_slurm
 from generate_mask import GenerateMask
 from split_training import DictSplit
 from concatenate_csv import ConcatenateCSV
+from sampleList import samples_dict, samples_path
+from produce_output import ProduceOutput
 import parameters
 
 
@@ -65,6 +67,8 @@ def get_options():
         help='Wether to also apply the output to the invalid DY weights (must be used with --output)')
     c.add_argument('-inv_tt','--invalid_TT', action='store_true', required=False, default=False,
         help='Wether to also apply the output to the invalid TT weights (must be used with --output)')
+    c.add_argument('-JEC','--JEC', action='store_true', required=False, default=False,
+        help='Wether to also apply the output to JEC samples (must be used with --output)')
     c.add_argument('-smear','--smear', action='store', required=False, default=0, type=float,
         help='Random gaussian variations (must provide the width, eg 0.1) to smear in the inputs')
 
@@ -98,7 +102,7 @@ def get_options():
         logging.warning('Since you have specified a csv concatenation, all the other arguments will be skipped')
     if opt.report!='' and (opt.output!='' or opt.scan!=''):
         logging.warning('Since you have specified a scan report, all the other arguments will be skipped')
-    if opt.output == '' and (opt.invalid_DY or opt.invalid_TT or opt.smear!=0):
+    if opt.output == '' and (opt.invalid_DY or opt.invalid_TT or opt.JEC or opt.smear!=0):
         logging.critical('You must specify the model with --output')
         sys.exit(1)
 
@@ -120,7 +124,7 @@ def main():
                             format='%(asctime)s - %(levelname)s - %(message)s')
 
     # Private modules containing Pyroot #
-    from import_tree import LoopOverTrees, Tree2Numpy
+    from import_tree import LoopOverTrees
     from root_numpy import array2root
     # Needed because PyROOT messes with argparse
 
@@ -201,13 +205,13 @@ def main():
 
     # Import arrays #
     logging.info('HToZA samples')
-    data_HToZA, weight_HToZA = LoopOverTrees(input_dir=path_to_files,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=False,part_name='HToZA')
+    data_HToZA, weight_HToZA = LoopOverTrees(input_dir=samples_path,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=False,list_sample=samples_dict['HToZA'])
     logging.info('HToZA sample size : {}'.format(data_HToZA.shape[0]))
     logging.info('DY samples')
-    data_DY, weight_DY = LoopOverTrees(input_dir=path_to_files,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=True,part_name='DY')
+    data_DY, weight_DY = LoopOverTrees(input_dir=samples_path,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=True,list_sample=samples_dict['DY'])
     logging.info('DY sample size : {}'.format(data_DY.shape[0]))
     logging.info('TT samples')
-    data_TT, weight_TT = LoopOverTrees(input_dir=path_to_files,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=True,part_name='TT',n=500000)
+    data_TT, weight_TT = LoopOverTrees(input_dir=samples_path,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=True,list_sample=samples_dict['TT'],n=500000)
     logging.info('TT sample size : {}'.format(data_TT.shape[0]))
 
     # Save weights in data #
@@ -329,120 +333,50 @@ def main():
     if opt.output!='': 
         # Make path #
         tmp_output = copy.copy(opt.output)
-        if opt.smear != 0:
-            tmp_output += '_smear_'+str(opt.smear)
-        path_model_output = os.path.join(path_out,tmp_output,'valid_weights')
-        path_model_output_inv_dy = os.path.join(path_out,tmp_output,'invalid_DY_weights')
-        path_model_output_inv_tt = os.path.join(path_out,tmp_output,'invalid_TT_weights')
-        if not os.path.exists(path_model_output):
-            os.makedirs(path_model_output)
-        if not os.path.exists(path_model_output_inv_dy):
-            os.makedirs(path_model_output_inv_dy)
-        if not os.path.exists(path_model_output_inv_tt):
-            os.makedirs(path_model_output_inv_tt)
+        path_output = os.path.join(path_out,tmp_output,'valid_weights')
+        path_output_inv_DY = os.path.join(path_out,tmp_output,'invalid_DY_weights')
+        path_output_inv_TT = os.path.join(path_out,tmp_output,'invalid_TT_weights')
+        path_output_JEC = os.path.join(path_out,tmp_output,'JEC')
+        if not os.path.exists(path_output):
+            s.makedirs(path_output)
+        if not os.path.exists(path_output_inv_DY):
+            os.makedirs(path_output_inv_DY)
+        if not os.path.exists(path_output_inv_TT):
+            os.makedirs(path_output_inv_TT)
+        if not os.path.exists(path_output_JEC):
+            os.makedirs(path_output_JEC)
 
         # Make basic dtype #
         dtype_base = parameters.make_dtype(parameters.inputs+parameters.outputs+parameters.other_variables+parameters.weights)
+    
+        # Instance of output class #
+        inst_out = ProduceOutput(model=os.path.join(parameters.main_path,'model',opt.output),scaler=scaler,dtype_base=dtype_base)
 
-        # Get output, concatenate and make root file # 
-        def produce_output(inputs,MEM,other,tag):
-            # De-preprocess inputs #
-            inputs_unscaled = inputs*scaler.scale_+scaler.mean_
-            MEM = np.power(10,-MEM) # All in real weights
-            # Concatenate #
-            output = np.c_[inputs_unscaled,MEM,other] # without NN output
-            dtype = copy.deepcopy(dtype_base)
-
-            try:
-                instance = HyperModel(opt.output,'DY')
-                out_DY = np.power(10,-instance.HyperRestore(inputs))
-                output = np.c_[output,out_DY]
-                dtype.append(('output_DY','float64'))
-            except Exception as e:
-                logging.warning('Could not find the DY model due to "%s"'%e)
-            try:
-                instance = HyperModel(opt.output,'TT')
-                out_TT = np.power(10,-instance.HyperRestore(inputs))
-                output = np.c_[output,out_TT]
-                dtype.append(('output_TT','float64'))
-            except Exception as e:
-                logging.warning('Could not find the TT model due to "%s"'%e)
-
-            # Save root file #
-            output.dtype = dtype
-            output_name = os.path.join(path_model_output,tag+'.root')
-            array2root(output,output_name,mode='recreate')
-            logging.info('Output saved as : '+output_name)
-
-        # Use it on different samples #
+        # Use it on test samples #
         logging.info(' HToZA sample '.center(80,'*'))
-        produce_output(inputs=x_test_HToZA,MEM=y_test_HToZA,other=z_test_HToZA,tag='HToZA')
+        inst_out.OutputFromTraining(inputs_scaled=x_test_HToZA,outputs_scaled=y_test_HToZA,other=z_test_HToZA,tag='HToZA',path_output=path_output)
         logging.info('')
         logging.info(' DY sample '.center(80,'*'))
-        produce_output(inputs=x_test_DY,MEM=y_test_DY,other=z_test_DY,tag='DY')
+        inst_out.OutputFromTraining(inputs_scaled=x_test_DY,outputs_scaled=y_test_DY,other=z_test_DY,tag='DY',path_output=path_output)
         logging.info('')
         logging.info(' TT sample '.center(80,'*'))
-        produce_output(inputs=x_test_TT,MEM=y_test_TT,other=z_test_TT,tag='TT')
+        inst_out.OutputFromTraining(inputs_scaled=x_test_TT,outputs_scaled=y_test_TT,other=z_test_TT,tag='TT',path_output=path_output)
         logging.info('')
 
-        # Same but for invalid weights #
-        def loop_invalid(path,tag):
-            for inv_file in glob.glob(path+'*.root'):
-                inv_name = inv_file.replace(path,'').replace('.root','') 
-                # Get data #
-                variables = parameters.inputs+parameters.outputs+parameters.other_variables
-                data_inv, weight_inv = LoopOverTrees(input_dir=path,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=False,part_name=inv_name)
-                data_inv = np.append(data_inv,weight_inv,axis=1)
-                if data_inv.shape[0]==0: # There is no invalid weights in this case
-                    continue
-                # Separate and process #
-                inv_inputs = scaler.transform(data_inv[:,:NIn])
-
-                # Smearing #
-                if opt.smear != 0:
-                    inv_inputs = np.random.normal(inv_inputs,opt.smear) 
-
-                inv_MEM = data_inv[:,NIn:NIn+NOut]
-                # Concatenate #
-                full_outputs = np.c_[data_inv[:,:NIn],inv_MEM,data_inv[:,NIn+NOut:NIn+NOut+NOther]]
-
-                dtype = copy.deepcopy(dtype_base)
-                # NN Outputs #
-                try:
-                    instance = HyperModel(opt.output,'DY')
-                    inv_outputs_DY = np.power(10,-instance.HyperRestore(inv_inputs))
-                    full_outputs = np.c_[full_outputs,inv_outputs_DY]
-                    dtype.append(('output_DY','float64'))
-                except Exception as e:
-                    logging.warning('Could not find the DY model due to "%s"'%e)
-                try:
-                    instance = HyperModel(opt.output,'TT')
-                    inv_outputs_TT = np.power(10,-instance.HyperRestore(inv_inputs))
-                    full_outputs = np.c_[full_outputs,inv_outputs_TT]
-                    dtype.append(('output_TT','float64'))
-                except Exception as e:
-                    logging.warning('Could not find the TT model due to "%s"'%e)
-                
-                # Save to file #
-                full_outputs.dtype = dtype
-                if tag=='DY':
-                    output_name = os.path.join(path_model_output_inv_dy,inv_name+'.root')
-                elif tag=='TT':
-                    output_name = os.path.join(path_model_output_inv_tt,inv_name+'.root')
-                else:
-                    logging.error('Incorrect tag for invalid evaluation')
-
-                array2root(full_outputs,output_name,mode='recreate')
-                logging.info('Output saved as : '+output_name)
-
-        # Depending on user request #
+        # Apply model on unknown samples #
+        cut_invalid = "weight_TT>weight_TT_err && weight_DY>weight_DY_err"
         if opt.invalid_DY:
             logging.info('Starting invalid DY output'.center(80,'*'))
-            loop_invalid(path=parameters.path_invalid_DY,tag='DY')
+            inst_out.OutputNewData(input_dir=samples_path,list_sample=samples_dict['invalid_DY'],path_output=path_output_inv_DY,cut=cut_invalid)
 
         if opt.invalid_TT:
             logging.info('Starting invalid TT output'.center(80,'*'))
-            loop_invalid(path=parameters.path_invalid_TT,tag='TT')
+            inst_out.OutputNewData(input_dir=samples_path,list_sample=samples_dict['invalid_TT'],path_output=path_output_inv_TT,cut=cut_invalid)
+
+        if opt.JEC:
+            logging.info('Starting JEC output'.center(80,'*'))
+            inst_out.OutputNewData(input_dir=samples_path,list_sample=samples_dict['JEC'],path_output=path_output_JEC,cut=cut_invalid)
+
 
 
         
