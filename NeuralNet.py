@@ -89,9 +89,6 @@ def NeuralNetModel(x_train,y_train,x_val,y_val,params):
                     validation_data=({'IN':x_val},{'OUT':y_val[:,1]},y_val[:,0]),
                     callbacks=Callback_list
                     )
-    with open('out.pkl', 'wb') as handle:
-        pickle.dump(out, handle)
-    sys.exit()
     return out,model
 
 class HyperModel:
@@ -152,7 +149,7 @@ class HyperModel:
         self.x_train, self.x_val, self.y_train, self.y_val = train_test_split(self.x,self.y,train_size=0.7)
 
         # Define scan object #
-        parallel_gpu_jobs(0.5)
+        #parallel_gpu_jobs(0.5)
         self.h = Scan(  x=self.x_train,
                    y=self.y_train,
                    params=self.p,

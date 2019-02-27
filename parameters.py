@@ -21,14 +21,14 @@ path_invalid_TT = '/nfs/scratch/fynu/fbury/MoMEMta_output/invalid_TT_weights_rec
 # Scan dictionary #
 p = { 
     'lr' : [0.1], 
-    'first_neuron' : [50,100,150,200],
+    'first_neuron' : [50],
     'activation' : [relu],
-    'dropout' : [0,0.05,0.1],
-    'hidden_layers' : [3,4,5,6,7],
+    'dropout' : [0],
+    'hidden_layers' : [4],
     'output_activation' : [selu],
-    'l2' : [0,0.05,0.1],
+    'l2' : [0],
     'optimizer' : [Adam],  
-    'epochs' : [10],   
+    'epochs' : [1],   
     'batch_size' : [500], 
     'loss_function' : [mean_squared_error] 
 }    
