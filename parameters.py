@@ -18,6 +18,9 @@ path_out = '/nfs/scratch/fynu/fbury/MoMEMta_output/NNOutput/'
 path_invalid_DY = '/nfs/scratch/fynu/fbury/MoMEMta_output/invalid_DY_weights_recomputed/'
 path_invalid_TT = '/nfs/scratch/fynu/fbury/MoMEMta_output/invalid_TT_weights_recomputed/'
 
+path_generator='/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/BestModel_newvar_{0}/BestModel_newvar_{0}_model'
+path_classifier='/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/classifier_best/classifier_best_model'
+
 # Scan dictionary #
 p = { 
     'lr' : [0.1], 

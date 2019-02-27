@@ -7,6 +7,7 @@ import os
 import sys
 import logging
 import copy
+import pickle
 
 import argparse
 import numpy as np
@@ -278,9 +279,17 @@ def main():
         
     # y -> [weight_DY, weight_TT]
 
-    all_train = np.concatenate((x_train_HToZA,x_train_DY,x_train_TT),axis=0)
-    scaler = preprocessing.StandardScaler().fit(all_train)
-
+    if not os.path.exists('scaler.pkl'):
+        all_train = np.concatenate((x_train_HToZA,x_train_DY,x_train_TT),axis=0)
+        scaler = preprocessing.StandardScaler().fit(all_train)
+        with open('scaler.pkl', 'wb') as handle:
+            pickle.dump(scaler, handle)
+        logging.warning('Scaler has been created')
+    else:
+        with open('scaler.pkl', 'rb') as handle:
+            scaler = pickle.load(handle)
+        logging.warning('Scaler has been imported')
+        
     x_train_HToZA = scaler.transform(x_train_HToZA)
     x_test_HToZA = scaler.transform(x_test_HToZA)
     x_train_DY = scaler.transform(x_train_DY)
@@ -319,10 +328,17 @@ def main():
     if opt.scan != '':
         # DY network #
         if opt.DY:
-            instance = HyperModel(opt.scan,'DY')
-            instance.HyperScan(x_train,np.c_[w_train,y_train[:,0]],task=opt.task)
+            #instance = HyperModel(opt.scan,'DY')
+            #instance.HyperScan(x_train,np.c_[w_train,y_train[:,0]],task=opt.task)
             #instance.HyperEvaluate(x_test,y_test[:,0],folds=5) 
-            instance.HyperDeploy(best='eval_error')
+            #instance.HyperDeploy(best='eval_error')
+            from gan import GAN
+            gan = GAN(x=x_train,
+                      y=y_train,
+                      path_generator='/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/BestModel_newvar_{0}/BestModel_newvar_{0}_model',
+                      path_classifier='/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/classifier_best/classifier_best_model') 
+            gan.train(epochs=1, batch_size=1000)
+            sys.exit()
         # TT network #
         if opt.TT:
             instance = HyperModel(opt.scan,'TT')

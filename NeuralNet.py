@@ -40,57 +40,7 @@ import matplotlib.pyplot as plt
 from split_training import DictSplit
 import parameters
 from plot_scans import PlotScans
-
-#################################################################################################
-# NeuralNetModel #
-#################################################################################################
-def NeuralNetModel(x_train,y_train,x_val,y_val,params):
-    """
-    Keras model for the Neural Network, used to scan the hyperparameter space by Talos
-    Inputs :
-        - x_train = training inputs (aka : 4-vec of 4 particles + MET)
-        - y_train = training [weights, outputs (aka MEM weights)]
-        - x_val = test inputs
-        - y_val = test [weights, outputs (aka MEM weights)]
-        - params = dict of parameters for the talos scan
-    Outputs :
-        - out =  predicted outputs from network
-        - model = fitted models with weights
-    """
-    # Design network #
-    IN = Input(shape=(x_train.shape[1],),name='IN')
-    L1 = Dense(params['first_neuron'],
-               activation=params['activation'],
-               kernel_regularizer=l2(params['l2']))(IN)
-    HIDDEN = hidden_layers(params,1,batch_normalization=True).API(L1)
-    OUT = Dense(1,activation=params['output_activation'],name='OUT')(HIDDEN)
-
-    # Define model #
-    model = Model(inputs=[IN], outputs=[OUT])
-    utils.print_summary(model=model) #used to print model
-
-    # Callbacks #
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0., patience=10, verbose=1, mode='min')
-    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=1, mode='min', epsilon=0.001, cooldown=0, min_lr=0.00001)
-    Callback_list = [early_stopping,reduceLR]
-
-    # Compile #
-    model.compile(optimizer=params['optimizer'](lr_normalizer(params['lr'], params['optimizer'])),
-                  loss={'OUT':params['loss_function']},
-                  metrics=['accuracy'])
-
-    # Fit #
-    out = model.fit({'IN':x_train},
-                    {'OUT':y_train[:,1]},
-                    sample_weight=y_train[:,0],
-                    epochs=params['epochs'],
-                    batch_size=params['batch_size'],
-                    verbose=1,
-                    validation_data=({'IN':x_val},{'OUT':y_val[:,1]},y_val[:,0]),
-                    callbacks=Callback_list
-                    )
-
-    return out,model
+from gan import GAN
 
 class HyperModel:
     #################################################################################################
