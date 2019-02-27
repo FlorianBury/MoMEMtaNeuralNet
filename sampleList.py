@@ -31,7 +31,7 @@ samples_dict['HToZA'] = [
 # TT bar #
 samples_dict['TT'] = [
                             'valid_weights/TT_Other.root',
-                            'valid_weights/TTTo2L2Nu.root',
+                            'valid_weights/TTTo2L2Nu_partial.root',
                       ]
 
 # Drell-Yann #

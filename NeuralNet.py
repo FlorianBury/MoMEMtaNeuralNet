@@ -89,7 +89,9 @@ def NeuralNetModel(x_train,y_train,x_val,y_val,params):
                     validation_data=({'IN':x_val},{'OUT':y_val[:,1]},y_val[:,0]),
                     callbacks=Callback_list
                     )
-
+    with open('out.pkl', 'wb') as handle:
+        pickle.dump(out, handle)
+    sys.exit()
     return out,model
 
 class HyperModel:

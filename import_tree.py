@@ -67,7 +67,7 @@ def Tree2Numpy(input_file, variables, weight, cut=None, reweight_to_cross_sectio
 # LoopOverTrees #
 ###############################################################################
 
-def LoopOverTrees(input_dir, variables, weight, part_name=None, cut=None, reweight_to_cross_section=False, n=None):
+def LoopOverTrees(input_dir, variables, weight, part_name=None, cut=None, reweight_to_cross_section=False, n=None, list_sample=None):
     """
     Loop over ROOT trees inside input_dir and process them using Tree2Numpy.
     Inputs :
@@ -93,7 +93,12 @@ def LoopOverTrees(input_dir, variables, weight, part_name=None, cut=None, reweig
     datasets = np.empty((0,N))
     weights = np.empty((0,))
 
-    for name in glob.glob(input_dir+"*.root"):
+    if list_sample is None:
+        list_sample = glob.glob(input_dir+"*.root")
+    else:
+        list_sample = [input_dir + s for s in list_sample]
+
+    for name in list_sample:
         filename = name.replace(input_dir,'')
 
             
@@ -108,4 +113,4 @@ def LoopOverTrees(input_dir, variables, weight, part_name=None, cut=None, reweig
         datasets= np.append(datasets,d,axis=0)
         weights = np.append(weights,w,axis=0)
     
-    return datasets,weights.reshape(-1,1)
+return datasets,weights.reshape(-1,1)
