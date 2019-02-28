@@ -4,6 +4,8 @@ import json
 import logging
 import enlighten
 import warnings
+import random
+import string
 
 import numpy as np
 
@@ -11,8 +13,10 @@ from keras.layers import Input, Dense, Reshape, Flatten, Dropout
 from keras.losses import binary_crossentropy, mean_squared_error 
 from keras.layers import BatchNormalization, Activation, merge, Concatenate
 from keras.activations import relu,selu,elu, sigmoid, tanh
+from keras.regularizers import l1,l2 
 from keras.models import Sequential, Model, load_model, model_from_json
 from keras.optimizers import Adam
+from keras.callbacks import History
 
 from talos.model.layers import hidden_layers
 
@@ -35,12 +39,19 @@ plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE) # fontsize of the figure title
 
+def launch_GAN(x_train,y_train,x_val,y_val,params): # Needed for Talos
+    # Instantiate #
+    instance = GAN(x_train,y_train,x_val,y_val,params)
+    # Launch the training #
+    instance.train(epochs=params['epochs'],batch_size=params['batch_size'])
+    # Make the plot of the History #
+    instance.PlotHistory()
+    return instance.history,instance.model_talos
 
 
 class GAN(): # TODO : add weights
-    def __init__(self,params,x_train,y_train,x_val,y_val):
+    def __init__(self,x_train,y_train,x_val,y_val,params):
         #self.x_train, self.x_val, self.y_train, self.y_val = train_test_split(x,y,test_size=0.3)
-        self.params = params
         self.x_train = x_train
         self.y_train = y_train
         self.x_val = x_val
@@ -49,11 +60,13 @@ class GAN(): # TODO : add weights
         self.path_classifier = parameters.path_classifier
         logging.info("Training set size : %0.f"%self.x_train.shape[0])
         logging.info("Validation set size : %0.f"%self.x_val.shape[0])
+        self.history = History()
+        self.history.on_train_begin()
 
-        optimizer = Adam(lr=self.params['lr'])
+        optimizer = Adam(lr=params['lr'])
 
         # Build and compile the discriminator
-        self.discriminator = self.build_discriminator()
+        self.discriminator = self.build_discriminator(params)
         self.discriminator.compile(loss=binary_crossentropy,
             optimizer=optimizer,
             metrics=['accuracy'])
@@ -74,6 +87,8 @@ class GAN(): # TODO : add weights
         OUT_DY = self.generator_DY(IN)
         OUT_TT = self.generator_TT(IN)
         OUT_GEN = Concatenate(axis=-1)([OUT_DY,OUT_TT])
+
+        self.model_talos = Model(inputs=IN, outputs=[OUT_DY,OUT_TT]) # Model to be passed to Talos 
 
 
         # The classifier takes TT and DY weights and returns probabilities TT, DY and HToZA
@@ -105,12 +120,10 @@ class GAN(): # TODO : add weights
         self.comb_val_loss = []
         self.DY_loss = []
         self.TT_loss = []
+        self.gen_loss = []
         self.DY_val_loss = []
         self.TT_val_loss = []
-
-        # Launch training #
-        self.train(epochs=self.params['epochs'],batch_size=self.params['batch_size'])
-
+        self.gen_val_loss = []
 
 
     def build_generator(self,tag):
@@ -126,19 +139,19 @@ class GAN(): # TODO : add weights
 
         return Model(inputs,outputs)
 
-    def build_discriminator(self):
+    def build_discriminator(self,params):
 
         IN = Input(shape=(3,))
-        L1 = Dense(self.params['first_neuron'],
-                       activation=self.params['activation'],
-                       kernel_regularizer=l2(self.params['l2']))(IN)
+        L1 = Dense(params['first_neuron'],
+                       activation=params['activation'],
+                       kernel_regularizer=l2(params['l2']))(IN)
         HIDDEN = hidden_layers(params,1,batch_normalization=True).API(L1)
-        OUT = Dense(1,activation=self.params['output_activation'])(HIDDEN)
+        OUT = Dense(1,activation=params['output_activation'])(HIDDEN)
         logging.info("Discriminator")
+        model = Model(IN,OUT)
         model.summary()
 
-        return Model(IN,OUT)
-
+        return model
     def build_classifier(self):
         with open(self.path_classifier+'.json', 'r') as json_file:
             architecture = json.load(json_file)
@@ -195,10 +208,12 @@ class GAN(): # TODO : add weights
                 gen_outputs_val = np.c_[gen_outputs_val_DY,gen_outputs_val_TT]
 
                 # Evaluate generator #
-                DY_loss = mean_squared_error(gen_targets_val[:,0],gen_outputs_train_DY)
-                TT_loss = mean_squared_error(gen_targets_val[:,1],gen_outputs_train_TT)
+                DY_loss = mean_squared_error(gen_targets_train[:,0],gen_outputs_train_DY)
+                TT_loss = mean_squared_error(gen_targets_train[:,1],gen_outputs_train_TT)
                 DY_val_loss = mean_squared_error(gen_targets_val[:,0],gen_outputs_val_DY)
                 TT_val_loss = mean_squared_error(gen_targets_val[:,1],gen_outputs_val_TT)
+                gen_loss = mean_squared_error(gen_targets_train,gen_outputs_train)
+                gen_val_loss = mean_squared_error(gen_targets_val,gen_outputs_val)
 
                 # Pass both generator values to classifier #
                 class_targets_train = self.classifier.predict(gen_targets_train)
@@ -228,7 +243,8 @@ class GAN(): # TODO : add weights
                 g_val_loss = self.combined.test_on_batch(inputs_val, valid)
                 
                 # Register in container #
-                self.batch.append(float(n)/float(n_batches)+epoch)
+                frac_epoch = float(n)/float(n_batches)+epoch
+                self.batch.append(frac_epoch)
 
                 self.disc_loss.append(d_loss[0])
                 self.disc_val_loss.append(d_val_loss[0])
@@ -242,11 +258,27 @@ class GAN(): # TODO : add weights
                 self.TT_loss.append(TT_loss)
                 self.TT_val_loss.append(TT_val_loss)
 
+                # Append history #
+                batch_log = {}
+                batch_log['loss'] = g_loss
+                batch_log['val_loss'] = g_val_loss
+                batch_log['disc_loss'] = d_loss[0]
+                batch_log['disc_val_loss'] = d_val_loss[0]
+                batch_log['disc_acc'] = 100*d_loss[1]
+                batch_log['disc_val_acc'] = 100*d_val_loss[1]
+                batch_log['gen_loss'] = gen_loss
+                batch_log['gen_val_loss'] = gen_val_loss
+                batch_log['DY_loss'] = DY_loss
+                batch_log['DY_val_loss'] = DY_val_loss
+                batch_log['TT_loss'] = TT_loss
+                batch_log['TT_val_loss'] = TT_val_loss
+
+                self.history.on_epoch_end(frac_epoch,batch_log)
 
                 # Plot the progress of the batch 
-                logging.debug("Batch %d/%d [D loss: %f, acc.: %.2f%%] [G loss: %f, val_loss]" % (n+1,n_batches, d_loss[0], 100*d_loss[1], g_loss))
-                logging.info("Epoch %d Combined [loss : %f, val_loss : %f]" % (epoch, g_loss, g_val_loss))
-                logging.info("Loss : [DY : %f, TT: %f]\tval_loss : [DY : %f, TT: %f]" % (loss_DY,loss_TT,val_loss_DY,val_loss_TT))
+                logging.info(("Batch %d/%d"%(n+1,n_batches)).ljust(15,' ')+" D [loss: %.5f, val_loss : %.5f]    [ acc.: %.2f%%, val_acc.: %.2%%f]" % (d_loss[0], d_val_loss[0],100*d_loss[1], 100*d_val_loss[1]))
+
+                logging.info(''.rjust(15,'.')+" G [loss: %.5f, val_loss : %.5f] DY [ loss: %.5f, val_loss: %.5f] TT [loss: %.5f, val_loss: %.5f]" % (g_loss,g_val_loss,DY_loss,DY_val_loss,TT_loss,TT_val_loss))
                 pbar.update()
 
             # Stop progress bar #
@@ -277,8 +309,6 @@ class GAN(): # TODO : add weights
 
             # Log #
 
-        # Plot history #
-        self.PlotHistory()
 
     def PlotHistory(self):
         try:
@@ -325,10 +355,14 @@ class GAN(): # TODO : add weights
             ax[3].set_title('Combined Network')
             ax[3].legend(loc='upper right')
 
+            
+            rand_hash = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(16)) # avoids overwritting
+            png_name = 'GAN_%s.png'%rand_hash
+            fig.savefig(png_name)
+            logging.info('Curves saved as %s'%png_name)
 
-            fig.savefig('GAN.png')
         except Exception as e:
-            print (e)
+            logging.error(e)
         finally:
             np.save('self.batch',self.batch)
             np.save('self.disc_loss',self.disc_loss)
@@ -337,6 +371,8 @@ class GAN(): # TODO : add weights
             np.save('self.disc_val_acc',self.disc_val_acc)
             np.save('self.comb_loss',self.comb_loss)
             np.save('self.comb_val_loss',self.comb_val_loss)
+            np.save('self.gen_loss',self.gen_loss)
+            np.save('self.gen_val_loss',self.gen_val_loss)
             np.save('self.DY_loss',self.DY_loss)
             np.save('self.DY_val_loss',self.DY_val_loss)
             np.save('self.TT_loss',self.TT_loss)

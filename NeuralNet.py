@@ -40,21 +40,19 @@ import matplotlib.pyplot as plt
 from split_training import DictSplit
 import parameters
 from plot_scans import PlotScans
-from gan import GAN
+from gan import GAN, launch_GAN
 
 class HyperModel:
     #################################################################################################
     # __init ___#
     #################################################################################################
-    def __init__(self,name,sample):
+    def __init__(self,name):
         self.name = name
-        self.sample = sample
-        logging.info((' Starting '+self.sample+' case ').center(80,'='))
 
     #################################################################################################
     # HyperScan #
     #################################################################################################
-    def HyperScan(self,x,y,task):
+    def HyperScan(self,x,y,w,task):
         """
         Performs the scan for hyperparameters
         Inputs :
@@ -78,18 +76,20 @@ class HyperModel:
         # Records #
         self.x = x
         self.y = y
+        self.w = w
         self.task = task
 
         # Talos hyperscan parameters #
         if self.task!='': # if task is specified load it otherwise get it from parameters.py
             with open(os.path.join(parameters.main_path,'split',self.name,self.task), 'rb') as f:
                 self.p = pickle.load(f)
+            logging.info('Dict used : %s'%self.task)
         else: # We need the full dict
             self.p = parameters.p
 
         # Check if no already exists then change it -> avoids rewriting  #
         no = 1
-        self.name = self.name+'_'+self.sample+self.task.replace('.pkl','')
+        self.name = self.name+self.task.replace('.pkl','')
         self.path_model = os.path.join(parameters.main_path,'model',self.name)
         while os.path.exists(self.name+str(no)+'.csv'):
             no +=1
@@ -97,18 +97,19 @@ class HyperModel:
         self.name_model = self.name+'_'+str(no)
 
         # Data spltting splitting #
-        self.x_train, self.x_val, self.y_train, self.y_val = train_test_split(self.x,self.y,train_size=0.7)
+        self.x_train, self.x_val, self.y_train, self.y_val, self.w_train, self.w_val = train_test_split(self.x,self.y,self.w,train_size=0.7)
 
         # Define scan object #
         parallel_gpu_jobs(0.5)
         self.h = Scan(  x=self.x_train,
+                   #y=np.c_[self.y_train,self.w_train], #Careful, contains weights AND output
                    y=self.y_train,
                    params=self.p,
                    dataset_name=self.name,
                    experiment_no=str(no),
-                   model=NeuralNetModel,
+                   model=launch_GAN,
                    val_split=0.3,
-                   reduction_metric='val_loss',
+                   reduction_metric='gen_val_loss',
                    #grid_downsample=0.1,
                    #random_method='lhs',
                    #reduction_method='spear',
@@ -121,10 +122,10 @@ class HyperModel:
 
         self.h_with_eval = Autom8(scan_object = self.h,
                      x_val = self.x_val,
-                     y_val = self.y_val[:,1], # Other column is weight
+                     y_val = self.y_val,
                      n = -1,
                      folds = 5,
-                     metric = 'val_loss',
+                     metric = 'gen_val_loss',
                      asc = True,
                      shuffle = True,
                      average = None)  
@@ -173,7 +174,7 @@ class HyperModel:
         # Evaluation #
         logging.info('='*80)
         scores = []
-        self.idx_best_model = best_model(self.h, 'val_loss', asc=True)
+        self.idx_best_model = best_model(self.h, 'gen_val_loss', asc=True)
 
         for i in range(0,n_rounds):
             e = Evaluate(self.h)
@@ -182,7 +183,7 @@ class HyperModel:
                                model_id = i,
                                folds=folds,
                                shuffle=True,
-                               metric='val_loss',
+                               metric='gen_val_loss',
                                average='macro',
                                asc=True  # because loss
                               )
@@ -204,13 +205,13 @@ class HyperModel:
             # Print model and error in order #
             logging.info('Model index %d -> Error = %0.5f (+/- %0.5f))'%(idx,m_err,std_err))
             if idx==self.idx_best_model:
-                logging.info('\t-> Best model from val_loss')
+                logging.info('\t-> Best model from gen_val_loss')
 
         logging.info('='*80)
 
-        # Prints best model accordind to cross-validation and val_loss #
+        # Prints best model accordind to cross-validation and gen_val_loss #
 
-        logging.info('Best model from val_loss -> id %d'%(self.idx_best_model))
+        logging.info('Best model from gen_val_loss -> id %d'%(self.idx_best_model))
         logging.info('Eval error : %0.5f (+/- %0.5f))'%(scores[self.idx_best_model][0],scores[self.idx_best_model][1]))
         logging.info(self.h.data.iloc[self.idx_best_model,:])
         logging.info('-'*80)
@@ -312,7 +313,7 @@ class HyperModel:
         logging.info(' Starting reporting '.center(80,'-'))
 
         # Get reporting #
-        report_file = os.path.join('model',self.name+'_'+self.sample+'.csv')
+        report_file = os.path.join('model',self.name+'.csv')
         if os.path.exists(report_file):
             r = Reporting(report_file)
         else:
@@ -329,8 +330,8 @@ class HyperModel:
         try:
             logging.info('Lowest eval_error = %0.5f obtained after %0.f rounds'%(r.low('eval_mean'),r.rounds2high('eval_mean')))
         except:
-            logging.warning("Could not find key 'eval_mean', will switch to 'val_loss'")
-            logging.info('Lowest val_loss = %0.5f obtained after %0.f rounds'%(r.low('val_loss'),r.rounds2high('val_loss')))
+            logging.warning("Could not find key 'eval_mean', will switch to 'gen_val_loss'")
+            logging.info('Lowest gen_val_loss = %0.5f obtained after %0.f rounds'%(r.low('gen_val_loss'),r.rounds2high('gen_val_loss')))
 
         # Best params #
         logging.info('='*80)
@@ -338,8 +339,8 @@ class HyperModel:
         try:
             sorted_data = r.data.sort_values('eval_mean',ascending=True)
         except:
-            logging.warning("Could not find key 'eval_mean', will swith to val_loss")
-            sorted_data = r.data.sort_values('val_loss',ascending=True)
+            logging.warning("Could not find key 'eval_mean', will swith to gen_val_loss")
+            sorted_data = r.data.sort_values('gen_val_loss',ascending=True)
 
         for i in range(0,5):
             logging.info('-'*80)
@@ -353,13 +354,13 @@ class HyperModel:
         logging.info('='*80)
 
         # Generate dir #
-        path_plot = os.path.join(parameters.main_path,'model',self.name+'_'+self.sample)
+        path_plot = os.path.join(parameters.main_path,'model',self.name)
         if not os.path.isdir(path_plot):
             os.makedirs(path_plot)
         
         logging.info('Starting plots')
         # Make plots #
-        PlotScans(data=r.data,path=path_plot,tag=self.sample)
+        PlotScans(data=r.data,path=path_plot,tag='')
 
 #################################################################################################
 # HyperRestore #
@@ -380,9 +381,9 @@ class HyperModel:
         Reference :
             /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/commands/restore.py
         """
-        logging.info((' Starting restoration of sample %s with model %s '%(self.sample,self.name)).center(80,'-'))
+        logging.info((' Starting restoration with model %s '%(self.name)).center(80,'-'))
         # Restore model #
-        a = Restore(os.path.join(parameters.main_path,'model',self.name+'_'+self.sample+'.zip'))
+        a = Restore(os.path.join(parameters.main_path,'model',self.name+'.zip'))
 
         # Output of the model #
         outputs = a.model.predict(inputs)

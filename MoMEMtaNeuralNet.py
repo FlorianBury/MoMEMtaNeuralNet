@@ -39,10 +39,6 @@ def get_options():
     a = parser.add_argument_group('Scan, deploy and restore arguments')
     a.add_argument('-s','--scan', action='store', required=False, type=str, default='',
         help='Name of the scan to be used (modify scan parameters in NeuralNet.py)')
-    a.add_argument('-dy','--DY', action='store_true', required=False, default=False,
-        help='Use DY MEM weights (must be specified if --scan or --report or --output are used')
-    a.add_argument('-tt','--TT', action='store_true', required=False, default=False,
-        help='Use TT MEM weights (must be specified if --scan or --report or --output are used')
     a.add_argument('-task','--task', action='store', required=False, type=str, default='',
         help='Name of dict to be used for scan (Used by function itself when submitting jobs or DEBUG)')
 
@@ -86,10 +82,6 @@ def get_options():
 
     opt = parser.parse_args()
 
-    if not opt.DY and not opt.TT:
-        if opt.scan!='' or opt.report!='' or opt.submit!='':
-            logging.critical('Either -dy or -tt must be specified')  
-            sys.exit(1)
     if opt.split!=0 or opt.submit:
         if opt.scan!='' or opt.report!='':
             logging.critical('These parameters cannot be used together')  
@@ -158,9 +150,9 @@ def main():
         if opt.submit!='':
             logging.info('Submitting jobs')
             if opt.resubmit:
-                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug,tt=opt.TT,dy=opt.DY)
+                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug)
             else:
-                submit_on_slurm(name=opt.submit,debug=opt.debug,tt=opt.TT,dy=opt.DY)
+                submit_on_slurm(name=opt.submit,debug=opt.debug)
         sys.exit()
 
     #############################################################################################
@@ -168,14 +160,9 @@ def main():
     #############################################################################################
     if opt.csv!='':
         logging.info('Concatenating csv files from : %s'%(opt.csv))
-        dict_DY = ConcatenateCSV(opt.csv,'DY')
-        dict_TT = ConcatenateCSV(opt.csv,'TT')
-        
-        dict_DY.Concatenate()
-        dict_DY.WriteToFile()
-
-        dict_TT.Concatenate()
-        dict_TT.WriteToFile()
+        dict_csv = ConcatenateCSV(opt.csv)
+        dict_csv.Concatenate()
+        dict_csv.WriteToFile()
 
         sys.exit()
 
@@ -184,10 +171,10 @@ def main():
     #############################################################################################
     if opt.report != '':
         if opt.DY: 
-            instance = HyperModel(opt.report,'DY')
+            instance = HyperModel(opt.report)
             instance.HyperReport()
         if opt.TT:
-            instance = HyperModel(opt.report,'TT')
+            instance = HyperModel(opt.report)
             instance.HyperReport()
 
         sys.exit()
@@ -196,7 +183,7 @@ def main():
     # Data Input and preprocessing #
     #############################################################################################
     # Input path #
-    logging.info('Starting histograms input')
+    logging.info('Starting tree input')
 
     # Import variables from parameters.py
     variables = parameters.inputs+parameters.outputs+parameters.other_variables
@@ -327,24 +314,16 @@ def main():
 
     if opt.scan != '':
         # DY network #
-        if opt.DY:
-            #instance = HyperModel(opt.scan,'DY')
-            #instance.HyperScan(x_train,np.c_[w_train,y_train[:,0]],task=opt.task)
-            #instance.HyperEvaluate(x_test,y_test[:,0],folds=5) 
-            #instance.HyperDeploy(best='eval_error')
-            from gan import GAN
-            gan = GAN(x=x_train,
-                      y=y_train,
-                      path_generator='/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/BestModel_newvar_{0}/BestModel_newvar_{0}_model',
-                      path_classifier='/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/classifier_best/classifier_best_model') 
-            gan.train(epochs=1, batch_size=1000)
-            sys.exit()
-        # TT network #
-        if opt.TT:
-            instance = HyperModel(opt.scan,'TT')
-            instance.HyperScan(x_train,np.c_[w_train,y_train[:,1]],task=opt.task)
-            #instance.HyperEvaluate(x_test,y_test[:,1],folds=5) 
-            instance.HyperDeploy(best='eval_error')
+        instance = HyperModel(opt.scan)
+        instance.HyperScan(x_train,y_train,w_train,task=opt.task)
+        instance.HyperDeploy(best='eval_error')
+        #from gan import GAN
+        #gan = GAN(x=x_train,
+        #          y=y_train,
+        #          path_generator='/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/BestModel_newvar_{0}/BestModel_newvar_{0}_model',
+        #          path_classifier='/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/classifier_best/classifier_best_model') 
+        #gan.train(epochs=1, batch_size=1000)
+            #sys.exit()
         
     if opt.output!='': 
         # Make path #
@@ -354,7 +333,7 @@ def main():
         path_output_inv_TT = os.path.join(path_out,tmp_output,'invalid_TT_weights')
         path_output_JEC = os.path.join(path_out,tmp_output,'JEC')
         if not os.path.exists(path_output):
-            s.makedirs(path_output)
+            os.makedirs(path_output)
         if not os.path.exists(path_output_inv_DY):
             os.makedirs(path_output_inv_DY)
         if not os.path.exists(path_output_inv_TT):

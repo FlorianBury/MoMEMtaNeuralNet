@@ -38,9 +38,9 @@ def main():
     # Get files #
     #############################################################################################
     INPUT_DIR = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/'
-    INPUT_VALID = os.path.join(INPUT_DIR,'NNOutput',opt.model,'valid_weights')
-    INPUT_INVALID = os.path.join(INPUT_DIR,'NNOutput',opt.model,'invalid_{}_weights')
-    INPUT_JEC = os.path.join(INPUT_DIR,'NNOutput',opt.model,'JEC')
+    INPUT_VALID = os.path.join(INPUT_DIR,'Adversarial',opt.model,'valid_weights')
+    INPUT_INVALID = os.path.join(INPUT_DIR,'Adversarial',opt.model,'invalid_{}_weights')
+    INPUT_JEC = os.path.join(INPUT_DIR,'Adversarial',opt.model,'JEC')
 
     OUTPUT_PDF = os.path.join(os.getcwd(),'PDF',opt.model)
     OUTPUT_YAML= os.path.join(os.getcwd(),'YAML')

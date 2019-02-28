@@ -15,13 +15,13 @@ from CP3SlurmUtils.Exceptions import CP3SlurmUtilsException
 # Personal files #
 import parameters
 
-def submit_on_slurm(name,tt,dy,debug=False):
+def submit_on_slurm(name,debug=False):
     config = Configuration()
 
     config.sbatch_partition = 'cp3'
     config.sbatch_qos = 'cp3'
     config.sbatch_workdir = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/'
-    config.sbatch_time = '0-8:00'
+    config.sbatch_time = '0-12:00'
     config.sbatch_mem = '10000'
     config.sbatch_additionalOptions = []
     config.inputSandboxContent = []
@@ -30,10 +30,6 @@ def submit_on_slurm(name,tt,dy,debug=False):
     config.inputParams = []
 
     config.payload = " python {script} --scan ${{scan}} --task ${{task}} "
-    if tt:
-        config.payload += " --TT"
-    if dy:
-        config.payload += " --DY"
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     out_dir = parameters.main_path
@@ -45,7 +41,7 @@ def submit_on_slurm(name,tt,dy,debug=False):
     slurm_config.inputSandboxDir = slurm_config.batchScriptsDir
     slurm_config.stageoutDir = os.path.join(slurm_working_dir, 'output')
     slurm_config.stageoutLogsDir = os.path.join(slurm_working_dir, 'logs')
-    slurm_config.stageoutFiles = ["*.csv","*.zip"]
+    slurm_config.stageoutFiles = ["*.csv","*.zip","*.png"]
 
     #slurm_config.payload = config.payload.format(scan=name,task=task)
     slurm_config.payload = config.payload.format(script=out_dir+"/MoMEMtaNeuralNet.py")

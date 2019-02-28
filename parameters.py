@@ -3,7 +3,7 @@
 
 from keras.losses import binary_crossentropy, mean_squared_error   
 from keras.optimizers import RMSprop, Adam, Nadam, SGD            
-from keras.activations import relu, elu, selu, softmax, tanh     
+from keras.activations import relu, elu, selu, softmax, tanh, sigmoid
 from keras.regularizers import l1,l2 
 
 # Global variables #
@@ -14,7 +14,7 @@ from keras.regularizers import l1,l2
 #global path_invalid_TT
 main_path = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/'   
 path_to_files = '/nfs/scratch/fynu/fbury/MoMEMta_output/valid_weights/'
-path_out = '/nfs/scratch/fynu/fbury/MoMEMta_output/NNOutput/' 
+path_out = '/nfs/scratch/fynu/fbury/MoMEMta_output/Adversarial/' 
 path_invalid_DY = '/nfs/scratch/fynu/fbury/MoMEMta_output/invalid_DY_weights_recomputed/'
 path_invalid_TT = '/nfs/scratch/fynu/fbury/MoMEMta_output/invalid_TT_weights_recomputed/'
 
@@ -23,19 +23,18 @@ path_classifier='/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/classifier_best/clas
 
 # Scan dictionary #
 p = { 
-    'lr' : [0.1], 
-    'first_neuron' : [50,100,150,200],
+    'lr' : [0.00001], 
+    'first_neuron' : [50],
     'activation' : [relu],
-    'dropout' : [0,0.05,0.1],
-    'hidden_layers' : [3,4,5,6,7],
-    'output_activation' : [selu],
-    'l2' : [0,0.05,0.1],
-    'optimizer' : [Adam],  
-    'epochs' : [10000],   
-    'batch_size' : [500], 
-    'loss_function' : [mean_squared_error] 
+    'dropout' : [0.5],
+    'hidden_layers' : [3],
+    'output_activation' : [tanh],
+    'l2' : [0.5],
+    'epochs' : [20],   
+    'batch_size' : [1000], 
 }    
-repetition = 5
+   
+repetition = 1
 #inputs = [
 #         'lep1_p4.Px()',
 #         'lep1_p4.Py()',
