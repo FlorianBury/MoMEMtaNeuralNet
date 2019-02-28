@@ -11,7 +11,7 @@ from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT
 import CMS_lumi
 import tdrstyle
 
-from Classes import Plot_TH1, Plot_TH2, Plot_Ratio_TH1, Plot_ROC, LoopPlotOnCanvas, MakeROCPlot
+from Classes import *
 
 gROOT.SetBatch(True)
 ROOT.gErrorIgnoreLevel = 2000#[ROOT.kPrint, ROOT.kInfo]#, kWarning, kError, kBreak, kSysError, kFatal;
@@ -58,6 +58,11 @@ def main():
 
     if len(f_valid) == 0:
         logging.error('Could not find the weights at %s'%(INPUT_VALID))
+
+    # ROC curve instantiation #
+    # Careful ! Classes as alphabetic order
+    instance_ROC_MEM = Plot_Multi_ROC(['DY','HToZA','TT'],'total_weight','MEM')
+    instance_ROC_DNN = Plot_Multi_ROC(['DY','HToZA','TT'],'total_weight','DNN')
 
     # Loop over files #
     for f in f_valid:
@@ -120,6 +125,48 @@ def main():
                 list_histo_valid.append(instance)
             except Exception as e:
                 logging.warning('Could not plot %s due to "%s"'%(name,e))
+
+        # Add to ROC #
+        list_ROC_MEM = ['prob_MEM_DY','prob_MEM_HToZA','prob_MEM_TT']
+        list_ROC_DNN = ['prob_DNN_DY','prob_DNN_HToZA','prob_DNN_TT']
+        # Must follow the alphabetic order 
+        if os.path.basename(f).startswith('HToZA'):
+            logging.info('\tAdded to ROC as HToZA')
+            try:
+                instance_ROC_MEM.AddToROC(f,'tree',list_ROC_MEM,'HToZA')
+                instance_ROC_DNN.AddToROC(f,'tree',list_ROC_DNN,'HToZA')
+            except Exception as e:
+                logging.warning('Could not plot ROC due to "%s"'%(e))
+        if os.path.basename(f).startswith('DY'):
+            logging.info('\tAdded to ROC as DY')
+            try:
+                instance_ROC_MEM.AddToROC(f,'tree',list_ROC_MEM,'DY')
+                instance_ROC_DNN.AddToROC(f,'tree',list_ROC_DNN,'DY')
+            except Exception as e:
+                logging.warning('Could not plot ROC due to "%s"'%(e))
+
+        if os.path.basename(f).startswith('TT'):
+            logging.info('\tAdded to ROC as TT')
+            try:
+                instance_ROC_MEM.AddToROC(f,'tree',list_ROC_MEM,'TT')
+                instance_ROC_DNN.AddToROC(f,'tree',list_ROC_DNN,'TT')
+            except Exception as e:
+                logging.warning('Could not plot ROC due to "%s"'%(e))
+
+    # Make ROC curves #
+    #try:
+    logging.info('Processing ROC curve for MEM') 
+    instance_ROC_MEM.ProcessROC()
+    logging.info('Processing ROC curve for DNN') 
+    instance_ROC_DNN.ProcessROC()
+    MakeMultiROCPlot([instance_ROC_MEM],os.path.join(OUTPUT_PDF,'MULTI_ROC_MEM'))
+    MakeMultiROCPlot([instance_ROC_DNN],os.path.join(OUTPUT_PDF,'MULTI_ROC_DNN'))
+    MakeMultiROCPlot([instance_ROC_MEM,instance_ROC_DNN],os.path.join(OUTPUT_PDF,'MULTI_ROC_MEM_vs_DNN'))
+    #except Exception as e:
+    #    logging.warning('Could not process ROC due to "%s"'%e)    
+
+
+
     #############################################################################################
     # Save histograms #
     #############################################################################################

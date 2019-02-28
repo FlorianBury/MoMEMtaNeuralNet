@@ -3,13 +3,21 @@ import sys
 import glob
 import copy
 import logging
+import itertools
+import numpy as np
 from array import array
 
 import ROOT
 from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT, TGaxis, TPad, TLegend, TImage
 
 from sklearn import metrics
+from sklearn.preprocessing import label_binarize, LabelBinarizer
+from scipy import interp
+
+from root_numpy import root2array, rec2array
+
 import matplotlib.pyplot as plt
+from matplotlib.pyplot import cm
 
 # ROOT STYLE #
 import CMS_lumi
@@ -225,37 +233,29 @@ class Plot_Ratio_TH1:
 
 ####################################      Plot_ROC       ########################################
 class Plot_ROC:
-    def __init__(self,variable1,variable2,weight,title,cut=''):
-        self.variable1 = variable1
-        self.variable2 = variable2
+    def __init__(self,discriminant,weight,title,cut=''):
+        self.discriminant = discriminant
         self.weight = weight
-        self.cut = cut
         self.title = title
-        self.output = []
-        self.target = []
+        self.output = np.array([])
+        self.target = np.array([])
+        self.cut = cut
 
     def AddToROC(self,filename,tree,sample):
-        file_handle = TFile.Open(filename)
-        tree = file_handle.Get(tree)
-        var1 = array('d',[0])
-        var2 = array('d',[0])
-        tree.SetBranchAddress( self.variable1, var1 )
-        tree.SetBranchAddress( self.variable2, var2 )
-        i = 0
-        while tree.GetEntry(i):
-            i += 1
-            self.output.append(var1[0]/(var2[0]+var1[0]))
+        disc = root2array(filename,tree,branches=self.discriminant,selection=self.cut)
+        self.output = np.concatenate((self.output,disc),axis=0)
 
-    
         if sample == 'DY':
-            self.target.extend([0]*i)
+            self.target = np.concatenate((self.target,np.zeros(disc.shape[0])))
         elif sample == 'TT':
-            self.target.extend([1]*i)
+            self.target = np.concatenate((self.target,np.ones(disc.shape[0])))
 
     def ProcessROC(self):
         self.fpr, self.tpr, threshold = metrics.roc_curve(self.target,self.output)
         self.roc_auc = metrics.auc(self.fpr, self.tpr)
-
+        optimal_idx = (np.abs(self.tpr - 0.8)).argmin()
+        optimal_threshold = threshold[optimal_idx]
+        logging.info('\tWorking point for tpr = %0.1f is %0.5f'%(0.8,optimal_threshold))
 
 def MakeROCPlot(list_obj,name):
     # Generate figure #
@@ -277,25 +277,96 @@ def MakeROCPlot(list_obj,name):
 
     fig.savefig(name+'.png')#,bbox_inches='tight')
 
+#################################      Plot_Multi_ROC       ######################################
+class Plot_Multi_ROC:
+    def __init__(self,classes,weight,title,cut=''):
+        self.classes = classes                          # eg [0,1,2], just numbering
+        self.n_classes = len(classes)                   # number of classes
+        self.weight = weight                            # Weight (not used so far)
+        self.title = title                              # eg differentiate ROC from MEM and DNN
+        self.prob_per_class = np.empty((0,self.n_classes))# output of network
+        self.scores = np.empty((0,self.n_classes))      # Correct classes
+        self.cut = cut                                  # Potential cut
+        self.lb = LabelBinarizer()                      # eg ['A','B','C']-> labels [0,1,0]...
+        self.lb.fit(self.classes)                       # Carefull ! Alphabetic order !
+            # classes in lb -> lb.classes_
+        
 
-        #gROOT.SetBatch(False)
-        #canvas = TCanvas("c1", "c1", 800, 600)
-        #eps = TPad("eps", "eps", 0., 0., 1., 1)
-        #eps.Draw()
-        #ROOT.SetOwnership(canvas, False)
-        #ROOT.SetOwnership(eps, False)
-        #eps.cd()
-        #im = TImage.Open(png_name)
-        #im.SetConstRatio(0)
-        #im.SetImageQuality(ROOT.TAttImage.kImgBest)
-        #im.Draw()
-        #input('What')
-        #canvas.Print(pdf_name,'Title:ROC curve %s'%self.title)
-        #canvas.Close()
+    def AddToROC(self,filename,tree,prob_branches,target):
+        """ 
+        Info of the root file, the name of the probability branches and the target (0 or 1 or ...)
+        """
+        # Get the output prob #
+        probs = rec2array(root2array(filename,tree,branches=prob_branches,selection=self.cut))
+        self.prob_per_class = np.concatenate((self.prob_per_class,probs),axis=0)
 
-        #os.remove(png_name)
+        # Make the targets labelized #
+        #target = label_binarize(np.ones(probs.shape[0])*target,self.classes)
+        target_arr = self.lb.transform([target]*probs.shape[0])
+        
+        # eg target = 1 and classes = [0,1,2] => scores = [0,1,0],...
+        self.scores = np.concatenate((self.scores,target_arr),axis=0)
+
+    def ProcessROC(self):
+        self.tpr = {}
+        self.fpr = {}
+        self.roc_auc = {}
+        # Process class by class #
+        for i,n in enumerate(self.lb.classes_):
+            self.fpr[n], self.tpr[n], _ = metrics.roc_curve(self.scores[:, i], self.prob_per_class[:, i])
+            self.roc_auc[n] = metrics.auc(self.fpr[n], self.tpr[n]) 
+            
+        # Micro-average #
+        self.fpr["micro"], self.tpr["micro"], _ = metrics.roc_curve(self.scores.ravel(), self.prob_per_class.ravel())
+        self.roc_auc["micro"] = metrics.auc(self.fpr["micro"], self.tpr["micro"]) 
+
+        # Macro-average #
+        # First aggregate all false positive rates
+        all_fpr = np.unique(np.concatenate([self.fpr[i] for i in self.lb.classes_]))
+        # Then interpolate all ROC curves at this points
+        mean_tpr = np.zeros_like(all_fpr)
+        for i in self.classes:
+            mean_tpr += interp(all_fpr, self.fpr[i], self.tpr[i])
+        # Finally average it and compute AUC
+        mean_tpr /= self.n_classes
+
+        self.fpr["macro"] = all_fpr
+        self.tpr["macro"] = mean_tpr
+        self.roc_auc["macro"] = metrics.auc(self.fpr["macro"], self.tpr["macro"])
+
+def MakeMultiROCPlot(list_obj,name):
+    # Generate figure #
+    fig, ax = plt.subplots(1,figsize=(10,8))
+    line_cycle = itertools.cycle(["-","--",":","-.",])
+    # Loop over plot objects #
+    for i,obj in enumerate(list_obj):
+        n_obj = len(list(obj.tpr.keys()))
+        color=iter(cm.gist_rainbow(np.linspace(0.,0.8,n_obj)))
+        linestyle = next(line_cycle)
+        for key in obj.tpr.keys():
+            # Label #
+            label = obj.title+' '+key
+            label += (' AUC = %0.5f'%obj.roc_auc[key])
+            # Color # 
+            c=next(color)
+            # Plot #
+            ax.plot(obj.tpr[key], obj.fpr[key], color=c, label=label, linestyle=linestyle)
+            ax.grid(True)
+
+    plt.legend(loc = 'upper left')
+    #plt.yscale('symlog',linthreshy=0.0001)
+    plt.plot([0, 1], [0, 1],'k--')
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    plt.xlabel(r'Correct identification')
+    plt.ylabel(r'Misidentification')
+    plt.suptitle(os.path.basename(name.replace('_',' ')))
+
+    fig.savefig(name+'.png')#,bbox_inches='tight')
+    logging.info('ROC curved saved as %s'%name+'.png')
 
 
+       
 
 
 #################################################################################################
