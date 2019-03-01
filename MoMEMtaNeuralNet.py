@@ -7,6 +7,7 @@ import os
 import sys
 import logging
 import copy
+import pickle
 
 import argparse
 import numpy as np
@@ -191,6 +192,7 @@ def main():
     logging.info('DY sample size : {}'.format(data_DY.shape[0]))
     logging.info('TT samples')
     data_TT, weight_TT = LoopOverTrees(input_dir=path_to_files,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=False,part_name='TT')
+    logging.info('TT sample size : {}'.format(data_TT.shape[0]))
     # Save weights in data #
     data_HToZA = np.append(data_HToZA,weight_HToZA,axis=1)
     data_DY = np.append(data_DY,weight_DY,axis=1)
@@ -255,8 +257,17 @@ def main():
     w_test_DY = weight_DY[mask_DY==False]
     w_test_TT = weight_TT[mask_TT==False]
         
-    all_train = np.concatenate((x_train_HToZA,x_train_DY,x_train_TT),axis=0)
-    scaler = preprocessing.StandardScaler().fit(all_train)
+    if not os.path.exists('scaler_classifier.pkl'):
+        all_train = np.concatenate((x_train_HToZA,x_train_DY,x_train_TT),axis=0)
+        scaler = preprocessing.StandardScaler().fit(all_train)
+        with open('scaler_classifier.pkl', 'wb') as handle:
+            pickle.dump(scaler, handle)
+        logging.warning('Scaler has been created')
+    else:
+        with open('scaler_classifier.pkl', 'rb') as handle:
+            scaler = pickle.load(handle)
+        logging.warning('Scaler has been imported')
+
 
     x_train_HToZA = scaler.transform(x_train_HToZA)
     x_test_HToZA = scaler.transform(x_test_HToZA)

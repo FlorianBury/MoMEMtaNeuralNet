@@ -11,7 +11,8 @@ global main_path
 global path_to_files
 global path_out   
 main_path = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/'   
-path_to_files = '/nfs/scratch/fynu/fbury/MoMEMta_output/NNOutput/BestModel_newvar/valid_weights/'
+#path_to_files = '/nfs/scratch/fynu/fbury/MoMEMta_output/NNOutput/BestModel_newvar/valid_weights/'
+path_to_files = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/Adversarial/adv_lowlr_highreg_1/valid_weights/'
 path_out = '/nfs/scratch/fynu/fbury/MoMEMta_output/Classifier/' 
 
 # Scan dictionary #
