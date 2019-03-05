@@ -26,6 +26,7 @@ from sklearn.metrics import mean_squared_error
 import matplotlib.pyplot as plt
 
 import parameters
+from minibatch import MinibatchDiscrimination 
 
 SMALL_SIZE = 16
 MEDIUM_SIZE = 20
@@ -43,7 +44,7 @@ def launch_GAN(x_train,y_train,x_val,y_val,params): # Needed for Talos
     # Instantiate #
     instance = GAN(x_train,y_train,x_val,y_val,params)
     # Launch the training #
-    instance.train(epochs=params['epochs'],batch_size=params['batch_size'])
+    instance.train()
     # Make the plot of the History #
     instance.PlotHistory()
     return instance.history,instance.model_talos
@@ -56,17 +57,21 @@ class GAN(): # TODO : add weights
         self.y_train = y_train
         self.x_val = x_val
         self.y_val = y_val
+        self.params = params
         self.path_generator = parameters.path_generator 
         self.path_classifier = parameters.path_classifier
         logging.info("Training set size : %0.f"%self.x_train.shape[0])
         logging.info("Validation set size : %0.f"%self.x_val.shape[0])
+
+        # History log (for Talos) #
         self.history = History()
         self.history.on_train_begin()
 
-        optimizer = Adam(lr=params['lr'])
+        # Optimizer #
+        optimizer = Adam(lr=self.params['lr'])
 
         # Build and compile the discriminator
-        self.discriminator = self.build_discriminator(params)
+        self.discriminator = self.build_discriminator()
         self.discriminator.compile(loss=binary_crossentropy,
             optimizer=optimizer,
             metrics=['accuracy'])
@@ -108,7 +113,7 @@ class GAN(): # TODO : add weights
         self.combined = Model(IN,OUT_DIS)
         self.combined.compile(loss=binary_crossentropy, optimizer=optimizer)
         logging.info("Combined model")
-        self.combined.summary()
+        #self.combined.summary()
 
         # Container for plotters #
         self.batch = []
@@ -132,24 +137,25 @@ class GAN(): # TODO : add weights
         model = model_from_json(json.dumps(architecture))
         model.load_weights(self.path_generator.format(tag)+'.h5')
         logging.info("Generator for %s"%tag)
-        model.summary()
+        #model.summary()
 
         inputs = Input(shape=(self.x_train.shape[1],)) # Inputs : Pt,Eta,Phi +Met
         outputs = model(inputs)                        # Outputs : TT and DY weights
 
         return Model(inputs,outputs)
 
-    def build_discriminator(self,params):
+    def build_discriminator(self):
 
         IN = Input(shape=(3,))
-        L1 = Dense(params['first_neuron'],
-                       activation=params['activation'],
-                       kernel_regularizer=l2(params['l2']))(IN)
-        HIDDEN = hidden_layers(params,1,batch_normalization=True).API(L1)
-        OUT = Dense(1,activation=params['output_activation'])(HIDDEN)
+        L1 = Dense(self.params['first_neuron'],
+                       activation=self.params['activation'],
+                       kernel_regularizer=l2(self.params['l2']))(IN)
+        HIDDEN = hidden_layers(self.params,1,batch_normalization=True).API(L1)
+        MINIBATCH = MinibatchDiscrimination(nb_kernels=params['kernels'])(HIDDEN)
+        OUT = Dense(1,activation=self.params['output_activation'])(HIDDEN)
         logging.info("Discriminator")
         model = Model(IN,OUT)
-        model.summary()
+        #model.summary()
 
         return model
     def build_classifier(self):
@@ -158,7 +164,7 @@ class GAN(): # TODO : add weights
         model = model_from_json(json.dumps(architecture))
         model.load_weights(self.path_classifier+'.h5')
         logging.info("Classifier")
-        model.summary()
+        #model.summary()
 
         inputs = Input(shape=(2,)) # We take 2 weights : TT and DY
         outputs = model(inputs)    # 3 outputs : P(TT), P(DY) and P(HToZA)
@@ -166,7 +172,9 @@ class GAN(): # TODO : add weights
         return Model(inputs,outputs)
         
 
-    def train(self, epochs, batch_size=128):
+    def train(self):
+        epochs = self.params['epochs']
+        batch_size = self.params['batch_size']
 
         # Split into subsets #
         indexes  = np.arange(0,self.x_train.shape[0])
@@ -188,6 +196,18 @@ class GAN(): # TODO : add weights
                 # Adversarial ground truths
                 valid = np.ones((idx_sub.shape[0], 1)) # Coming from MoMEMta
                 fake = np.zeros((idx_sub.shape[0], 1)) # Coming from the DNN that fits MoMEMta
+
+                # Label smoothing #
+                valid *= 0.9
+                
+                # Noise by swapping #
+                p = 0.9 # Probability of non-swapping
+                swap_idx = np.random.choice(a=[False, True], size=(idx_sub.shape[0]), p=[p, 1-p])
+                valid_tmp = valid[swap_idx]
+                fake_tmp = fake[swap_idx]
+                valid[swap_idx] = fake_tmp
+                fake[swap_idx] = valid_tmp
+
                 # Select a random batch of inputs and generator targets
                 inputs_train = self.x_train[idx_sub]
                 gen_targets_train = self.y_train[idx_sub]
@@ -216,8 +236,8 @@ class GAN(): # TODO : add weights
                 gen_val_loss = mean_squared_error(gen_targets_val,gen_outputs_val)
 
                 # Pass both generator values to classifier #
-                class_targets_train = self.classifier.predict(gen_targets_train)
-                class_outputs_train = self.classifier.predict(gen_outputs_train)
+                class_targets_train = self.classifier.predict(gen_targets_train) # weights from DNN -> proba from classifier
+                class_outputs_train = self.classifier.predict(gen_outputs_train) # weights from MoMEMta -> proba from classifier
 
                 class_targets_val = self.classifier.predict(gen_targets_val)
                 class_outputs_val = self.classifier.predict(gen_outputs_val)
@@ -227,6 +247,13 @@ class GAN(): # TODO : add weights
                     # Since we have weights not being updated (discriminator)
                     # https://github.com/eriklindernoren/Keras-GAN/issues/91
                     warnings.simplefilter("ignore")
+                    # Instance noise #
+                    sigma = 1-epoch/epochs
+                    logging.info('Sigma for instance noise %0.3f'%sigma)
+                    class_targets_train = np.random.normal(class_targets_train,sigma) 
+                    class_targets_val = np.random.normal(class_targets_val,sigma) 
+
+                    # Train and test #
                     d_loss_train_real = self.discriminator.train_on_batch(class_targets_train,valid)
                     d_loss_train_fake = self.discriminator.train_on_batch(class_outputs_train,fake)
                     d_loss_val_real = self.discriminator.test_on_batch(class_targets_val,valid)
@@ -239,8 +266,8 @@ class GAN(): # TODO : add weights
                 #  Train Generator
                 # ---------------------
                 # Train the generator (to have the discriminator label samples as valid)
-                g_loss = self.combined.train_on_batch(inputs_train, valid)
-                g_val_loss = self.combined.test_on_batch(inputs_val, valid)
+                g_loss = self.combined.train_on_batch(inputs_train, np.ones(inputs_train.shape[0]))
+                g_val_loss = self.combined.test_on_batch(inputs_val, np.ones(inputs_val.shape[0]))
                 
                 # Register in container #
                 frac_epoch = float(n)/float(n_batches)+epoch
@@ -312,9 +339,16 @@ class GAN(): # TODO : add weights
 
     def PlotHistory(self):
         try:
-            fig,ax = plt.subplots(4,1,figsize=(9,16))
-            fig.subplots_adjust(right=0.87, wspace = 0.3, hspace=0.4, left=0.1, bottom=0.05, top=0.92)
+            fig,ax = plt.subplots(4,1,figsize=(12,16))
+            fig.subplots_adjust(right=0.7, wspace = 0.3, hspace=0.4, left=0.1, bottom=0.05, top=0.92)
             fig.suptitle('Generative Adversarial Network')
+
+            # Generate the text containing the hyperparameters #
+            str_params = ''
+            for k,v in self.params.items():
+                str_params += '> '+str(k)+'\n'
+                str_params += '  --- '+str(v)+'\n'
+            plt.text(0.72,0.3, str_params, fontsize=14, transform=plt.gcf().transFigure)
 
             # Discriminator #
             ax_twin = ax[0].twinx()
