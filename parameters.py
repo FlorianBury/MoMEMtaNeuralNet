@@ -23,15 +23,17 @@ path_classifier='/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/classifier_best/clas
 
 # Scan dictionary #
 p = { 
-    'lr' : [1e-6,1e-7,1e-5,1e-4], 
-    'first_neuron' : [64,128],
+    'lr_disc' : [0.01], 
+    'lr_gen' : [0.00001], 
+    'first_neuron' : [32],
     'activation' : [selu],
-    'dropout' : [0,0.2,0.4,0.6,0.8],
-    'hidden_layers' : [1,2,3,4],
-    'output_activation' : [tanh],
+    'dropout' : [0.5],
+    'hidden_layers' : [1],
+    'output_activation' : [sigmoid],
     'l2' : [0],
-    'epochs' : [100],   
+    'epochs' : [10],   
     'batch_size' : [1000], 
+    #'kernels': [5]
 }    
    
 repetition = 1

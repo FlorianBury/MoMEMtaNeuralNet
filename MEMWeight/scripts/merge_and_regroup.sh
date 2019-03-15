@@ -12,7 +12,7 @@ for dir in $path; do
     echo "Directory : "$dir
     echo "Name : "$name
 
-    # Indide output #
+    # Inside output #
     pushd $dir"/output/" > /dev/null
     pwd
 

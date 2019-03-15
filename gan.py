@@ -6,17 +6,19 @@ import enlighten
 import warnings
 import random
 import string
+import pickle
 
 import numpy as np
 
 from keras.layers import Input, Dense, Reshape, Flatten, Dropout
 from keras.losses import binary_crossentropy, mean_squared_error 
-from keras.layers import BatchNormalization, Activation, merge, Concatenate
+from keras.layers import BatchNormalization, Activation, merge, Concatenate, Lambda
 from keras.activations import relu,selu,elu, sigmoid, tanh
 from keras.regularizers import l1,l2 
 from keras.models import Sequential, Model, load_model, model_from_json
 from keras.optimizers import Adam
 from keras.callbacks import History
+import keras.backend as K
 
 from talos.model.layers import hidden_layers
 
@@ -67,23 +69,25 @@ class GAN(): # TODO : add weights
         self.history = History()
         self.history.on_train_begin()
 
-        # Optimizer #
-        optimizer = Adam(lr=self.params['lr'])
+        # Optimizers #
+        optimizer_dis = Adam(lr=self.params['lr_disc'])
+        optimizer_gen= Adam(lr=self.params['lr_gen'])
 
         # Build and compile the discriminator
         self.discriminator = self.build_discriminator()
         self.discriminator.compile(loss=binary_crossentropy,
-            optimizer=optimizer,
+            optimizer=optimizer_dis,
             metrics=['accuracy'])
 
         # Build the generator -> Compile in combined model
         self.generator_TT = self.build_generator('TT')
         self.generator_DY = self.build_generator('DY')
 
+
         # Build and compile the classifier middle stage
         self.classifier = self.build_classifier()
         self.classifier.compile(loss=binary_crossentropy,
-            optimizer=optimizer,
+            optimizer=optimizer_dis,
             metrics=['accuracy'])
 
 
@@ -111,7 +115,7 @@ class GAN(): # TODO : add weights
         # The combined model  (stacked generator and discriminator)
         # Trains the generator to fool the discriminator
         self.combined = Model(IN,OUT_DIS)
-        self.combined.compile(loss=binary_crossentropy, optimizer=optimizer)
+        self.combined.compile(loss=binary_crossentropy, optimizer=optimizer_gen)
         logging.info("Combined model")
         #self.combined.summary()
 
@@ -130,12 +134,23 @@ class GAN(): # TODO : add weights
         self.TT_val_loss = []
         self.gen_val_loss = []
 
+        
+
+    def smear_weights(self,weights,var=0.1):
+        for i in range(len(weights)):
+            weights[i] *= (1+var)#np.random.normal(weights[i],var)
+        return weights
 
     def build_generator(self,tag):
         with open(self.path_generator.format(tag)+'.json', 'r') as json_file:
             architecture = json.load(json_file)
         model = model_from_json(json.dumps(architecture))
         model.load_weights(self.path_generator.format(tag)+'.h5')
+        weights = model.get_weights()
+
+        #new_weights = self.smear_weights(weights,var=1e-2)
+        #model.set_weights(new_weights)
+
         logging.info("Generator for %s"%tag)
         #model.summary()
 
@@ -150,12 +165,12 @@ class GAN(): # TODO : add weights
         L1 = Dense(self.params['first_neuron'],
                        activation=self.params['activation'],
                        kernel_regularizer=l2(self.params['l2']))(IN)
+        #MINIBATCH = MinibatchDiscrimination(nb_kernels=self.params['kernels'])(L1)
         HIDDEN = hidden_layers(self.params,1,batch_normalization=True).API(L1)
-        MINIBATCH = MinibatchDiscrimination(nb_kernels=params['kernels'])(HIDDEN)
         OUT = Dense(1,activation=self.params['output_activation'])(HIDDEN)
         logging.info("Discriminator")
         model = Model(IN,OUT)
-        #model.summary()
+        model.summary()
 
         return model
     def build_classifier(self):
@@ -165,9 +180,16 @@ class GAN(): # TODO : add weights
         model.load_weights(self.path_classifier+'.h5')
         logging.info("Classifier")
         #model.summary()
-
+        
+        with open('scaler_classifier.pkl','rb') as f:
+            scaler = pickle.load(f)
+        def scale_before_classifier(x): 
+            # Because classifier is based on the scaled wegihts (with the log) #
+            return (x-scaler.mean_)/scaler.scale_
+        
         inputs = Input(shape=(2,)) # We take 2 weights : TT and DY
-        outputs = model(inputs)    # 3 outputs : P(TT), P(DY) and P(HToZA)
+        preprocessed_inputs = Lambda(scale_before_classifier)(inputs)
+        outputs = model(preprocessed_inputs)    # 3 outputs : P(TT), P(DY) and P(HToZA)
 
         return Model(inputs,outputs)
         
@@ -186,6 +208,9 @@ class GAN(): # TODO : add weights
             logging.info('-'*80)
             logging.info('Epoch %d'%epoch)
 
+            out_disc_train = np.empty((0,5))
+            out_disc_val = np.empty((0,5))
+
             # Setup progress bar
             manager = enlighten.get_manager()
             pbar = manager.counter(total=n_batches, desc='Progress', unit='Batch')
@@ -198,27 +223,35 @@ class GAN(): # TODO : add weights
                 fake = np.zeros((idx_sub.shape[0], 1)) # Coming from the DNN that fits MoMEMta
 
                 # Label smoothing #
-                valid *= 0.9
+                #valid *= 0.9
                 
                 # Noise by swapping #
-                p = 0.9 # Probability of non-swapping
-                swap_idx = np.random.choice(a=[False, True], size=(idx_sub.shape[0]), p=[p, 1-p])
-                valid_tmp = valid[swap_idx]
-                fake_tmp = fake[swap_idx]
-                valid[swap_idx] = fake_tmp
-                fake[swap_idx] = valid_tmp
+                #if epoch == 0:
+                #    p = 0.9 # Probability of non-swapping
+                #    swap_idx = np.random.choice(a=[False, True], size=(idx_sub.shape[0]), p=[p, 1-p])
+                #    valid_tmp = valid[swap_idx]
+                #    fake_tmp = fake[swap_idx]
+                #    valid[swap_idx] = fake_tmp
+                #    fake[swap_idx] = valid_tmp
 
                 # Select a random batch of inputs and generator targets
                 inputs_train = self.x_train[idx_sub]
-                gen_targets_train = self.y_train[idx_sub]
+                gen_targets_train = self.y_train[idx_sub] # [weight_DY,weight_TT]
 
                 # Select validation set #
                 idx_val = np.random.randint(0, self.x_val.shape[0], idx_sub.shape[0])
                 inputs_val = self.x_val[idx_val]
                 gen_targets_val = self.y_val[idx_val]
 
-
                 # Get generator output (aka the weights)
+                #DY_loss = self.generator_DY.test_on_batch(inputs_train,gen_targets_train[:,0])
+                #TT_loss = self.generator_TT.test_on_batch(inputs_train,gen_targets_train[:,1])
+
+                #DY_val_loss = self.generator_DY.test_on_batch(inputs_val,gen_targets_val[:,0])
+                #TT_val_loss = self.generator_TT.test_on_batch(inputs_val,gen_targets_val[:,1])
+
+                #gen_loss = (DY_loss+TT_loss)/2
+                #gen_val_loss = (DY_val_loss+TT_val_loss)/2
                 gen_outputs_train_DY = self.generator_DY.predict(inputs_train)
                 gen_outputs_train_TT = self.generator_TT.predict(inputs_train)
                 gen_outputs_train = np.c_[gen_outputs_train_DY,gen_outputs_train_TT]
@@ -236,8 +269,8 @@ class GAN(): # TODO : add weights
                 gen_val_loss = mean_squared_error(gen_targets_val,gen_outputs_val)
 
                 # Pass both generator values to classifier #
-                class_targets_train = self.classifier.predict(gen_targets_train) # weights from DNN -> proba from classifier
-                class_outputs_train = self.classifier.predict(gen_outputs_train) # weights from MoMEMta -> proba from classifier
+                class_targets_train = self.classifier.predict(gen_targets_train) # weights from MoMEMta -> proba from classifier
+                class_outputs_train = self.classifier.predict(gen_outputs_train) # weights from DNN -> proba from classifier
 
                 class_targets_val = self.classifier.predict(gen_targets_val)
                 class_outputs_val = self.classifier.predict(gen_outputs_val)
@@ -248,25 +281,70 @@ class GAN(): # TODO : add weights
                     # https://github.com/eriklindernoren/Keras-GAN/issues/91
                     warnings.simplefilter("ignore")
                     # Instance noise #
-                    sigma = 1-epoch/epochs
+                    #sigma = 1-epoch/epochs
+                    sigma = 0.1
                     logging.info('Sigma for instance noise %0.3f'%sigma)
                     class_targets_train = np.random.normal(class_targets_train,sigma) 
                     class_targets_val = np.random.normal(class_targets_val,sigma) 
 
+                    #class_train = np.concatenate((class_targets_train,class_outputs_train),axis=0)
+                    #class_val = np.concatenate((class_targets_val,class_outputs_val),axis=0)
+                    #idx_train = np.concatenate((valid,fake),axis=0)
+                    #idx_val = np.concatenate((valid,fake),axis=0)
+                    #train_set = np.c_[class_train,idx_train]
+                    #val_set = np.c_[class_val,idx_val]
+                    #np.random.shuffle(train_set)
+                    #np.random.shuffle(val_set)
                     # Train and test #
                     d_loss_train_real = self.discriminator.train_on_batch(class_targets_train,valid)
                     d_loss_train_fake = self.discriminator.train_on_batch(class_outputs_train,fake)
-                    d_loss_val_real = self.discriminator.test_on_batch(class_targets_val,valid)
+                    d_loss_val_real = self.discriminator.test_on_batch(class_targets_val,valid) # FIXME 
                     d_loss_val_fake = self.discriminator.test_on_batch(class_outputs_val,fake)
+                    #d_loss = self.discriminator.train_on_batch(train_set[:,:-1],train_set[:,-1])
+                    #d_val_loss = self.discriminator.test_on_batch(val_set[:,:-1],val_set[:,-1])
+
+                    #out_disc_train = np.concatenate((out_disc_train,np.c_[class_targets_train,self.discriminator.predict(class_targets_train),valid]),axis=0)
+                    #out_disc_train = np.concatenate((out_disc_train,np.c_[class_outputs_train,self.discriminator.predict(class_outputs_train),fake]),axis=0)
+                    #out_disc_val = np.concatenate((out_disc_val,np.c_[class_targets_val,self.discriminator.predict(class_targets_val),valid]),axis=0)
+                    #out_disc_val = np.concatenate((out_disc_val,np.c_[class_outputs_val,self.discriminator.predict(class_outputs_val),fake]),axis=0)
+
+                    #for i in range(0,class_targets_val.shape[0]):
+                    #    print ('weight train ',gen_outputs_train[i],' <-> target ',gen_targets_train[i])
+                    #    print ('weight val   ',gen_outputs_val[i],' <-> target ',gen_targets_val[i])
+                    #    print ('-'*80)
+                    #    print ('output train ',class_outputs_train[i],'  -> ',self.discriminator.predict(class_outputs_train)[i],'/',fake[i])
+                    #    print ('target train ',class_targets_train[i],'  -> ',self.discriminator.predict(class_targets_train)[i],'/',valid[i])
+                    #    print ('-'*80)
+                    #    print ('output val   ',class_outputs_val[i],'  -> ',self.discriminator.predict(class_outputs_val)[i],'/',fake[i])
+                    #    print ('target val   ',class_targets_val[i],'  -> ',self.discriminator.predict(class_targets_val)[i],valid[i])
+                    #    print ('score output ',self.discriminator.test_on_batch(class_outputs_val[i:i+1,:],fake[i:i+1,:]))
+                    #    print ('score target ',self.discriminator.test_on_batch(class_targets_val[i:i+1,:],valid[i:i+1,:]))
+                    #    print ('\n')
+                    #print ('           real        fake') 
+                    #print ('Loss     ',d_loss_train_real,d_loss_train_fake)
+                    #print ('Val loss ',d_loss_val_real,d_loss_val_fake)
+                    #stop = input('Stop ?')
+                    stop=''
+                    if stop == 'y':
+                        disc_train = np.concatenate((np.c_[class_targets_train,self.discriminator.predict(class_targets_train),valid],np.c_[class_outputs_train,self.discriminator.predict(class_outputs_train),fake]),axis=0)
+                        disc_val = np.concatenate((np.c_[class_targets_val,self.discriminator.predict(class_targets_val),valid],np.c_[class_outputs_val,self.discriminator.predict(class_outputs_val),fake]),axis=0)
+                        np.save('disc_train',disc_train)
+                        np.save('disc_val',disc_val)
+                        sys.exit()
+                
 
                 d_loss = 0.5 * np.add(d_loss_train_real, d_loss_train_fake)
                 d_val_loss = 0.5 * np.add(d_loss_val_real, d_loss_val_fake)
+                
 
                 # ---------------------
                 #  Train Generator
                 # ---------------------
                 # Train the generator (to have the discriminator label samples as valid)
-                g_loss = self.combined.train_on_batch(inputs_train, np.ones(inputs_train.shape[0]))
+                if epoch<1:
+                    g_loss = 0
+                else:
+                    g_loss = self.combined.train_on_batch(inputs_train, np.ones(inputs_train.shape[0]))
                 g_val_loss = self.combined.test_on_batch(inputs_val, np.ones(inputs_val.shape[0]))
                 
                 # Register in container #
@@ -301,42 +379,25 @@ class GAN(): # TODO : add weights
                 batch_log['TT_val_loss'] = TT_val_loss
 
                 self.history.on_epoch_end(frac_epoch,batch_log)
-
+                
                 # Plot the progress of the batch 
-                logging.info(("Batch %d/%d"%(n+1,n_batches)).ljust(15,' ')+" D [loss: %.5f, val_loss : %.5f]    [ acc.: %.2f%%, val_acc.: %.2%%f]" % (d_loss[0], d_val_loss[0],100*d_loss[1], 100*d_val_loss[1]))
+                logging.info(("Batch %d/%d"%(n+1,n_batches)).ljust(15,' ')+" D [loss: %.5f, val_loss : %.5f]    [ acc.: %.2f%%, val_acc.: %.2f%%]" % (d_loss[0], d_val_loss[0],100*d_loss[1], 100*d_val_loss[1]))
 
                 logging.info(''.rjust(15,'.')+" G [loss: %.5f, val_loss : %.5f] DY [ loss: %.5f, val_loss: %.5f] TT [loss: %.5f, val_loss: %.5f]" % (g_loss,g_val_loss,DY_loss,DY_val_loss,TT_loss,TT_val_loss))
                 pbar.update()
 
             # Stop progress bar #
             manager.stop()
+            #from keras.models import model_from_json
+            #model_json = self.discriminator.to_json()
+            #with open("disc.json", "w") as json_file:
+            #    json_file.write(model_json)
+            ## serialize weights to HDF5
+            #self.discriminator.save_weights("disc.h5")
+            #print("Saved model to disk")
+            #sys.exit()
             # Plot the progress of the epoch
-            
-            #g_loss = self.combined.test_on_batch(self.x_train, np.ones(self.x_train.shape[0]))
-            #g_val_loss = self.combined.test_on_batch(self.x_val, np.ones(self.x_val.shape[0]))
-            ## output of generator #
-            #y_train_pred_DY = self.generator_DY.predict(self.x_train)
-            #y_train_pred_TT = self.generator_TT.predict(self.x_train)
-            #y_val_pred_DY = self.generator_DY.predict(self.x_val)
-            #y_val_pred_TT = self.generator_TT.predict(self.x_val)
-            ## Loss and val_loss of generator
-            #loss_DY = mean_squared_error(self.y_train[:,0],y_train_pred_DY)
-            #loss_TT = mean_squared_error(self.y_train[:,1],y_train_pred_TT)
-            #val_loss_DY = mean_squared_error(self.y_val[:,0],y_val_pred_DY)
-            #val_loss_TT = mean_squared_error(self.y_val[:,1],y_val_pred_TT)
-
-            ## Record in containers #
-            #self.epoch.append(epoch)
-            #self.comb_loss.append(g_loss)
-            #self.comb_val_loss.append(g_val_loss)
-            #self.DY_loss.append(loss_DY)
-            #self.TT_loss.append(loss_TT)
-            #self.DY_val_loss.append(val_loss_DY)
-            #self.TT_val_loss.append(val_loss_TT)
-
-            # Log #
-
-
+           
     def PlotHistory(self):
         try:
             fig,ax = plt.subplots(4,1,figsize=(12,16))
@@ -354,9 +415,9 @@ class GAN(): # TODO : add weights
             ax_twin = ax[0].twinx()
             ax_twin.tick_params('y')
             line1 = ax[0].plot(self.batch,self.disc_acc,c='g',label='Accuracy [%]')
-            line2 = ax[0].plot(self.batch,self.disc_val_acc,c='g',linestyle=':',label='Validation accuracy')
+            line2 = ax[0].plot(self.batch,self.disc_val_acc,c='b',linestyle=':',label='Validation accuracy')
             line3 = ax_twin.plot(self.batch,self.disc_loss,c='r',label='Cross-entropy loss')
-            line4 = ax_twin.plot(self.batch,self.disc_val_loss,c='r',linestyle=':',label='validation cross-entropy loss')
+            line4 = ax_twin.plot(self.batch,self.disc_val_loss,c='orange',linestyle=':',label='validation cross-entropy loss')
             ax[0].set_xlabel('Epochs')
             ax[0].set_ylabel('Accuracy')
             ax_twin.set_ylabel('Loss')
@@ -366,7 +427,7 @@ class GAN(): # TODO : add weights
             ax[0].legend(lines, labs, loc='center right')
 
             # DY Network #
-            ax[1].plot(self.batch,self.DY_loss,color='b',label='Generator DY loss')
+            ax[1].plot(self.batch,self.DY_loss,color='g',label='Generator DY loss')
             ax[1].plot(self.batch,self.DY_val_loss,color='b',linestyle=':',label='Generator DY val loss')
             ax[1].set_xlabel('Epochs')
             ax[1].set_ylabel('Loss')
@@ -374,7 +435,7 @@ class GAN(): # TODO : add weights
             ax[1].legend(loc='upper right')
 
             # TT Network #
-            ax[2].plot(self.batch,self.TT_loss,color='b',label='Generator TT loss')
+            ax[2].plot(self.batch,self.TT_loss,color='g',label='Generator TT loss')
             ax[2].plot(self.batch,self.TT_val_loss,color='b',linestyle=':',label='Generator TT val loss')
             ax[2].set_xlabel('Epochs')
             ax[2].set_ylabel('Loss')
@@ -382,7 +443,7 @@ class GAN(): # TODO : add weights
             ax[2].legend(loc='upper right')
 
             # Combined Network #
-            ax[3].plot(self.batch,self.comb_loss,color='b',label='GAN loss')
+            ax[3].plot(self.batch,self.comb_loss,color='g',label='GAN loss')
             ax[3].plot(self.batch,self.comb_val_loss,color='b',linestyle=':',label='GAN val loss')
             ax[3].set_xlabel('Epochs')
             ax[3].set_ylabel('Loss')

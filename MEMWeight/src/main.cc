@@ -20,6 +20,12 @@
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <sstream> 
+#include <map>
+#include <iterator>
+#include <utility>
+#include <vector>
+#include <regex>
 
 #include <gflags/gflags.h>
 
@@ -67,6 +73,29 @@ void normalizeInput(LorentzVector& p4) {
     };
 }
 
+std::pair<double,double> getMassFromFile(std::string const & str)
+{
+  std::vector<int> vec;
+  auto rest = str; 
+  do{
+      std::size_t const n = rest.find_first_of("0123456789");
+      if (n != std::string::npos)
+      {
+        std::size_t const m = rest.find_first_not_of("0123456789", n);
+        if (rest.substr(n, m != std::string::npos ? m-n : m).length()>0){
+            auto num = std::stoi(rest.substr(n, m != std::string::npos ? m-n : m));
+            vec.push_back(num);
+        }
+        rest = rest.substr(m,std::string::npos);
+      }
+      else
+        break;
+  }
+  while(true);
+  std::pair<double,double> MHMA = std::make_pair(vec[2],vec[3]);
+  return MHMA; 
+}
+
 // Command line => gflags
 DEFINE_string(output, "output.root", "Name of the output file containing the weights");
 DEFINE_uint64(from, 0, "First entry to process");
@@ -95,9 +124,25 @@ int main(int argc, char** argv) {
     string file = INPUT_DIR+FLAGS_input;
     LOG(info)<<"Directory : "+INPUT_DIR;
     LOG(info)<<"Using file : "+FLAGS_input; 
-    bool USE_RECOMPUTE = true;
-    bool USE_JEC = true;
-    LOG(info)<<"Weights recomputation is enabled";
+    bool USE_RECOMPUTE = false;
+    bool USE_JEC = false;
+    if (USE_RECOMPUTE)
+        LOG(warning)<<"Weights recomputation is enabled";
+    if (USE_JEC)
+        LOG(warning)<<"JEC is enabled";
+
+    // Check if signal of background 
+    std::pair<double,double> MHMA;
+    if (FLAGS_input.find("HToZA") != std::string::npos) {
+        MHMA = getMassFromFile(FLAGS_input);
+        LOG(info)<<"Signal file";
+    } 
+    else{
+        MHMA = std::make_pair(0.,0.);
+        LOG(info)<<"Background file";
+    }
+    LOG(info)<<"Masses used for TF : mH = "<<MHMA.first<<" mA = "<<MHMA.second;
+    
 
     chain.Add(file.c_str());
     TTreeReader myReader(&chain);
@@ -148,7 +193,60 @@ int main(int argc, char** argv) {
     out_tree->Branch("weight_DY_err", &weight_DY_err);
     out_tree->Branch("weight_DY_time", &weight_DY_time);
     out_tree->Branch("weight_TT_time", &weight_TT_time);
-
+    
+    /* Generate map for the HToZA config */
+    std::map<std::pair<double,double>,double> weight;
+    std::map<std::pair<double,double>,double> err;
+    std::map<std::pair<double,double>,double> time;
+    weight[std::make_pair(200,50)] = 0;    err[std::make_pair(200,50)] = 0;    time[std::make_pair(200,50)] = 0;
+    weight[std::make_pair(200,100)] = 0;   err[std::make_pair(200,100)] = 0;   time[std::make_pair(200,100)] = 0;
+    weight[std::make_pair(250,50)] = 0;    err[std::make_pair(250,50)] = 0;    time[std::make_pair(250,50)] = 0;
+    weight[std::make_pair(250,100)] = 0;   err[std::make_pair(250,100)] = 0;   time[std::make_pair(250,100)] = 0;
+    weight[std::make_pair(300,50)] = 0;    err[std::make_pair(300,50)] = 0;    time[std::make_pair(300,50)] = 0;
+    weight[std::make_pair(300,100)] = 0;   err[std::make_pair(300,100)] = 0;   time[std::make_pair(300,100)] = 0;
+    weight[std::make_pair(300,200)] = 0;   err[std::make_pair(300,200)] = 0;   time[std::make_pair(300,200)] = 0;
+    weight[std::make_pair(500,50)] = 0;    err[std::make_pair(500,50)] = 0;    time[std::make_pair(500,50)] = 0;
+    weight[std::make_pair(500,100)] = 0;   err[std::make_pair(500,100)] = 0;   time[std::make_pair(500,100)] = 0;
+    weight[std::make_pair(500,200)] = 0;   err[std::make_pair(500,200)] = 0;   time[std::make_pair(500,200)] = 0;
+    weight[std::make_pair(500,300)] = 0;   err[std::make_pair(500,300)] = 0;   time[std::make_pair(500,300)] = 0;
+    weight[std::make_pair(500,400)] = 0;   err[std::make_pair(500,400)] = 0;   time[std::make_pair(500,400)] = 0;
+    weight[std::make_pair(650,50)] = 0;    err[std::make_pair(650,50)] = 0;    time[std::make_pair(650,50)] = 0;
+    weight[std::make_pair(800,50)] = 0;    err[std::make_pair(800,50)] = 0;    time[std::make_pair(800,50)] = 0;
+    weight[std::make_pair(800,100)] = 0;   err[std::make_pair(800,100)] = 0;   time[std::make_pair(800,100)] = 0;
+    weight[std::make_pair(800,200)] = 0;   err[std::make_pair(800,200)] = 0;   time[std::make_pair(800,200)] = 0;
+    weight[std::make_pair(800,400)] = 0;   err[std::make_pair(800,400)] = 0;   time[std::make_pair(800,400)] = 0;
+    weight[std::make_pair(800,700)] = 0;   err[std::make_pair(800,700)] = 0;   time[std::make_pair(800,700)] = 0;
+    weight[std::make_pair(1000,50)] = 0;   err[std::make_pair(1000,50)] = 0;   time[std::make_pair(1000,50)] = 0;
+    weight[std::make_pair(1000,200)] = 0;  err[std::make_pair(1000,200)] = 0;  time[std::make_pair(1000,200)] = 0;
+    weight[std::make_pair(1000,500)] = 0;  err[std::make_pair(1000,500)] = 0;  time[std::make_pair(1000,500)] = 0;
+    weight[std::make_pair(2000,1000)] = 0; err[std::make_pair(2000,1000)] = 0; time[std::make_pair(2000,1000)] = 0;
+    weight[std::make_pair(3000,2000)] = 0; err[std::make_pair(3000,2000)] = 0; time[std::make_pair(3000,2000)] = 0;
+    for (auto const& x : weight){
+        std::string name;
+        name.append("weight_HToZA_mH_");
+        name.append(std::to_string(int(x.first.first)));
+        name.append("_mA_");
+        name.append(std::to_string(int(x.first.second)));
+        out_tree->Branch(name.c_str(), &(weight[x.first]));
+    } 
+    for (auto const& x : err){
+        std::string name;
+        name.append("weight_HToZA_mH_");
+        name.append(std::to_string(int(x.first.first)));
+        name.append("_mA_");
+        name.append(std::to_string(int(x.first.second)));
+        name.append("_err");
+        out_tree->Branch(name.c_str(), &(err[x.first]));
+    } 
+    for (auto const& x : time){
+        std::string name;
+        name.append("weight_HToZA_mH_");
+        name.append(std::to_string(int(x.first.first)));
+        name.append("_mA_");
+        name.append(std::to_string(int(x.first.second)));
+        name.append("_time");
+        out_tree->Branch(name.c_str(), &(time[x.first]));
+    } 
 
     /*
      * Prepare MoMEMta to compute the weights
@@ -214,7 +312,7 @@ int main(int argc, char** argv) {
         isr_p4.SetE(std::abs(isr_p4.E()));
         momemta::Particle isr ("isr", isr_p4);
 
-        // JEC to bjets #
+        // JEC to bjets //
         if (USE_JEC==true){
             LOG(info)<<"JEC has been applied";
             auto temp1 = LorentzVectorE {jet1_p4.Pt(),jet1_p4.Eta(),jet1_p4.Phi(),jet1_p4.M()};
@@ -250,6 +348,7 @@ int main(int argc, char** argv) {
         LOG(info) << "---------------------------------------------------------------------";
         LOG(info)<<"Starting TT weight computation";
         do {
+            break;
             if (n_start_TT>=2000000){
                 LOG(error)<<"Weights did not converge despite higher precision";
                 break;
@@ -261,7 +360,7 @@ int main(int argc, char** argv) {
 
             ParameterSet lua_parameters;
             lua_parameters.set("random", rand_num);
-            lua_parameters.set("n_start_TT", n_start_TT);
+            lua_parameters.set("n_start", n_start_TT);
             lua_parameters.set("max_eval", n_start_TT*20);
             
             ConfigurationReader configuration_TTbar(FLAGS_confs_dir + "TTbar_FullyLeptonic.lua",lua_parameters);
@@ -300,6 +399,7 @@ int main(int argc, char** argv) {
         int n_start_DY = 20000;
         weight_DY_time = 0;
         do {
+             break;
             if (n_start_DY>=2000000){
                 LOG(error)<<"Weights did not converge despite higher precision";
                 break;
@@ -311,7 +411,7 @@ int main(int argc, char** argv) {
 
             ParameterSet lua_parameters;
             lua_parameters.set("random", rand_num);
-            lua_parameters.set("n_start_DY", n_start_DY);
+            lua_parameters.set("n_start", n_start_DY);
             lua_parameters.set("max_eval", n_start_DY*20);
             
             ConfigurationReader configuration_DY(FLAGS_confs_dir + "dy_to_ll_simple.lua",lua_parameters);
@@ -339,7 +439,65 @@ int main(int argc, char** argv) {
  
        }
         while (failed_DY);
+        
+        // HToZA weights 
+        LOG(info) << "---------------------------------------------------------------------";
+        LOG(info)<<"Starting HToZA weight computation";
+    
+        for (auto & x : weight){
+            auto mH = x.first.first;
+            auto mA = x.first.second;
+            auto key = x.first;
+            LOG(info) << "\tMH = "<<std::to_string(mH)<<" MA = "<<std::to_string(mA);
+              
+            bool failed_HToZA = false;
+            int n_start_HToZA = 100000;
+            do {
+                if (n_start_HToZA>=2000000){
+                    LOG(error)<<"Weights did not converge despite higher precision";
+                    break;
+                }
+                int rand_num = rand()%1000;
+                failed_HToZA = false;
+                LOG(info)<<"Random number for seed : "<<rand_num;
+                LOG(info)<<"Starting eval : "<<n_start_HToZA<<"\tMax eval : "<<n_start_HToZA*20;
 
+                ParameterSet lua_parameters;
+                lua_parameters.set("random", rand_num);
+                lua_parameters.set("n_start", n_start_HToZA);
+                lua_parameters.set("max_eval", n_start_HToZA*20);
+                lua_parameters.set("mH_ME", mH);
+                lua_parameters.set("mA_ME", mA);
+                lua_parameters.set("mH_TF", MHMA.first);
+                lua_parameters.set("mA_TF", MHMA.second);
+                
+                
+                ConfigurationReader configuration_HToZA(FLAGS_confs_dir + "htoza_llbb.lua",lua_parameters);
+
+                // Instantiate MoMEMta using a **frozen** configuration
+                MoMEMta HToZA_weight(configuration_HToZA.freeze());
+
+                // Retrieve the weight and uncertainty for HToZA
+                auto start_time_HToZA = system_clock::now();
+                std::vector<std::pair<double, double>> HToZA_weights = HToZA_weight.computeWeights({lep_minus, lep_plus, bjet1, bjet2});
+                auto end_time_HToZA = system_clock::now();
+
+                weight[key] = HToZA_weights.back().first;
+                err[key] = HToZA_weights.back().second;
+                time[key] += std::chrono::duration_cast<milliseconds>(end_time_HToZA - start_time_HToZA).count();
+
+                LOG(info)<<" -> HToZA result: " << HToZA_weights.back().first<< " +- " << HToZA_weights.back().second;
+                LOG(info) << "Weight computed in " << std::chrono::duration_cast<milliseconds>(end_time_HToZA - start_time_HToZA).count()<< "ms";
+                // If weights did not converge 
+                if (USE_RECOMPUTE == true && weight[key]<=err[key]){ 
+                    LOG(warning) << "HToZA weights dit not converge, will increase precision";
+                    failed_HToZA = true;
+                    n_start_HToZA += 50000;
+                }
+     
+           }
+            while (failed_HToZA);
+        }
         // Other values in branches
         total_weight = *t_w;
         event_weight = *e_w;
