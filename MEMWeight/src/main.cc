@@ -149,6 +149,61 @@ int main(int argc, char** argv) {
     out_tree->Branch("weight_DY_time", &weight_DY_time);
     out_tree->Branch("weight_TT_time", &weight_TT_time);
 
+    /* Generate map for the HToZA config */
+    std::map<std::pair<double,double>,double> weight;
+    std::map<std::pair<double,double>,double> err;
+    std::map<std::pair<double,double>,double> time;
+    weight[std::make_pair(200,50)] = 0;    err[std::make_pair(200,50)] = 0;    time[std::make_pair(200,50)] = 0;
+    weight[std::make_pair(200,100)] = 0;   err[std::make_pair(200,100)] = 0;   time[std::make_pair(200,100)] = 0;
+    weight[std::make_pair(250,50)] = 0;    err[std::make_pair(250,50)] = 0;    time[std::make_pair(250,50)] = 0;
+    weight[std::make_pair(250,100)] = 0;   err[std::make_pair(250,100)] = 0;   time[std::make_pair(250,100)] = 0;
+    weight[std::make_pair(300,50)] = 0;    err[std::make_pair(300,50)] = 0;    time[std::make_pair(300,50)] = 0;
+    weight[std::make_pair(300,100)] = 0;   err[std::make_pair(300,100)] = 0;   time[std::make_pair(300,100)] = 0;
+    weight[std::make_pair(300,200)] = 0;   err[std::make_pair(300,200)] = 0;   time[std::make_pair(300,200)] = 0;
+    weight[std::make_pair(500,50)] = 0;    err[std::make_pair(500,50)] = 0;    time[std::make_pair(500,50)] = 0;
+    weight[std::make_pair(500,100)] = 0;   err[std::make_pair(500,100)] = 0;   time[std::make_pair(500,100)] = 0;
+    weight[std::make_pair(500,200)] = 0;   err[std::make_pair(500,200)] = 0;   time[std::make_pair(500,200)] = 0;
+    weight[std::make_pair(500,300)] = 0;   err[std::make_pair(500,300)] = 0;   time[std::make_pair(500,300)] = 0;
+    weight[std::make_pair(500,400)] = 0;   err[std::make_pair(500,400)] = 0;   time[std::make_pair(500,400)] = 0;
+    weight[std::make_pair(650,50)] = 0;    err[std::make_pair(650,50)] = 0;    time[std::make_pair(650,50)] = 0;
+    weight[std::make_pair(800,50)] = 0;    err[std::make_pair(800,50)] = 0;    time[std::make_pair(800,50)] = 0;
+    weight[std::make_pair(800,100)] = 0;   err[std::make_pair(800,100)] = 0;   time[std::make_pair(800,100)] = 0;
+    weight[std::make_pair(800,200)] = 0;   err[std::make_pair(800,200)] = 0;   time[std::make_pair(800,200)] = 0;
+    weight[std::make_pair(800,400)] = 0;   err[std::make_pair(800,400)] = 0;   time[std::make_pair(800,400)] = 0;
+    weight[std::make_pair(800,700)] = 0;   err[std::make_pair(800,700)] = 0;   time[std::make_pair(800,700)] = 0;
+    weight[std::make_pair(1000,50)] = 0;   err[std::make_pair(1000,50)] = 0;   time[std::make_pair(1000,50)] = 0;
+    weight[std::make_pair(1000,200)] = 0;  err[std::make_pair(1000,200)] = 0;  time[std::make_pair(1000,200)] = 0;
+    weight[std::make_pair(1000,500)] = 0;  err[std::make_pair(1000,500)] = 0;  time[std::make_pair(1000,500)] = 0;
+    weight[std::make_pair(2000,1000)] = 0; err[std::make_pair(2000,1000)] = 0; time[std::make_pair(2000,1000)] = 0;
+    weight[std::make_pair(3000,2000)] = 0; err[std::make_pair(3000,2000)] = 0; time[std::make_pair(3000,2000)] = 0;
+    for (auto const& x : weight){
+        std::string name;
+        name.append("weight_HToZA_mH_");
+        name.append(std::to_string(int(x.first.first)));
+        name.append("_mA_");
+        name.append(std::to_string(int(x.first.second)));
+        out_tree->Branch(name.c_str(), &(weight[x.first]));
+    } 
+    for (auto const& x : err){
+        std::string name;
+        name.append("weight_HToZA_mH_");
+        name.append(std::to_string(int(x.first.first)));
+        name.append("_mA_");
+        name.append(std::to_string(int(x.first.second)));
+        name.append("_err");
+        out_tree->Branch(name.c_str(), &(err[x.first]));
+    } 
+    for (auto const& x : time){
+        std::string name;
+        name.append("weight_HToZA_mH_");
+        name.append(std::to_string(int(x.first.first)));
+        name.append("_mA_");
+        name.append(std::to_string(int(x.first.second)));
+        name.append("_time");
+        out_tree->Branch(name.c_str(), &(time[x.first]));
+    }  
+
+
 
     /*
      * Prepare MoMEMta to compute the weights
@@ -284,7 +339,7 @@ int main(int argc, char** argv) {
 
             // If weights did not converge 
             if (USE_RECOMPUTE == true and weight_TT<=weight_TT_err){ 
-                LOG(warning) << "TT weights dit not converge, will increase precision";
+                LOG(warning) << "TT weights did not converge, will increase precision";
                 failed_TT = true;
                 n_start_TT += 400000;
             }
@@ -332,13 +387,72 @@ int main(int argc, char** argv) {
             LOG(info) << "Weight computed in " << weight_DY_time << "ms";
             // If weights did not converge 
             if (USE_RECOMPUTE == true && weight_DY<=weight_DY_err){ 
-                LOG(warning) << "DY weights dit not converge, will increase precision";
+                LOG(warning) << "DY weights did not converge, will increase precision";
                 failed_DY = true;
                 n_start_DY += 400000;
             }
  
        }
         while (failed_DY);
+
+        // HToZA weights 
+        LOG(info) << "---------------------------------------------------------------------";
+        LOG(info)<<"Starting HToZA weight computation";
+    
+        for (auto & x : weight){
+            auto mH = x.first.first;
+            auto mA = x.first.second;
+            auto key = x.first;
+            LOG(info) << "\tMH = "<<std::to_string(mH)<<" MA = "<<std::to_string(mA);
+              
+            bool failed_HToZA = false;
+            int n_start_HToZA = 100000;
+            do {
+                if (n_start_HToZA>=2000000){
+                    LOG(error)<<"Weights did not converge despite higher precision";
+                    break;
+                }
+                int rand_num = rand()%1000;
+                failed_HToZA = false;
+                LOG(info)<<"Random number for seed : "<<rand_num;
+                LOG(info)<<"Starting eval : "<<n_start_HToZA<<"\tMax eval : "<<n_start_HToZA*20;
+
+                ParameterSet lua_parameters;
+                lua_parameters.set("random", rand_num);
+                lua_parameters.set("n_start", n_start_HToZA);
+                lua_parameters.set("max_eval", n_start_HToZA*20);
+                lua_parameters.set("mH_ME", mH);
+                lua_parameters.set("mA_ME", mA);
+                lua_parameters.set("mH_TF", MHMA.first);
+                lua_parameters.set("mA_TF", MHMA.second);
+                
+                
+                ConfigurationReader configuration_HToZA(FLAGS_confs_dir + "htoza_llbb.lua",lua_parameters);
+
+                // Instantiate MoMEMta using a **frozen** configuration
+                MoMEMta HToZA_weight(configuration_HToZA.freeze());
+
+                // Retrieve the weight and uncertainty for HToZA
+                auto start_time_HToZA = system_clock::now();
+                std::vector<std::pair<double, double>> HToZA_weights = HToZA_weight.computeWeights({lep_minus, lep_plus, bjet1, bjet2});
+                auto end_time_HToZA = system_clock::now();
+
+                weight[key] = HToZA_weights.back().first;
+                err[key] = HToZA_weights.back().second;
+                time[key] += std::chrono::duration_cast<milliseconds>(end_time_HToZA - start_time_HToZA).count();
+
+                LOG(info)<<" -> HToZA result: " << HToZA_weights.back().first<< " +- " << HToZA_weights.back().second;
+                LOG(info) << "Weight computed in " << std::chrono::duration_cast<milliseconds>(end_time_HToZA - start_time_HToZA).count()<< "ms";
+                // If weights did not converge 
+                if (USE_RECOMPUTE == true && weight[key]<=err[key]){ 
+                    LOG(warning) << "HToZA weights did not converge, will increase precision";
+                    failed_HToZA = true;
+                    n_start_HToZA += 50000;
+                }
+     
+           }
+            while (failed_HToZA);
+    }
 
         // Other values in branches
         total_weight = *t_w;
