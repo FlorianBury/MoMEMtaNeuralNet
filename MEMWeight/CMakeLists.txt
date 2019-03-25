@@ -14,6 +14,30 @@ find_library(ROOT_TREEPLAYER_LIBRARY TreePlayer HINTS ${ROOT_LIBRARY_DIR} REQUIR
 # include matrix elements
 add_subdirectory(MatrixElements/ME_TTbar)
 add_subdirectory(MatrixElements/ME_DY)
+add_subdirectory(MatrixElements/HToZA_1000_200)
+add_subdirectory(MatrixElements/HToZA_1000_50)
+add_subdirectory(MatrixElements/HToZA_1000_500)
+add_subdirectory(MatrixElements/HToZA_2000_1000)
+add_subdirectory(MatrixElements/HToZA_200_100)
+add_subdirectory(MatrixElements/HToZA_200_50)
+add_subdirectory(MatrixElements/HToZA_250_100)
+add_subdirectory(MatrixElements/HToZA_250_50)
+add_subdirectory(MatrixElements/HToZA_3000_2000)
+add_subdirectory(MatrixElements/HToZA_300_100)
+add_subdirectory(MatrixElements/HToZA_300_200)
+add_subdirectory(MatrixElements/HToZA_300_50)
+add_subdirectory(MatrixElements/HToZA_500_100)
+add_subdirectory(MatrixElements/HToZA_500_200)
+add_subdirectory(MatrixElements/HToZA_500_300)
+add_subdirectory(MatrixElements/HToZA_500_400)
+add_subdirectory(MatrixElements/HToZA_500_50)
+add_subdirectory(MatrixElements/HToZA_650_50)
+add_subdirectory(MatrixElements/HToZA_800_100)
+add_subdirectory(MatrixElements/HToZA_800_200)
+add_subdirectory(MatrixElements/HToZA_800_400)
+add_subdirectory(MatrixElements/HToZA_800_50)
+add_subdirectory(MatrixElements/HToZA_800_700)
+
 
 # Flags necessary to ensure complex arithmetic performances on-par with
 # Fortran code:

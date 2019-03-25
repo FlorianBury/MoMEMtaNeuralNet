@@ -1,5 +1,5 @@
 #!/bin/bash
-
+# Merge the root files inside a directory into one that gets the name of the dir
 path="/home/ucl/cp3/fbury/scratch/MoMEMta_output/slurm/*$1*"
 
 for dir in $path; do

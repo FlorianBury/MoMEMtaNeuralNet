@@ -95,9 +95,12 @@ int main(int argc, char** argv) {
     string file = INPUT_DIR+FLAGS_input;
     LOG(info)<<"Directory : "+INPUT_DIR;
     LOG(info)<<"Using file : "+FLAGS_input; 
-    bool USE_RECOMPUTE = true;
-    bool USE_JEC = true;
-    LOG(info)<<"Weights recomputation is enabled";
+    bool USE_RECOMPUTE = false;
+    bool USE_JEC = false;
+    if (USE_RECOMPUTE)
+        LOG(warning)<<"Weights recomputation is enabled";
+    if (USE_JEC)
+        LOG(warning)<<"Jet Energy Correction is enabled";
 
     chain.Add(file.c_str());
     TTreeReader myReader(&chain);
@@ -305,6 +308,7 @@ int main(int argc, char** argv) {
         LOG(info) << "---------------------------------------------------------------------";
         LOG(info)<<"Starting TT weight computation";
         do {
+            break;
             if (n_start_TT>=2000000){
                 LOG(error)<<"Weights did not converge despite higher precision";
                 break;
@@ -355,6 +359,7 @@ int main(int argc, char** argv) {
         int n_start_DY = 20000;
         weight_DY_time = 0;
         do {
+            break;
             if (n_start_DY>=2000000){
                 LOG(error)<<"Weights did not converge despite higher precision";
                 break;
@@ -406,7 +411,7 @@ int main(int argc, char** argv) {
             LOG(info) << "\tMH = "<<std::to_string(mH)<<" MA = "<<std::to_string(mA);
               
             bool failed_HToZA = false;
-            int n_start_HToZA = 100000;
+            int n_start_HToZA = 10000;
             do {
                 if (n_start_HToZA>=2000000){
                     LOG(error)<<"Weights did not converge despite higher precision";
@@ -421,10 +426,8 @@ int main(int argc, char** argv) {
                 lua_parameters.set("random", rand_num);
                 lua_parameters.set("n_start", n_start_HToZA);
                 lua_parameters.set("max_eval", n_start_HToZA*20);
-                lua_parameters.set("mH_ME", mH);
-                lua_parameters.set("mA_ME", mA);
-                lua_parameters.set("mH_TF", MHMA.first);
-                lua_parameters.set("mA_TF", MHMA.second);
+                lua_parameters.set("mH", mH);
+                lua_parameters.set("mA", mA);
                 
                 
                 ConfigurationReader configuration_HToZA(FLAGS_confs_dir + "htoza_llbb.lua",lua_parameters);
