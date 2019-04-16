@@ -28,7 +28,7 @@ p = {
     'output_activation' : [selu],
     'l2' : [0],
     'optimizer' : [Adam],  
-    'epochs' : [50],   
+    'epochs' : [3],   
     'batch_size' : [1024], 
     'loss_function' : [mean_squared_error] 
 }    

@@ -361,40 +361,26 @@ def main():
         #if not os.path.exists(path_output_JEC):
         #    os.makedirs(path_output_JEC)
 
-        # Make basic dtype #
-        #if opt.HToZA:
-        #    dtype_base = parameters.make_dtype(parameters.inputs+['mH','mA','weight_HToZA']+parameters.other_variables+parameters.weights)
-        #else:
-        #    dtype_base = parameters.make_dtype(parameters.inputs+parameters.outputs+parameters.other_variables+parameters.weights)
-    
         # Instance of output class #
         inst_out = ProduceOutput(model=os.path.join(parameters.main_path,'model',opt.output))
 
         # Use it on test samples #
-        logging.info(' HToZA sample '.center(80,'*'))
+        logging.info('Processing test output sample '.center(80,'*'))
         inst_out.OutputFromTraining(data=test_all,path_output=path_output)
-        sys.exit()
-        logging.info('')
-        logging.info(' DY sample '.center(80,'*'))
-        inst_out.OutputFromTraining(inputs_scaled=x_test_DY,outputs_scaled=y_test_DY,other=z_test_DY,tag='DY',path_output=path_output)
-        logging.info('')
-        logging.info(' TT sample '.center(80,'*'))
-        inst_out.OutputFromTraining(inputs_scaled=x_test_TT,outputs_scaled=y_test_TT,other=z_test_TT,tag='TT',path_output=path_output)
         logging.info('')
 
         # Apply model on unknown samples #
-        #cut_invalid = "weight_TT>weight_TT_err && weight_DY>weight_DY_err"
-        #if opt.invalid_DY:
-        #    logging.info('Starting invalid DY output'.center(80,'*'))
-        #    inst_out.OutputNewData(input_dir=samples_path,list_sample=samples_dict['invalid_DY'],path_output=path_output_inv_DY,cut=cut_invalid)
+        if opt.invalid_DY:
+            logging.info('Starting invalid DY output'.center(80,'*'))
+            inst_out.OutputNewData(input_dir=samples_path,list_sample=samples_dict['invalid_DY'],path_output=path_output_inv_DY)
 
-        #if opt.invalid_TT:
-        #    logging.info('Starting invalid TT output'.center(80,'*'))
-        #    inst_out.OutputNewData(input_dir=samples_path,list_sample=samples_dict['invalid_TT'],path_output=path_output_inv_TT,cut=cut_invalid)
+        if opt.invalid_TT:
+            logging.info('Starting invalid TT output'.center(80,'*'))
+            inst_out.OutputNewData(input_dir=samples_path,list_sample=samples_dict['invalid_TT'],path_output=path_output_inv_TT)
 
-        #if opt.JEC:
-        #    logging.info('Starting JEC output'.center(80,'*'))
-        #    inst_out.OutputNewData(input_dir=samples_path,list_sample=samples_dict['JEC'],path_output=path_output_JEC,cut=cut_invalid)
+        if opt.JEC:
+            logging.info('Starting JEC output'.center(80,'*'))
+            inst_out.OutputNewData(input_dir=samples_path,list_sample=samples_dict['JEC'],path_output=path_output_JEC)
 
              
    
