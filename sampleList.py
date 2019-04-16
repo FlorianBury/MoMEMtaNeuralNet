@@ -5,42 +5,75 @@ samples_dict = {}
 
 # HToZA #
 samples_dict['HToZA'] = [
-                            'valid_weights/HToZATo2L2B_MH-1000_MA-200.root',
-                            'valid_weights/HToZATo2L2B_MH-1000_MA-500.root',
-                            'valid_weights/HToZATo2L2B_MH-1000_MA-50.root',
-                            'valid_weights/HToZATo2L2B_MH-2000_MA-1000.root',
-                            'valid_weights/HToZATo2L2B_MH-200_MA-100.root',
-                            'valid_weights/HToZATo2L2B_MH-200_MA-50.root',
-                            'valid_weights/HToZATo2L2B_MH-250_MA-100.root',
-                            'valid_weights/HToZATo2L2B_MH-250_MA-50.root',
-                            'valid_weights/HToZATo2L2B_MH-3000_MA-2000.root',
-                            'valid_weights/HToZATo2L2B_MH-300_MA-100.root',
-                            'valid_weights/HToZATo2L2B_MH-300_MA-200.root',
-                            'valid_weights/HToZATo2L2B_MH-300_MA-50.root',
-                            'valid_weights/HToZATo2L2B_MH-500_MA-100.root',
-                            'valid_weights/HToZATo2L2B_MH-500_MA-200.root',
-                            'valid_weights/HToZATo2L2B_MH-500_MA-300.root',
-                            'valid_weights/HToZATo2L2B_MH-500_MA-400.root',
-                            'valid_weights/HToZATo2L2B_MH-500_MA-50.root',
-                            'valid_weights/HToZATo2L2B_MH-650_MA-50.root',
-                            'valid_weights/HToZATo2L2B_MH-800_MA-100.root',
-                            'valid_weights/HToZATo2L2B_MH-800_MA-200.root',
-                            'valid_weights/HToZATo2L2B_MH-800_MA-400.root',
-                            'valid_weights/HToZATo2L2B_MH-800_MA-50.root',
-                            'valid_weights/HToZATo2L2B_MH-800_MA-700.root',
+                            #'valid_weights/HToZATo2L2B_MH-1000_MA-200.root',
+                            #'valid_weights/HToZATo2L2B_MH-1000_MA-500.root',
+                            #'valid_weights/HToZATo2L2B_MH-1000_MA-50.root',
+                            #'valid_weights/HToZATo2L2B_MH-2000_MA-1000.root',
+                            #'valid_weights/HToZATo2L2B_MH-200_MA-100.root',
+                            #'valid_weights/HToZATo2L2B_MH-200_MA-50.root',
+                            #'valid_weights/HToZATo2L2B_MH-250_MA-100.root',
+                            #'valid_weights/HToZATo2L2B_MH-250_MA-50.root',
+                            #'valid_weights/HToZATo2L2B_MH-3000_MA-2000.root',
+                            #'valid_weights/HToZATo2L2B_MH-300_MA-100.root',
+                            #'valid_weights/HToZATo2L2B_MH-300_MA-200.root',
+                            #'valid_weights/HToZATo2L2B_MH-300_MA-50.root',
+                            #'valid_weights/HToZATo2L2B_MH-500_MA-100.root',
+                            #'valid_weights/HToZATo2L2B_MH-500_MA-200.root',
+                            #'valid_weights/HToZATo2L2B_MH-500_MA-300.root',
+                            #'valid_weights/HToZATo2L2B_MH-500_MA-400.root',
+                            #'valid_weights/HToZATo2L2B_MH-500_MA-50.root',
+                            #'valid_weights/HToZATo2L2B_MH-650_MA-50.root',
+                            #'valid_weights/HToZATo2L2B_MH-800_MA-100.root',
+                            #'valid_weights/HToZATo2L2B_MH-800_MA-200.root',
+                            #'valid_weights/HToZATo2L2B_MH-800_MA-400.root',
+                            #'valid_weights/HToZATo2L2B_MH-800_MA-50.root',
+                            #'valid_weights/HToZATo2L2B_MH-800_MA-700.root',
+                            
+                            'signal_weights_valid/HToZATo2L2B_MH-1000_MA-200_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-1000_MA-500_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-1000_MA-50_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-2000_MA-1000_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-200_MA-100_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-200_MA-50_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-250_MA-100_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-250_MA-50_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-3000_MA-2000_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-300_MA-100_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-300_MA-200_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-300_MA-50_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-500_MA-100_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-500_MA-200_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-500_MA-300_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-500_MA-400_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-500_MA-50_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-650_MA-50_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-800_MA-100_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-800_MA-200_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-800_MA-400_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-800_MA-50_signal_weights.root',
+                            'signal_weights_valid/HToZATo2L2B_MH-800_MA-700_signal_weights.root',
+
                         ]
 # TT bar #
 samples_dict['TT'] = [
-                            'valid_weights/TT_Other.root',
-                            'valid_weights/TTTo2L2Nu_partial.root', # We don't need the full sample 
+                            #'valid_weights/TT_Other.root',
+                            #'valid_weights/TTTo2L2Nu_partial.root', # We don't need the full sample 
+
+                            'signal_weights_valid/TT_Other_signal_weights.root',
+                            'signal_weights_valid/TTTo2L2Nu_signal_weights.root', # We don't need the full sample 
                       ]
 
 # Drell-Yann #
 samples_dict['DY'] = [
-                            'valid_weights/DYJetsToLL_M.root',
-                            'valid_weights/DYToLL_0J.root',
-                            'valid_weights/DYToLL_1J.root',
-                            'valid_weights/DYToLL_2J.root',
+                            #'valid_weights/DYJetsToLL_M.root',
+                            #'valid_weights/DYToLL_0J.root',
+                            #'valid_weights/DYToLL_1J.root',
+                            #'valid_weights/DYToLL_2J.root',
+
+                            'signal_weights_valid/DYJetsToLL_M_signal_weights.root',
+                            'signal_weights_valid/DYToLL_0J_signal_weights.root',
+                            'signal_weights_valid/DYToLL_1J_signal_weights.root',
+                            'signal_weights_valid/DYToLL_2J_signal_weights.root',
                       ]
 
 

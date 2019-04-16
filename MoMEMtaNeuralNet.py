@@ -11,6 +11,7 @@ import pickle
 
 import argparse
 import numpy as np
+import pandas as pd
 
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
@@ -25,8 +26,9 @@ from generate_mask import GenerateMask
 from split_training import DictSplit
 from concatenate_csv import ConcatenateCSV
 from sampleList import samples_dict, samples_path
-from produce_output import ProduceOutput
+from signal_decouple import Decoupler, Repeater
 import parameters
+    
 
 
 def get_options():
@@ -43,6 +45,8 @@ def get_options():
         help='Use DY MEM weights (must be specified if --scan or --report or --output are used')
     a.add_argument('-tt','--TT', action='store_true', required=False, default=False,
         help='Use TT MEM weights (must be specified if --scan or --report or --output are used')
+    a.add_argument('-hza','--HToZA', action='store_true', required=False, default=False,
+        help='Use HToZA MEM weights (must be specified if --scan or --report or --output are used')
     a.add_argument('-task','--task', action='store', required=False, type=str, default='',
         help='Name of dict to be used for scan (Used by function itself when submitting jobs or DEBUG)')
 
@@ -68,8 +72,6 @@ def get_options():
         help='Wether to also apply the output to the invalid DY weights (must be used with --output)')
     c.add_argument('-inv_tt','--invalid_TT', action='store_true', required=False, default=False,
         help='Wether to also apply the output to the invalid TT weights (must be used with --output)')
-    c.add_argument('-smear','--smear', action='store', required=False, default=0, type=float,
-        help='Random gaussian variations (must provide the width, eg 0.1) to smear in the inputs')
 
     # Concatenating csv files arguments #
     d = parser.add_argument_group('Concatenating csv files arguments')
@@ -84,9 +86,9 @@ def get_options():
 
     opt = parser.parse_args()
 
-    if not opt.DY and not opt.TT:
+    if not opt.DY and not opt.TT and not opt.HToZA:
         if opt.scan!='' or opt.report!='' or opt.submit!='':
-            logging.critical('Either -dy or -tt must be specified')  
+            logging.critical('Either -dy, -tt or -hza must be specified')  
             sys.exit(1)
     if opt.split!=0 or opt.submit:
         if opt.scan!='' or opt.report!='':
@@ -101,10 +103,9 @@ def get_options():
         logging.warning('Since you have specified a csv concatenation, all the other arguments will be skipped')
     if opt.report!='' and (opt.output!='' or opt.scan!=''):
         logging.warning('Since you have specified a scan report, all the other arguments will be skipped')
-    if opt.output == '' and (opt.invalid_DY or opt.invalid_TT or opt.smear!=0):
+    if opt.output == '' and (opt.invalid_DY or opt.invalid_TT ):
         logging.critical('You must specify the model with --output')
         sys.exit(1)
-
     return opt
 
 def main():
@@ -123,8 +124,8 @@ def main():
                             format='%(asctime)s - %(levelname)s - %(message)s')
 
     # Private modules containing Pyroot #
-    from import_tree import LoopOverTrees, Tree2Numpy
-    from root_numpy import array2root
+    from import_tree import LoopOverTrees
+    from produce_output import ProduceOutput
     # Needed because PyROOT messes with argparse
 
     logging.info("="*88)
@@ -156,9 +157,9 @@ def main():
         if opt.submit!='':
             logging.info('Submitting jobs')
             if opt.resubmit:
-                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug,tt=opt.TT,dy=opt.DY)
+                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug,tt=opt.TT,dy=opt.DY,hza=opt.HToZA)
             else:
-                submit_on_slurm(name=opt.submit,debug=opt.debug,tt=opt.TT,dy=opt.DY)
+                submit_on_slurm(name=opt.submit,debug=opt.debug,tt=opt.TT,dy=opt.DY,hza=opt.HToZA)
         sys.exit()
 
     #############################################################################################
@@ -168,12 +169,16 @@ def main():
         logging.info('Concatenating csv files from : %s'%(opt.csv))
         dict_DY = ConcatenateCSV(opt.csv,'DY')
         dict_TT = ConcatenateCSV(opt.csv,'TT')
+        dict_HToZA = ConcatenateCSV(opt.csv,'HToZA')
         
         dict_DY.Concatenate()
         dict_DY.WriteToFile()
 
         dict_TT.Concatenate()
         dict_TT.WriteToFile()
+
+        dict_HToZA.Concatenate()
+        dict_HToZA.WriteToFile()
 
         sys.exit()
 
@@ -187,6 +192,9 @@ def main():
         if opt.TT:
             instance = HyperModel(opt.report,'TT')
             instance.HyperReport()
+        if opt.HToZA:
+            instance = HyperModel(opt.report,'HToZA')
+            instance.HyperReport()
 
         sys.exit()
 
@@ -198,126 +206,124 @@ def main():
 
     # Import variables from parameters.py
     variables = parameters.inputs+parameters.outputs+parameters.other_variables
-    NIn = len(parameters.inputs)
-    NOut = len(parameters.outputs)
-    NOther = len(parameters.other_variables)
 
     # Import arrays #
     logging.info('HToZA samples')
-    data_HToZA, weight_HToZA = LoopOverTrees(input_dir=samples_path,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=False,list_sample=samples_dict['HToZA'])
+    data_HToZA = LoopOverTrees(input_dir=samples_path,
+                               variables=variables,
+                               weight=parameters.weights,
+                               reweight_to_cross_section=False,
+                               list_sample=samples_dict['HToZA'],
+                               tag = 'HToZA')
     logging.info('HToZA sample size : {}'.format(data_HToZA.shape[0]))
     logging.info('DY samples')
-    data_DY, weight_DY = LoopOverTrees(input_dir=samples_path,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=True,list_sample=samples_dict['DY'])
+    data_DY = LoopOverTrees(input_dir=samples_path,
+                            variables=variables,
+                            weight=parameters.weights,
+                            reweight_to_cross_section=True,
+                            list_sample=samples_dict['DY'],
+                            tag='DY')
     logging.info('DY sample size : {}'.format(data_DY.shape[0]))
     logging.info('TT samples')
-    data_TT, weight_TT = LoopOverTrees(input_dir=samples_path,variables=variables,weight=parameters.weights[0],reweight_to_cross_section=True,list_sample=samples_dict['TT'],n=500000)
+    data_TT = LoopOverTrees(input_dir=samples_path,
+                            variables=variables,
+                            weight=parameters.weights,
+                            reweight_to_cross_section=True,
+                            list_sample=samples_dict['TT'],
+                            tag='TT')
     logging.info('TT sample size : {}'.format(data_TT.shape[0]))
 
-    # Save weights in data #
-    data_HToZA = np.append(data_HToZA,weight_HToZA,axis=1)
-    data_DY = np.append(data_DY,weight_DY,axis=1)
-    data_TT = np.append(data_TT,weight_TT,axis=1)
-    NOther+=1
+    list_inputs = parameters.inputs
+
+    # If HToZA weights, add the masses as inputs and make the repetition for each mass #
+    if opt.HToZA:
+        # Modify data #
+        logging.info("Starting the decoupling")
+        data_HToZA = Decoupler(data_HToZA)
+        logging.info("\tHToZA decoupled : new size = %d"%data_HToZA.shape[0])
+        data_DY = Decoupler(data_DY)
+        logging.info("\tDY decoupled : new size = %d"%data_DY.shape[0])
+        data_TT = Decoupler(data_TT)
+        logging.info("\tTT decoupled : new size = %d"%data_TT.shape[0])
+        # Update the list of variables #
+        list_inputs += ['mH','mA']
+
 
     # Weight equalization #
-    weight_HToZA = weight_HToZA/np.sum(weight_HToZA)*10000 # because event_weight is not correct
+    weight_HToZA = data_HToZA[parameters.weights]
+    weight_DY = data_DY[parameters.weights]
+    weight_TT = data_TT[parameters.weights]
+
+    weight_HToZA = weight_HToZA/np.sum(weight_HToZA)*10000 
     weight_DY = weight_DY/np.sum(weight_DY)*10000
     weight_TT = weight_TT/np.sum(weight_TT)*10000
+
+
     if np.sum(weight_HToZA) != np.sum(weight_DY) or np.sum(weight_HToZA) != np.sum(weight_TT) or np.sum(weight_TT) != np.sum(weight_DY):
         logging.warning ('Sum of weights different between the samples')
         logging.warning('\tHToZA : '+str(np.sum(weight_HToZA)))
         logging.warning('\tDY : '+str(np.sum(weight_DY)))
         logging.warning('\tTT : '+str(np.sum(weight_TT)))
 
-    # Preprocessing #
-    mask_HToZA = GenerateMask(data_HToZA.shape[0],'HToZA')
-    mask_DY = GenerateMask(data_DY.shape[0],'DY')
-    mask_TT = GenerateMask(data_TT.shape[0],'TT')
+    data_HToZA['learning_weights'] = pd.Series(weight_HToZA)
+    data_DY['learning_weights'] = pd.Series(weight_DY)
+    data_TT['learning_weights'] = pd.Series(weight_TT)
+
+    # Data splitting #
+    mask_HToZA = GenerateMask(data_HToZA.shape[0],'signal_weights_HToZA')
+    mask_DY = GenerateMask(data_DY.shape[0],'signal_weights_DY')
+    mask_TT = GenerateMask(data_TT.shape[0],'signal_weights_TT')
        # Needs to keep the same testing set for the evaluation of model that was selected earlier
-    x_train_HToZA = data_HToZA[mask_HToZA==True,:NIn]
-    x_train_DY = data_DY[mask_DY==True,:NIn]
-    x_train_TT = data_TT[mask_TT==True,:NIn]
-    x_test_HToZA = data_HToZA[mask_HToZA==False,:NIn]
-    x_test_DY = data_DY[mask_DY==False,:NIn]
-    x_test_TT = data_TT[mask_TT==False,:NIn]
-
-    if opt.smear != 0:
-        logging.warning('A smearing of %0.2f has been applied'%opt.smear)
-        x_train_HToZA = np.random.normal(x_train_HToZA,opt.smear)
-        x_train_DY = np.random.normal(x_train_DY,opt.smear)
-        x_train_TT = np.random.normal(x_train_TT,opt.smear)
-        x_test_HToZA = np.random.normal(x_test_HToZA,opt.smear)
-        x_test_DY = np.random.normal(x_test_DY,opt.smear)
-        x_test_TT = np.random.normal(x_test_TT,opt.smear)
-
-    # Rescale outputs #
-    #max_log_weight = np.amax(np.concatenate((data_HToZA[:,18:],data_DY[:,18:],data_TT[:,18:]),axis=0),axis=0)
-    max_log_weight = 1
-
-    y_train_HToZA = -np.log10(data_HToZA[mask_HToZA==True,NIn:NIn+NOut]/max_log_weight)
-    y_train_DY = -np.log10(data_DY[mask_DY==True,NIn:NIn+NOut]/max_log_weight)
-    y_train_TT = -np.log10(data_TT[mask_TT==True,NIn:NIn+NOut]/max_log_weight)
-    y_test_HToZA = -np.log10(data_HToZA[mask_HToZA==False,NIn:NIn+NOut]/max_log_weight)
-    y_test_DY = -np.log10(data_DY[mask_DY==False,NIn:NIn+NOut]/max_log_weight)
-    y_test_TT = -np.log10(data_TT[mask_TT==False,NIn:NIn+NOut]/max_log_weight)
-
-    # Variables outside training #
-    z_test_HToZA = data_HToZA[mask_HToZA==False,NIn+NOut:NIn+NOut+NOther]
-    z_test_DY = data_DY[mask_DY==False,NIn+NOut:NIn+NOut+NOther]
-    z_test_TT = data_TT[mask_TT==False,NIn+NOut:NIn+NOut+NOther]
-        # We don't need training because only test is used in output 
-    
-    # Learning weights #
-    w_train_HToZA = weight_HToZA[mask_HToZA==True]
-    w_train_DY = weight_DY[mask_DY==True]
-    w_train_TT = weight_TT[mask_TT==True]
-    w_test_HToZA = weight_HToZA[mask_HToZA==False]
-    w_test_DY = weight_DY[mask_DY==False]
-    w_test_TT = weight_TT[mask_TT==False]
+    try:
+        train_HToZA = data_HToZA[mask_HToZA==True]
+        train_DY = data_DY[mask_DY==True]
+        train_TT = data_TT[mask_TT==True]
+        test_HToZA = data_HToZA[mask_HToZA==False]
+        test_DY = data_DY[mask_DY==False]
+        test_TT = data_TT[mask_TT==False]
+    except ValueError:
+        logging.critical("Problem with the mask you imported, has the data changed since it was generated ?")
+        sys.exit(1)
         
-    # y -> [weight_DY, weight_TT]
 
-    if not os.path.exists('scaler.pkl'):
-        all_train = np.concatenate((x_train_HToZA,x_train_DY,x_train_TT),axis=0)
-        scaler = preprocessing.StandardScaler().fit(all_train)
-        with open('scaler.pkl', 'wb') as handle:
-            pickle.dump(scaler, handle)
-        logging.warning('Scaler has been created')
-    else:
-        with open('scaler.pkl', 'rb') as handle:
-            scaler = pickle.load(handle)
-        logging.warning('Scaler has been imported')
+    train_all = pd.concat([train_HToZA,train_DY,train_TT])
+    test_all = pd.concat([test_HToZA,test_DY,test_TT])
 
-    x_train_HToZA = scaler.transform(x_train_HToZA)
-    x_test_HToZA = scaler.transform(x_test_HToZA)
-    x_train_DY = scaler.transform(x_train_DY)
-    x_test_DY = scaler.transform(x_test_DY)
-    x_train_TT = scaler.transform(x_train_TT)
-    x_test_TT = scaler.transform(x_test_TT)
-
-    # Concatenation #
-
-    x_train = np.concatenate((x_train_HToZA,x_train_DY,x_train_TT),axis=0)
-    y_train = np.concatenate((y_train_HToZA,y_train_DY,y_train_TT),axis=0)
-    w_train = np.concatenate((w_train_HToZA,w_train_DY,w_train_TT),axis=0)
-
-    x_test = np.concatenate((x_test_HToZA,x_test_DY,x_test_TT),axis=0) 
-    y_test = np.concatenate((y_test_HToZA,y_test_DY,y_test_TT),axis=0) 
-    w_test = np.concatenate((w_test_HToZA,w_test_DY,w_test_TT),axis=0) 
-
-    # Randomization (not show input from same sample in one batch) #
-
-    random_train = np.arange(0,x_train.shape[0]) # needed to randomize x,y and w in same fashion
-    random_test =np.arange(0,x_test.shape[0])
+    # Randomize order, we don't want only one type per batch #
+    random_train = np.arange(0,train_all.shape[0]) # needed to randomize x,y and w in same fashion
+    random_test = np.arange(0,test_all.shape[0])
     np.random.shuffle(random_train)
     np.random.shuffle(random_test)
-    
-    x_train = x_train[random_train] 
-    y_train = y_train[random_train] 
-    w_train = w_train[random_train] 
-    x_test = x_test[random_test] 
-    y_test = y_test[random_test] 
-    w_test = w_test[random_test] 
+
+    train_all = train_all.iloc[random_train]
+    test_all = test_all.iloc[random_test]
+      
+    # Preprocessing #
+    # The purpose is to create a scaler object and save it
+    # The preprocessing will be implemented in the network with a custom layer
+    if not os.path.exists(parameters.scaler_name):
+        scaler = preprocessing.StandardScaler().fit(train_all[parameters.inputs])
+        with open(parameters.scaler_name, 'wb') as handle:
+            pickle.dump(scaler, handle)
+        logging.warning('Scaler %s has been created'%parameters.scaler_name)
+    else:
+        with open(parameters.scaler_name, 'rb') as handle:
+            scaler = pickle.load(handle)
+        logging.warning('Scaler %s has been imported'%parameters.scaler_name)
+
+    # Test the scaler #
+    try:
+        mean_scale = np.mean(scaler.transform(train_all[parameters.inputs]))
+        var_scale = np.var(scaler.transform(train_all[parameters.inputs]))
+    except ValueError:
+        logging.critical("Problem with the scaler you imported, has the data changed since it was generated ?")
+        sys.exit(1)
+    if abs(mean_scale)>0.01 or abs((var_scale-1)/var_scale)>0.01: # Check that scaling is correct to 1%
+        logging.critical("Something is wrong with scaler (mean = %0.6f, var = %0.6f), maybe you loaded an incorrect scaler"%(mean_scale,var_scale))
+        sys.exit()
+
+    logging.info("Sample size seen by network : %d"%train_all.shape[0])
+    logging.info("Sample size for the output  : %d"%test_all.shape[0])
 
     #############################################################################################
     # DNN #
@@ -327,14 +333,16 @@ def main():
         # DY network #
         if opt.DY:
             instance = HyperModel(opt.scan,'DY')
-            instance.HyperScan(x_train,np.c_[w_train,y_train[:,0]],task=opt.task)
-            #instance.HyperEvaluate(x_test,y_test[:,0],folds=5) 
+            instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['weight_DY'],task=opt.task)
             instance.HyperDeploy(best='eval_error')
         # TT network #
         if opt.TT:
             instance = HyperModel(opt.scan,'TT')
-            instance.HyperScan(x_train,np.c_[w_train,y_train[:,1]],task=opt.task)
-            #instance.HyperEvaluate(x_test,y_test[:,1],folds=5) 
+            instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['weight_TT'],task=opt.task)
+            instance.HyperDeploy(best='eval_error')
+        if opt.HToZA:
+            instance = HyperModel(opt.scan,'HToZA')
+            instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['weight_HToZA'],task=opt.task)
             instance.HyperDeploy(best='eval_error')
         
     if opt.output!='': 
@@ -343,25 +351,29 @@ def main():
         path_output = os.path.join(path_out,tmp_output,'valid_weights')
         path_output_inv_DY = os.path.join(path_out,tmp_output,'invalid_DY_weights')
         path_output_inv_TT = os.path.join(path_out,tmp_output,'invalid_TT_weights')
-        path_output_JEC = os.path.join(path_out,tmp_output,'JEC')
+        #path_output_JEC = os.path.join(path_out,tmp_output,'JEC')
         if not os.path.exists(path_output):
-            s.makedirs(path_output)
+            os.makedirs(path_output)
         if not os.path.exists(path_output_inv_DY):
             os.makedirs(path_output_inv_DY)
         if not os.path.exists(path_output_inv_TT):
             os.makedirs(path_output_inv_TT)
-        if not os.path.exists(path_output_JEC):
-            os.makedirs(path_output_JEC)
+        #if not os.path.exists(path_output_JEC):
+        #    os.makedirs(path_output_JEC)
 
         # Make basic dtype #
-        dtype_base = parameters.make_dtype(parameters.inputs+parameters.outputs+parameters.other_variables+parameters.weights)
+        #if opt.HToZA:
+        #    dtype_base = parameters.make_dtype(parameters.inputs+['mH','mA','weight_HToZA']+parameters.other_variables+parameters.weights)
+        #else:
+        #    dtype_base = parameters.make_dtype(parameters.inputs+parameters.outputs+parameters.other_variables+parameters.weights)
     
         # Instance of output class #
-        inst_out = ProduceOutput(model=os.path.join(parameters.main_path,'model',opt.output),scaler=scaler,dtype_base=dtype_base)
+        inst_out = ProduceOutput(model=os.path.join(parameters.main_path,'model',opt.output))
 
         # Use it on test samples #
         logging.info(' HToZA sample '.center(80,'*'))
-        inst_out.OutputFromTraining(inputs_scaled=x_test_HToZA,outputs_scaled=y_test_HToZA,other=z_test_HToZA,tag='HToZA',path_output=path_output)
+        inst_out.OutputFromTraining(data=test_all,path_output=path_output)
+        sys.exit()
         logging.info('')
         logging.info(' DY sample '.center(80,'*'))
         inst_out.OutputFromTraining(inputs_scaled=x_test_DY,outputs_scaled=y_test_DY,other=z_test_DY,tag='DY',path_output=path_output)
@@ -371,18 +383,18 @@ def main():
         logging.info('')
 
         # Apply model on unknown samples #
-        cut_invalid = "weight_TT>weight_TT_err && weight_DY>weight_DY_err"
-        if opt.invalid_DY:
-            logging.info('Starting invalid DY output'.center(80,'*'))
-            inst_out.OutputNewData(input_dir=samples_path,list_sample=samples_dict['invalid_DY'],path_output=path_output_inv_DY,cut=cut_invalid)
+        #cut_invalid = "weight_TT>weight_TT_err && weight_DY>weight_DY_err"
+        #if opt.invalid_DY:
+        #    logging.info('Starting invalid DY output'.center(80,'*'))
+        #    inst_out.OutputNewData(input_dir=samples_path,list_sample=samples_dict['invalid_DY'],path_output=path_output_inv_DY,cut=cut_invalid)
 
-        if opt.invalid_TT:
-            logging.info('Starting invalid TT output'.center(80,'*'))
-            inst_out.OutputNewData(input_dir=samples_path,list_sample=samples_dict['invalid_TT'],path_output=path_output_inv_TT,cut=cut_invalid)
+        #if opt.invalid_TT:
+        #    logging.info('Starting invalid TT output'.center(80,'*'))
+        #    inst_out.OutputNewData(input_dir=samples_path,list_sample=samples_dict['invalid_TT'],path_output=path_output_inv_TT,cut=cut_invalid)
 
-        if opt.JEC:
-            logging.info('Starting JEC output'.center(80,'*'))
-            inst_out.OutputNewData(input_dir=samples_path,list_sample=samples_dict['JEC'],path_output=path_output_JEC,cut=cut_invalid)
+        #if opt.JEC:
+        #    logging.info('Starting JEC output'.center(80,'*'))
+        #    inst_out.OutputNewData(input_dir=samples_path,list_sample=samples_dict['JEC'],path_output=path_output_JEC,cut=cut_invalid)
 
              
    

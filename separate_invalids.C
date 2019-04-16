@@ -118,6 +118,27 @@ void separate_invalids(const char* dir, TString name){
     //invalid_DY_file->Write();
    // invalid_TT_file->Write();
 
+    /* Cross section and event_weight_sum */
+    TFile input(full_name);
+    TObject* cs = input.Get("cross_section");
+    TObject* ws = input.Get("event_weight_sum");
+
+    valid_file->cd();
+    cs->Write();
+    ws->Write();
+
+//    invalid_DY_file->cd();
+//    cs->Write();
+//    ws->Write();
+//
+//    invalid_TT_file->cd();
+//    cs->Write();
+//    ws->Write();
+//
+    input.Close();
+    valid_file->Close();
+    //invalid_DY_file->Close();
+    //invalid_TT_file->Close();
 
 }
     

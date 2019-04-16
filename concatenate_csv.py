@@ -19,13 +19,13 @@ class ConcatenateCSV:
     def Concatenate(self):
         self.dict_tot = {} 
         self.counter = 0
-        if self.sample!='DY' and self.sample!='TT':
-            logging.critical('Sample type (TT or DY) must be used to concatenate csv file')
+        if self.sample!='DY' and self.sample!='TT' and self.sample!='HToZA':
+            logging.critical('Sample type (TT or DY or HToZA) must be used to concatenate csv file')
             sys.exit(1)
 
         for f in glob.glob(os.path.join(self.path,'*.csv')):
             name = f.replace(self.path,'')
-            if name.find(self.sample) == -1: # if DY or TT not found in the string
+            if name.find(self.sample) == -1: # if DY or TT or HToZA not found in the string
                 continue
 
             logging.debug('File : %s'%(name))

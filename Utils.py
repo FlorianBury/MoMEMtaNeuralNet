@@ -33,7 +33,7 @@ def ListEntries(path,part=[''],cut=''):
         N_tot = [0,0]
     for f in glob.glob(path+'/*'):
         skip = False
-        filename = f.replace(path,'')
+        filename = f.replace(path,'').replace('root','')
         for p in part:
             if filename.find(p)==-1: # Could not find part of name
                 skip = True
@@ -120,7 +120,7 @@ def CountVariables(path_files,var, part=[''],cut='',is_time_in_ms=False):
     from root_numpy import tree2array
     var_dict = {}
 
-    files = glob.glob(path_files+'*.root')
+    files = glob.glob(os.path.join(path_files,'*.root'))
     if len(files)==0:
         print ('No files in %s matching %s have been found'%(path_files,part))
 
@@ -182,6 +182,20 @@ def convert_time(time):
 
     return ("%6dd:%2dh:%2dm:%2ds" % (days, hours, minutes, seconds))
 
+##################################################################################################
+##########################                 ListBranches                 ##########################
+##################################################################################################
+def ListBranches(rootfile):
+    from ROOT import TFile
+    name_list = []
+    root_file = TFile.Open(rootfile)
+    tree = root_file.Get("tree")
+    br = tree.GetListOfBranches().Clone()
+    for b in br: # Loop over branch objetcs
+        name_list.append(b.GetName())
+    print ('Branches from %s'%rootfile)
+    for l in name_list:
+        print ('\t%s'%l)
 
 ##################################################################################################
 ##########################                 Main                         ##########################
@@ -197,6 +211,7 @@ if __name__=='__main__':
     zipArgs.add_argument('-z','--zip', action='append', nargs=2, required=False, help='path to input .zip + path to output .zip')
     CountVar = parser.add_argument_group('Counts the sum of variables in all files')
     CountVar.add_argument('-v','--variable', action='store', required=False, type=str, help='Partial name of the branches to include in the count (--path must have been provided)')
+    CountVar.add_argument('-l','--list', action='store', required=False, type=str, help='Lists all the branches of a given file')
 
     args = parser.parse_args()
     if args.path is not None:
@@ -211,5 +226,8 @@ if __name__=='__main__':
 
     if args.zip is not None:
         CopyZip(args.zip[0][0],args.zip[0][1])
+
+    if args.list is not None:
+        ListBranches(args.list)
 
 

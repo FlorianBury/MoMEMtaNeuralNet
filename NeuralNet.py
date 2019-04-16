@@ -4,7 +4,9 @@ import sys
 import json
 import shutil
 import pickle
+import string
 import logging
+import random
 import csv
 
 import array
@@ -15,7 +17,7 @@ from sklearn.model_selection import train_test_split
 
 import keras
 from keras import utils
-from keras.layers import Input, Dense, Concatenate, BatchNormalization, LeakyReLU, Lambda, Dropout
+from keras.layers import Layer, Input, Dense, Concatenate, BatchNormalization, LeakyReLU, Lambda, Dropout
 from keras.losses import binary_crossentropy, mean_squared_error
 from keras.optimizers import RMSprop, Adam, Nadam, SGD
 from keras.activations import relu, elu, selu, softmax, tanh
@@ -23,6 +25,7 @@ from keras.models import Model, model_from_json, load_model
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from keras.regularizers import l1,l2
 import keras.backend as K
+import tensorflow as tf
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # removes annoying warning
 
 from talos import Scan, Reporting, Predict, Evaluate, Deploy, Restore, Autom8
@@ -37,9 +40,23 @@ import astetik as ast # For the plot section
 import matplotlib.pyplot as plt
 
 # Personal files #
-from split_training import DictSplit
 import parameters
+from split_training import DictSplit
+from preprocessing import PreprocessLayer, MakeArrayMultiple, GenDictExtract
 from plot_scans import PlotScans
+
+#################################################################################################
+# LossHistory #
+#################################################################################################
+class LossHistory(keras.callbacks.Callback):
+    """ Records the history of the training per epoch and per batch """
+    def on_train_begin(self, logs={}):
+        self.losses = []
+        self.val_losses = []
+
+    def on_batch_end(self, batch, logs={}):
+        self.losses.append(logs.get('loss'))
+        self.val_losses.append(logs.get('val_loss'))
 
 #################################################################################################
 # NeuralNetModel #
@@ -47,22 +64,39 @@ from plot_scans import PlotScans
 def NeuralNetModel(x_train,y_train,x_val,y_val,params):
     """
     Keras model for the Neural Network, used to scan the hyperparameter space by Talos
-    Inputs :
-        - x_train = training inputs (aka : 4-vec of 4 particles + MET)
-        - y_train = training [weights, outputs (aka MEM weights)]
-        - x_val = test inputs
-        - y_val = test [weights, outputs (aka MEM weights)]
-        - params = dict of parameters for the talos scan
-    Outputs :
-        - out =  predicted outputs from network
-        - model = fitted models with weights
+    Careful : y -> [output[N],weight[1]]
     """
+    # Use the log of the output #
+    y_train = y_train.astype(np.float64) # because type issues
+    y_val = y_val.astype(np.float64) # because type issues
+    w_train = y_train[:,-1]
+    w_val = y_val[:,-1]
+    y_train = -np.log10(y_train[:,:-1])
+    y_val = -np.log10(y_val[:,:-1])
+    print ("Number of features : ",x_train.shape[1])
+    
+    # Check if batch_size is divisor of training set, if not extend it #
+    N_train = x_train.shape[0]
+    N_val = x_val.shape[0]
+    #if N_train%params['batch_size']!=0:
+    #    x_train, y_train, w_train = MakeArrayMultiple([x_train, y_train, w_train],params['batch_size'],repeat=True)
+    #    logging.warning("The batch size is not a divisor of the training set size (which is a problem for the preprocessing layer)")
+    #    logging.warning("\tThe set has been extended with its own elements : size = %d -> %d (added %d)"%(N_train,x_train.shape[0],x_train.shape[0]-N_train))
+    #if N_val%params['batch_size']!=0:
+    #    x_val, y_val, w_val = MakeArrayMultiple([x_val, y_val, w_val],params['batch_size'],crop=True)
+    #    logging.warning("The batch size is not a divisor of the validation set size (which is a problem for the preprocessing layer)")
+    #    logging.warning("\tThe set has been cropped : size = %d -> %d (removed %d)"%(N_val,x_val.shape[0],N_val-x_val.shape[0]))
+         
+
     # Design network #
+    with open(os.path.abspath(parameters.scaler_name), 'rb') as handle: # Import scaler that was created before
+        scaler = pickle.load(handle)
     IN = Input(shape=(x_train.shape[1],),name='IN')
+    L0 = PreprocessLayer(batch_size=params['batch_size'],mean=scaler.mean_,std=scaler.scale_,name='Preprocess')(IN)
     L1 = Dense(params['first_neuron'],
                activation=params['activation'],
                kernel_regularizer=l2(params['l2']))(IN)
-    HIDDEN = hidden_layers(params,1,batch_normalization=True).API(L1)
+    HIDDEN = hidden_layers(params,1,batch_normalization=False).API(L0)
     OUT = Dense(1,activation=params['output_activation'],name='OUT')(HIDDEN)
 
     # Define model #
@@ -72,25 +106,60 @@ def NeuralNetModel(x_train,y_train,x_val,y_val,params):
     # Callbacks #
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0., patience=10, verbose=1, mode='min')
     reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=1, mode='min', epsilon=0.001, cooldown=0, min_lr=0.00001)
-    Callback_list = [early_stopping,reduceLR]
+    loss_history = LossHistory()
+    Callback_list = [loss_history]#[early_stopping,reduceLR]
 
-    # Compile #
-    model.compile(optimizer=params['optimizer'](lr_normalizer(params['lr'], params['optimizer'])),
+    # Check normalization #
+    preprocess = Model(inputs=[IN],outputs=[L0])
+    out_preprocess = preprocess.predict(x_train,batch_size=params['batch_size'])
+    mean_scale = np.mean(out_preprocess)
+    std_scale = np.std(out_preprocess)
+    if abs(mean_scale)>0.01 or abs((std_scale-1)/std_scale)>0.01: # Check that scaling is correct to 1%
+        logging.critical("Something is wrong with the preprocessing layer (mean = %0.6f, std = %0.6f), maybe you loaded an incorrect scaler"%(mean_scale,std_scale))
+        sys.exit()
+
+   # Compile #
+    model.compile(optimizer=Adam(lr=params['lr']),
                   loss={'OUT':params['loss_function']},
                   metrics=['accuracy'])
-
     # Fit #
-    out = model.fit({'IN':x_train},
-                    {'OUT':y_train[:,1]},
-                    sample_weight=y_train[:,0],
+    history = model.fit({'IN':x_train},
+                    {'OUT':y_train},
+                    sample_weight=w_train,
                     epochs=params['epochs'],
                     batch_size=params['batch_size'],
                     verbose=1,
-                    validation_data=({'IN':x_val},{'OUT':y_val[:,1]},y_val[:,0]),
+                    validation_data=({'IN':x_val},{'OUT':y_val},w_val),
                     callbacks=Callback_list
                     )
-    return out,model
 
+    # Plot history #
+    fig = plt.figure()
+    ax1 = plt.subplot(211)
+    ax2 = plt.subplot(212)
+    ax1.plot(history.history['loss'],c='r',label='train')
+    ax1.plot(history.history['val_loss'],c='g',label='test')
+    ax2.plot(loss_history.losses,c='r',label='train')
+    ax2.plot(loss_history.val_losses,c='g',label='test')
+    plt.title('model loss')
+    ax1.set_ylabel('loss')
+    ax2.set_ylabel('loss')
+    ax1.set_xlabel('epoch')
+    ax2.set_xlabel('batch')
+    ax1.legend(loc='upper right')
+    ax2.legend(loc='upper right')
+    ax1.set_yscale('log')
+    ax2.set_yscale('log')
+    rand_hash = ''.join(random.choice(string.ascii_uppercase) for _ in range(10)) # avoids overwritting
+    png_name = 'Loss_%s.png'%rand_hash
+    fig.savefig(png_name)
+    logging.info('Curves saved as %s'%png_name)
+
+    return history,model
+
+#################################################################################################
+# HyperModel #
+#################################################################################################
 class HyperModel:
     #################################################################################################
     # __init ___#
@@ -103,30 +172,19 @@ class HyperModel:
     #################################################################################################
     # HyperScan #
     #################################################################################################
-    def HyperScan(self,x,y,task):
+    def HyperScan(self,data,list_inputs,list_outputs,task):
         """
         Performs the scan for hyperparameters
-        Inputs :
-            - x_train : numpy array [:,18]
-                input training values (aka : 4-vec of 4 particles + MET)
-            - y_train : numpy array [:,2]
-                y_train = [weights, outputs (aka MEM weights)] 
-            - name : str
-                name of the dataset
-            - sample : str
-                name of the sample time : either DY or TT
-            - task : str
-                name of the dict to be used if specified (otherwise, use the full one)
-        Outputs :
-            - h = Class Scan() object
-                object from class Scan to be used by other functions
+        If task is specified, will load a pickle dict splitted from the whole set of parameters
+        Data is a pandas dataframe containing all the event informations (inputs, outputs and unused variables)
+        The column to be selected are given in list_inputs, list_outputs as lists of strings
         Reference : /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/scan/Scan.py
         """
         logging.info(' Starting scan '.center(80,'-'))
 
         # Records #
-        self.x = x
-        self.y = y
+        self.x = data[list_inputs].values
+        self.y = data[list_outputs+['learning_weights']].values
         self.task = task
 
         # Talos hyperscan parameters #
@@ -147,6 +205,8 @@ class HyperModel:
 
         # Data spltting splitting #
         self.x_train, self.x_val, self.y_train, self.y_val = train_test_split(self.x,self.y,train_size=0.7)
+        logging.info("Training set   : %d"%self.x_train.shape[0])
+        logging.info("Evaluation set : %d"%self.x_val.shape[0])
 
         # Define scan object #
         #parallel_gpu_jobs(0.5)
@@ -156,7 +216,7 @@ class HyperModel:
                    dataset_name=self.name,
                    experiment_no=str(no),
                    model=NeuralNetModel,
-                   val_split=0.3,
+                   val_split=0.2,
                    reduction_metric='val_loss',
                    #grid_downsample=0.1,
                    #random_method='lhs',
@@ -166,11 +226,11 @@ class HyperModel:
                    #last_epoch_value=True,
                    print_params=True,
                    repetition=parameters.repetition,
+                   custom_objects = {'PreprocessLayer': PreprocessLayer}
                 )
-
         self.h_with_eval = Autom8(scan_object = self.h,
                      x_val = self.x_val,
-                     y_val = self.y_val[:,1], # Other column is weight
+                     y_val = self.y_val[:,:-1], # last column is weight
                      n = -1,
                      folds = 5,
                      metric = 'val_loss',
@@ -185,131 +245,11 @@ class HyperModel:
         logging.debug(self.h.details)
 
 #################################################################################################
-# HyperEvaluate #
-#################################################################################################
-    def HyperEvaluate(self,x_test,y_test,folds=5):
-        """
-        Performs the cross-validation of the different models
-        Inputs :
-            - h = Class Scan() object
-                object from class Scan coming from HyperScan
-            - x_test : numpy array [:,18]
-                input testing values (aka : 4-vec of 4 particles + MET)
-            - y_test : numpy array [:,1]
-                output testing values (aka : weight), not used during learning
-            - folds : int (default = 5)
-                Number of cross-validation folds
-            - name : str
-                Name of the csv file (without .csv) created by the scan
-        Outputs :
-            - idx_best_eval : idx
-                Index of best model according to cross-validation
-
-        Reference :
-            /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/commands/evaluate.py
-        """
-        logging.info(' Starting evaluation '.center(80,'-'))
-
-        # Records #
-        self.x_test = x_test
-        self.y_test = y_test
-
-
-        # Predict to get number of round #
-        r = Reporting(self.h)
-        n_rounds = r.rounds()
-
-        # Evaluation #
-        logging.info('='*80)
-        scores = []
-        self.idx_best_model = best_model(self.h, 'val_loss', asc=True)
-
-        for i in range(0,n_rounds):
-            e = Evaluate(self.h)
-            score = e.evaluate(x=self.x_test,
-                               y=self.y_test,
-                               model_id = i,
-                               folds=folds,
-                               shuffle=True,
-                               metric='val_loss',
-                               average='macro',
-                               asc=True  # because loss
-                              )
-            score.append(i) # score = [mean(error),std(error),model_index]
-            scores.append(score)
-
-        # Sort scores #
-        sorted_scores = sorted(scores,key=lambda x : x[0])
-        self.idx_best_eval = sorted_scores[0][2]
-
-        # Print ordered scores #
-        count = 0
-        for m_err,std_err, idx in sorted_scores:
-            count += 1
-            if count == 10:
-                logging.info('...')
-            if count >= 10 and n_rounds-count>5: # avoids printing intermediate useless states
-                continue
-            # Print model and error in order #
-            logging.info('Model index %d -> Error = %0.5f (+/- %0.5f))'%(idx,m_err,std_err))
-            if idx==self.idx_best_model:
-                logging.info('\t-> Best model from val_loss')
-
-        logging.info('='*80)
-
-        # Prints best model accordind to cross-validation and val_loss #
-
-        logging.info('Best model from val_loss -> id %d'%(self.idx_best_model))
-        logging.info('Eval error : %0.5f (+/- %0.5f))'%(scores[self.idx_best_model][0],scores[self.idx_best_model][1]))
-        logging.info(self.h.data.iloc[self.idx_best_model,:])
-        logging.info('-'*80)
-
-        logging.info('Best model from cross validation -> id %d'%(self.idx_best_eval))
-        if self.idx_best_eval==self.idx_best_model:
-            logging.info('Same model')
-        else:
-            logging.info('Eval error : %0.5f (+/- %0.5f))'%(scores[self.idx_best_eval][0],scores[self.idx_best_eval][1]))
-            logging.info(self.h.data.iloc[self.idx_best_eval,:])
-        logging.info('-'*80)
-
-        # WARNING : model id's starts with 0 BUT on panda dataframe h.data, models start at 1
-
-        # Add error to csv file #
-        try:
-            # Input scan csv file #
-            with open(os.path.abspath(self.name_model+'.csv'), 'r') as the_file:
-                lis=[line for line in the_file]  
-                
-            # Append the list with the error of each model #
-            lis[0] = lis[0].rstrip() 
-            lis[0] +=',eval_error,eval_std_error\n'
-            for i in range(1,len(lis)):
-                lis[i] = lis[i].rstrip()
-                lis[i] += (',%0.5f,%0.5f\n'%(scores[i-1][0],scores[i-1][1]))
-
-            # Re-write the csv file #
-            with open(os.path.abspath(self.name_model+'.csv'), 'w') as the_file:
-                for line in lis:
-                    the_file.write(line)
-        except:
-            logging.warning('Could not append csv file with the model error')
-
-#################################################################################################
 # HyperDeploy #
 #################################################################################################
     def HyperDeploy(self,best='eval_error'):
         """
-        Performs the cross-validation of the different models
-        Inputs :
-            - h = Class Scan() object
-                object from class Scan coming from HyperScan
-            - name : str
-                Name of the model package to be saved on disk
-            - best : str
-                index of the best model
-                    -> 'eval_error' (default) : Select the one with best error from cross-validation
-                    -> 'val_loss' : Select the one with lowest val_loss
-
+        Deploy the model according to the evaluation error (default) or val_loss if not found
         Reference :
             /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/commands/deploy.py
         """
@@ -351,11 +291,6 @@ class HyperModel:
         """
         Reports the model from csv file of previous scan
         Plot several quantities and comparisons in dir /$name/
-        Inputs :
-            - name : str
-                Name of the csv file
-            - sample : str
-                either TT or DY 
         Reference :
         """
         logging.info(' Starting reporting '.center(80,'-'))
@@ -413,27 +348,23 @@ class HyperModel:
 #################################################################################################
 # HyperRestore #
 #################################################################################################
-    def HyperRestore(self,inputs):
+    def HyperRestore(self,inputs,batch_size=32):
         """
         Retrieve a zip containing the best model, parameters, x and y data, ... and restores it
         Produces an output from the input numpy array
-        Inputs :
-            - inputs :  numpy array [:,18]
-                Inputs to be evaluated
-            - path : str
-                path to the model archive
-        Outputs
-            - output : numpy array [:,1]
-                output of the given model
-
         Reference :
             /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/commands/restore.py
         """
         logging.info((' Starting restoration of sample %s with model %s '%(self.sample,self.name)).center(80,'-'))
+        # Load the scaler #
+        custom_objects =  {'PreprocessLayer': PreprocessLayer}
         # Restore model #
-        a = Restore(os.path.join(parameters.main_path,'model',self.name+'_'+self.sample+'.zip'))
+        a = Restore(os.path.join(parameters.main_path,'model',self.name+'_'+self.sample+'.zip'),custom_objects = custom_objects)
+        print (a.params)
+        print (a.items)
+        sys.exit()
 
         # Output of the model #
-        outputs = a.model.predict(inputs)
+        outputs = a.model.predict(inputs,batch_size=batch_size)
 
         return outputs

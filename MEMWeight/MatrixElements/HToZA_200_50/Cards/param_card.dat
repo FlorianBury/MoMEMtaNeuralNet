@@ -43,8 +43,8 @@ Block mass
    15 1.776840e+00 # MTA 
    23 9.118760e+01 # MZ 
    25 1.200000e+02 # mh1 
-   35 2.000000e+02 # mh2 
-   36 5.000000e+01 # mh3 
+   35 0.885476e+01 # mh2 
+   36 0.003191e+01 # mh3 
    37 1.500000e+02 # mhc 
 ## Dependent parameters, given by model restrictions.
 ## Those values should be edited following the 
@@ -112,8 +112,8 @@ DECAY  15 0.000000e+00 # WTA
 DECAY  23 2.495200e+00 # WZ 
 DECAY  24 2.085000e+00 # WW 
 DECAY  25 1.000000e+00 # Wh1 
-DECAY  35 1.000000e+00 # Wh2 
-DECAY  36 1.000000e+00 # Wh3 
+DECAY  35 0.885476e+00 # Wh2 
+DECAY  36 0.003191e+00 # Wh3 
 DECAY  37 1.000000e+00 # whc 
 ## Dependent parameters, given by model restrictions.
 ## Those values should be edited following the 
