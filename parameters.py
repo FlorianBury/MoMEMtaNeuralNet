@@ -8,19 +8,13 @@ from keras.regularizers import l1,l2
 
 # Global variables #
 global main_path
-global path_to_files
 global path_out   
-global path_invalid_DY
-global path_invalid_TT
 main_path = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/'   
-path_to_files = '/nfs/scratch/fynu/fbury/MoMEMta_output/signal_weights_valid/'
 path_out = '/nfs/scratch/fynu/fbury/MoMEMta_output/NNOutput/' 
-path_invalid_DY = '/nfs/scratch/fynu/fbury/MoMEMta_output/invalid_DY_weights_recomputed/'
-path_invalid_TT = '/nfs/scratch/fynu/fbury/MoMEMta_output/invalid_TT_weights_recomputed/'
 
 # Scan dictionary #
 p = { 
-    'lr' : [0.1], 
+    'lr' : [0.01], 
     'first_neuron' : [200],
     'activation' : [relu],
     'dropout' : [0],
@@ -28,8 +22,8 @@ p = {
     'output_activation' : [selu],
     'l2' : [0],
     'optimizer' : [Adam],  
-    'epochs' : [3],   
-    'batch_size' : [1024], 
+    'epochs' : [50],   
+    'batch_size' : [256], 
     'loss_function' : [mean_squared_error] 
 }    
 repetition = 1
@@ -69,7 +63,7 @@ inputs = [
          'jet2_p4.Eta()',
          'jet2_p4.Phi()-lep1_p4.Phi()',
          'met_pt',
-         'met_phi',
+         'met_phi-lep1_p4.Phi()',
          ]
 outputs = [
          'weight_HToZA_mH_200_mA_50',

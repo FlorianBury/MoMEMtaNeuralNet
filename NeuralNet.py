@@ -73,7 +73,6 @@ def NeuralNetModel(x_train,y_train,x_val,y_val,params):
     w_val = y_val[:,-1]
     y_train = -np.log10(y_train[:,:-1])
     y_val = -np.log10(y_val[:,:-1])
-    print ("Number of features : ",x_train.shape[1])
     
     # Check if batch_size is divisor of training set, if not extend it #
     N_train = x_train.shape[0]
@@ -96,7 +95,7 @@ def NeuralNetModel(x_train,y_train,x_val,y_val,params):
     L1 = Dense(params['first_neuron'],
                activation=params['activation'],
                kernel_regularizer=l2(params['l2']))(IN)
-    HIDDEN = hidden_layers(params,1,batch_normalization=False).API(L0)
+    HIDDEN = hidden_layers(params,1,batch_normalization=True).API(L0)
     OUT = Dense(1,activation=params['output_activation'],name='OUT')(HIDDEN)
 
     # Define model #
@@ -186,6 +185,10 @@ class HyperModel:
         self.x = data[list_inputs].values
         self.y = data[list_outputs+['learning_weights']].values
         self.task = task
+        logging.info('Number of features : %d'%self.x.shape[1])
+        for name in list_inputs:
+            logging.info('..... %s'%name)
+
 
         # Talos hyperscan parameters #
         if self.task!='': # if task is specified load it otherwise get it from parameters.py
@@ -356,15 +359,12 @@ class HyperModel:
             /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/commands/restore.py
         """
         logging.info((' Starting restoration of sample %s with model %s '%(self.sample,self.name)).center(80,'-'))
-        # Load the scaler #
+        # Load the preprocessing layer #
         custom_objects =  {'PreprocessLayer': PreprocessLayer}
         # Restore model #
         a = Restore(os.path.join(parameters.main_path,'model',self.name+'_'+self.sample+'.zip'),custom_objects = custom_objects)
-        print (a.params)
-        print (a.items)
-        sys.exit()
 
         # Output of the model #
-        outputs = a.model.predict(inputs,batch_size=batch_size)
+        outputs = a.model.predict(inputs)
 
         return outputs

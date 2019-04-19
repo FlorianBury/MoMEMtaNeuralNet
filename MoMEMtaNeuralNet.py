@@ -26,7 +26,7 @@ from generate_mask import GenerateMask
 from split_training import DictSplit
 from concatenate_csv import ConcatenateCSV
 from sampleList import samples_dict, samples_path
-from signal_decouple import Decoupler, Repeater
+from signal_coupling import Decoupler, Repeater
 import parameters
     
 
@@ -72,6 +72,8 @@ def get_options():
         help='Wether to also apply the output to the invalid DY weights (must be used with --output)')
     c.add_argument('-inv_tt','--invalid_TT', action='store_true', required=False, default=False,
         help='Wether to also apply the output to the invalid TT weights (must be used with --output)')
+    c.add_argument('-JEC','--JEC', action='store_true', required=False, default=False,
+        help='Wether to also apply the output on the JEC weights (must be used with --output)')
 
     # Concatenating csv files arguments #
     d = parser.add_argument_group('Concatenating csv files arguments')
@@ -137,12 +139,8 @@ def main():
     logging.info("\_|  |_/\___/\_|  |_/\____/\_|  |_/\__\__,_\_| \_/\___|\__,_|_|  \__,_|_\_| \_/\___|\__|")
     logging.info("="*88)
 
-    main_path = parameters.main_path
-    path_to_files = parameters.path_to_files
-    path_out = parameters.path_out
-
     # Make path model #
-    path_model = os.path.join(main_path,'model')
+    path_model = os.path.join(parameters.main_path,'model')
     if not os.path.exists(path_model):
         os.mkdir(path_model)
 
@@ -235,25 +233,17 @@ def main():
 
     list_inputs = parameters.inputs
 
-    # If HToZA weights, add the masses as inputs and make the repetition for each mass #
-    if opt.HToZA:
-        # Modify data #
-        logging.info("Starting the decoupling")
-        data_HToZA = Decoupler(data_HToZA)
-        logging.info("\tHToZA decoupled : new size = %d"%data_HToZA.shape[0])
-        data_DY = Decoupler(data_DY)
-        logging.info("\tDY decoupled : new size = %d"%data_DY.shape[0])
-        data_TT = Decoupler(data_TT)
-        logging.info("\tTT decoupled : new size = %d"%data_TT.shape[0])
-        # Update the list of variables #
-        list_inputs += ['mH','mA']
-
-
     # Weight equalization #
     weight_HToZA = data_HToZA[parameters.weights]
     weight_DY = data_DY[parameters.weights]
     weight_TT = data_TT[parameters.weights]
+    min_weight = np.min(np.concatenate((weight_HToZA,weight_DY,weight_TT),axis=0))-0.001 # 0.001 tl avoid zero weights
+    # By rescaling with min_weight, one avoids the negative weights and keep the difference between them
+    weight_HToZA -= min_weight
+    weight_DY -= min_weight
+    weight_TT -= min_weight
 
+    # We need the different types to have the same sumf of weight to equalize training
     weight_HToZA = weight_HToZA/np.sum(weight_HToZA)*10000 
     weight_DY = weight_DY/np.sum(weight_DY)*10000
     weight_TT = weight_TT/np.sum(weight_TT)*10000
@@ -288,39 +278,63 @@ def main():
 
     train_all = pd.concat([train_HToZA,train_DY,train_TT])
     test_all = pd.concat([test_HToZA,test_DY,test_TT])
+    del train_HToZA,train_DY,train_TT # Save space
+    del test_HToZA,test_DY,test_TT
+
+    # If HToZA weights, add the masses as inputs and make the repetition for each mass #
+    if opt.HToZA: # We only need the training set for the scan
+        # Modify data #
+        #logging.info("Starting the decoupling")
+        #data_HToZA = Decoupler(data_HToZA)
+        #logging.info("\tHToZA training decoupled : new size = %d"%data_HToZA.shape[0])
+        #data_DY = Decoupler(data_DY)
+        #logging.info("\tDY training decoupled : new size = %d"%data_DY.shape[0])
+        #data_TT = Decoupler(data_TT)
+        #logging.info("\tTT training decoupled : new size = %d"%data_TT.shape[0])
+        # Decoupling #
+        if opt.scan!='':        # For training we need to decouple training set
+            logging.info("Starting the training set decoupling")
+            train_all = Decoupler(train_all)
+            logging.info("\tTraining set decoupled : new size = %d"%train_all.shape[0])
+        if opt.output!='':      # For output we need to decouple testing set
+            logging.info("Starting the testing set decoupling")
+            test_all = Decoupler(test_all)
+            logging.info("\tTesting set decoupled : new size = %d"%test_all.shape[0])
+
+        # Update the list of variables #
+        list_inputs += ['mH_MEM','mA_MEM']
+
 
     # Randomize order, we don't want only one type per batch #
     random_train = np.arange(0,train_all.shape[0]) # needed to randomize x,y and w in same fashion
-    random_test = np.arange(0,test_all.shape[0])
-    np.random.shuffle(random_train)
-    np.random.shuffle(random_test)
+    np.random.shuffle(random_train) # Not need for testing
 
     train_all = train_all.iloc[random_train]
-    test_all = test_all.iloc[random_test]
       
     # Preprocessing #
     # The purpose is to create a scaler object and save it
     # The preprocessing will be implemented in the network with a custom layer
-    if not os.path.exists(parameters.scaler_name):
-        scaler = preprocessing.StandardScaler().fit(train_all[parameters.inputs])
-        with open(parameters.scaler_name, 'wb') as handle:
-            pickle.dump(scaler, handle)
-        logging.warning('Scaler %s has been created'%parameters.scaler_name)
-    else:
-        with open(parameters.scaler_name, 'rb') as handle:
-            scaler = pickle.load(handle)
-        logging.warning('Scaler %s has been imported'%parameters.scaler_name)
+    if opt.scan!='': # If we don't scan we don't need to scale the data
+        if not os.path.exists(parameters.scaler_name):
+            scaler = preprocessing.StandardScaler().fit(train_all[parameters.inputs])
+            with open(parameters.scaler_name, 'wb') as handle:
+                pickle.dump(scaler, handle)
+            logging.warning('Scaler %s has been created'%parameters.scaler_name)
+        else:
+            with open(parameters.scaler_name, 'rb') as handle:
+                scaler = pickle.load(handle)
+            logging.warning('Scaler %s has been imported'%parameters.scaler_name)
 
-    # Test the scaler #
-    try:
-        mean_scale = np.mean(scaler.transform(train_all[parameters.inputs]))
-        var_scale = np.var(scaler.transform(train_all[parameters.inputs]))
-    except ValueError:
-        logging.critical("Problem with the scaler you imported, has the data changed since it was generated ?")
-        sys.exit(1)
-    if abs(mean_scale)>0.01 or abs((var_scale-1)/var_scale)>0.01: # Check that scaling is correct to 1%
-        logging.critical("Something is wrong with scaler (mean = %0.6f, var = %0.6f), maybe you loaded an incorrect scaler"%(mean_scale,var_scale))
-        sys.exit()
+        # Test the scaler #
+        try:
+            mean_scale = np.mean(scaler.transform(train_all[parameters.inputs]))
+            var_scale = np.var(scaler.transform(train_all[parameters.inputs]))
+        except ValueError:
+            logging.critical("Problem with the scaler you imported, has the data changed since it was generated ?")
+            sys.exit(1)
+        if abs(mean_scale)>0.01 or abs((var_scale-1)/var_scale)>0.01: # Check that scaling is correct to 1%
+            logging.critical("Something is wrong with scaler (mean = %0.6f, var = %0.6f), maybe you loaded an incorrect scaler"%(mean_scale,var_scale))
+            sys.exit()
 
     logging.info("Sample size seen by network : %d"%train_all.shape[0])
     logging.info("Sample size for the output  : %d"%test_all.shape[0])
@@ -348,10 +362,10 @@ def main():
     if opt.output!='': 
     # Make path #
         tmp_output = copy.copy(opt.output)
-        path_output = os.path.join(path_out,tmp_output,'valid_weights')
-        path_output_inv_DY = os.path.join(path_out,tmp_output,'invalid_DY_weights')
-        path_output_inv_TT = os.path.join(path_out,tmp_output,'invalid_TT_weights')
-        #path_output_JEC = os.path.join(path_out,tmp_output,'JEC')
+        path_output = os.path.join(parameters.path_out,tmp_output,'valid_weights')
+        path_output_inv_DY = os.path.join(parameters.path_out,tmp_output,'invalid_DY_weights')
+        path_output_inv_TT = os.path.join(parameters.path_out,tmp_output,'invalid_TT_weights')
+        path_output_JEC = os.path.join(parameters.path_out,tmp_output,'JEC')
         if not os.path.exists(path_output):
             os.makedirs(path_output)
         if not os.path.exists(path_output_inv_DY):
@@ -366,7 +380,7 @@ def main():
 
         # Use it on test samples #
         logging.info('Processing test output sample '.center(80,'*'))
-        inst_out.OutputFromTraining(data=test_all,path_output=path_output)
+        inst_out.OutputFromTraining(data=test_all,path_output=path_output,list_inputs=list_inputs,is_signal=True)
         logging.info('')
 
         # Apply model on unknown samples #

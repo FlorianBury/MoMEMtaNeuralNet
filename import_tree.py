@@ -73,7 +73,7 @@ def LoopOverTrees(input_dir, variables, weight, tag=None, cut=None, reweight_to_
     for name in list_sample:
         filename = name.replace(input_dir,'')
         logging.debug("\tAccessing file : %s"%filename)
-        
+
         # If a tag for specific files has been requested # 
         if tag is not None:
             if re.search(tag,filename):
@@ -84,6 +84,18 @@ def LoopOverTrees(input_dir, variables, weight, tag=None, cut=None, reweight_to_
         # Get the data as pandas df #
         df = Tree2Pandas(name,variables,weight,cut,reweight_to_cross_section,n) 
 
+        # Find mH, mA #
+        if filename.find('HToZA')!=-1: # Signal -> Search for mH and mA
+            mH = [int(re.findall(r'\d+', filename)[2])]*df.shape[0]    
+            mA = [int(re.findall(r'\d+', filename)[3])]*df.shape[0]    
+        else: # Background, set them at 0
+            mH = [0]*df.shape[0]
+            mA = [0]*df.shape[0]
+
+        # Register in DF #
+        df['mH_gen'] = pd.Series(mH)
+        df['mA_gen'] = pd.Series(mA)
+        
         # Register the tag if provided #
         if tag is not None:
             df['tag'] = pd.Series([tag]*df.shape[0])

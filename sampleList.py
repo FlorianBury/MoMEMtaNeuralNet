@@ -60,7 +60,7 @@ samples_dict['TT'] = [
                             #'valid_weights/TTTo2L2Nu_partial.root', # We don't need the full sample 
 
                             'signal_weights_valid/TT_Other_signal_weights.root',
-                            'signal_weights_valid/TTTo2L2Nu_signal_weights.root', # We don't need the full sample 
+                            'signal_weights_valid/TTTo2L2Nu_signal_weights.root', 
                       ]
 
 # Drell-Yann #
