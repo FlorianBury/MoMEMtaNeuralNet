@@ -104,9 +104,9 @@ def NeuralNetModel(x_train,y_train,x_val,y_val,params):
 
     # Callbacks #
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0., patience=10, verbose=1, mode='min')
-    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=1, mode='min', epsilon=0.001, cooldown=0, min_lr=0.00001)
+    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=1, mode='min', epsilon=0.001, cooldown=3, min_lr=0.0001)
     loss_history = LossHistory()
-    Callback_list = [loss_history]#[early_stopping,reduceLR]
+    Callback_list = [loss_history,early_stopping,reduceLR]
 
     # Check normalization #
     preprocess = Model(inputs=[IN],outputs=[L0])

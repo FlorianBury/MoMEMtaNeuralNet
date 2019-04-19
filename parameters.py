@@ -14,16 +14,16 @@ path_out = '/nfs/scratch/fynu/fbury/MoMEMta_output/NNOutput/'
 
 # Scan dictionary #
 p = { 
-    'lr' : [0.01], 
-    'first_neuron' : [200],
+    'lr' : [0.001,0.01,0.1], 
+    'first_neuron' : [50,100,150,200],
     'activation' : [relu],
-    'dropout' : [0],
-    'hidden_layers' : [4],
+    'dropout' : [0,0.1,0.25,0.5],
+    'hidden_layers' : [3,4,5], # does not take into account the first layer
     'output_activation' : [selu],
-    'l2' : [0],
+    'l2' : [0,0.1,0.25,0.5],
     'optimizer' : [Adam],  
-    'epochs' : [50],   
-    'batch_size' : [256], 
+    'epochs' : [100],   
+    'batch_size' : [256,1024], 
     'loss_function' : [mean_squared_error] 
 }    
 repetition = 1

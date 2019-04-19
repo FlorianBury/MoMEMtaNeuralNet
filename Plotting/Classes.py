@@ -275,28 +275,7 @@ def MakeROCPlot(list_obj,name):
     plt.ylabel(r'Misidentification of DY as $t\bar{t}$')
     plt.suptitle(os.path.basename(name.replace('_',' ')))
 
-    fig.savefig(name+'.png')#,bbox_inches='tight')
-
-
-        #gROOT.SetBatch(False)
-        #canvas = TCanvas("c1", "c1", 800, 600)
-        #eps = TPad("eps", "eps", 0., 0., 1., 1)
-        #eps.Draw()
-        #ROOT.SetOwnership(canvas, False)
-        #ROOT.SetOwnership(eps, False)
-        #eps.cd()
-        #im = TImage.Open(png_name)
-        #im.SetConstRatio(0)
-        #im.SetImageQuality(ROOT.TAttImage.kImgBest)
-        #im.Draw()
-        #input('What')
-        #canvas.Print(pdf_name,'Title:ROC curve %s'%self.title)
-        #canvas.Close()
-
-        #os.remove(png_name)
-
-
-
+    fig.savefig(name+'.png')
 
 #################################################################################################
 """ Function definitions """
