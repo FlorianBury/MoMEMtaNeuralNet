@@ -3,10 +3,12 @@ import sys
 import glob
 import copy
 import logging
+import yaml
+import string
 from array import array
 
 import ROOT
-from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT, TGaxis, TPad, TLegend, TImage
+from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT, TGaxis, TPad, TLegend, TImage, THStack
 
 from sklearn import metrics
 import matplotlib.pyplot as plt
@@ -29,7 +31,7 @@ plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE) # fontsize of the figure title
 
 #################################################################################################
-""" Class definitions """
+##################################     Class definitions     ####################################
 #################################################################################################
 
 #####################################     Plot_TH1      #########################################
@@ -58,8 +60,8 @@ class Plot_TH1:
 
     def PlotOnCanvas(self,pdf_name):
         tdrstyle.setTDRStyle() 
-        canvas = TCanvas("c1", "c1", 800, 600)
-        self.histo.SetTitleOffset(1.4,'xyz')
+        canvas = TCanvas("c1", "c1", 600, 600)
+        self.histo.SetTitleOffset(1.6,'xyz')
         self.histo.SetMinimum(0)
         self.histo.SetLineWidth(2)
 
@@ -102,10 +104,10 @@ class Plot_TH2:
 
     def PlotOnCanvas(self,pdf_name):
         tdrstyle.setTDRStyle() 
-        canvas = TCanvas("c1", "c1", 800, 600)
-        self.histo.SetTitleOffset(1.4,'xyz')
+        canvas = TCanvas("c1", "c1", 600, 600)
+        self.histo.SetTitleOffset(1.6,'xyz')
         canvas.SetRightMargin(0.2)
-        self.histo.Draw()
+        self.histo.Draw(self.option)
 
         canvas.Print(pdf_name,'Title:'+self.title)
         canvas.Close()
@@ -147,7 +149,7 @@ class Plot_Ratio_TH1:
     def PlotOnCanvas(self,pdf_name):
         #gROOT.SetBatch(False)
         #tdrstyle.setTDRStyle() 
-        canvas = TCanvas("c1", "c1", 800, 600)
+        canvas = TCanvas("c1", "c1", 600, 600)
         pad1 = TPad("pad1", "pad1", 0, 0.0, 1, 1.0)
         pad1.SetBottomMargin(0.32)
         pad1.SetGridx()
@@ -157,7 +159,7 @@ class Plot_Ratio_TH1:
         self.histo1.Draw()
         self.histo2.Draw("same")
 
-        legend = TLegend(0.70,0.72,0.85,0.83)
+        legend = TLegend(0.65,0.7,0.85,0.83)
         legend.SetHeader("Legend","C")
         legend.AddEntry(self.histo1,self.legend1,"l")
         legend.AddEntry(self.histo2,self.legend2,"l")
@@ -166,8 +168,6 @@ class Plot_Ratio_TH1:
         # Redraw axis to avoid clipping 0
         self.histo1.GetXaxis().SetLabelSize(0.)
         self.histo1.GetXaxis().SetTitle('')
-        #self.histo1.GetYaxis().SetLabelSize(0.)
-        #axis = TGaxis( -9, , -4.5, 20, 1000,10000,50510,"+L")
         axis = TGaxis(-9,-2.8,-9,2.8,0,10000,50510,"")
         axis.SetLabelFont(43)
         axis.SetLabelSize(15)
@@ -194,7 +194,7 @@ class Plot_Ratio_TH1:
         self.histo1.GetYaxis().SetNdivisions(505)
         self.histo1.GetYaxis().SetTitleSize(20)
         self.histo1.GetYaxis().SetTitleFont(43)
-        self.histo1.GetYaxis().SetTitleOffset(1.55)
+        self.histo1.GetYaxis().SetTitleOffset(1.8)
 
         self.histo2.SetLineColor(ROOT.kRed)
         self.histo2.SetLineWidth(2)
@@ -205,7 +205,7 @@ class Plot_Ratio_TH1:
         self.ratio.GetYaxis().SetNdivisions(505)
         self.ratio.GetYaxis().SetTitleSize(20)
         self.ratio.GetYaxis().SetTitleFont(43)
-        self.ratio.GetYaxis().SetTitleOffset(1.55)
+        self.ratio.GetYaxis().SetTitleOffset(1.8)
         self.ratio.GetYaxis().SetLabelFont(43)
         self.ratio.GetYaxis().SetLabelSize(15)
 
@@ -223,6 +223,91 @@ class Plot_Ratio_TH1:
         canvas.Print(pdf_name,'Title:'+self.title)
         canvas.Close()
 
+
+####################################    Plot_Stack_TH1    ########################################
+class Plot_Stack_TH1:
+    def __init__(self,filename,tree,list_variable,weight,list_cut,list_legend,list_color,name,bins,xmin,xmax,title,xlabel,ylabel):
+        self.filename = filename
+        self.tree = tree
+        self.weight = weight
+        self.name = name
+        self.bins = bins
+        self.xmin = xmin
+        self.xmax = xmax
+        self.title = title
+        self.xlabel = xlabel
+        self.ylabel = ylabel
+        if len(list_variable) == 1 and len(list_cut) > 1:
+            logging.debug('\tOnly one variable but several cuts')
+            self.list_variable = list_variable*len(list_cut)
+            self.list_cut = list_cut
+        elif len(list_variable) > 1 and len(list_cut) == 1:
+            logging.debug('\tOnly one cut but several variables')
+            self.list_cut = list_cut*len(list_variable)
+            self.list_variable = list_variable
+        elif len(list_variable) == 1 and len(list_cut) == 1:
+            logging.warning('\tWhy do you even need to stack ?')
+        else:
+            logging.critical('Inconsistent number of variables and cuts')
+            sys.exit(1)
+        if len(list_legend) != max(len(list_variable),len(list_cut)):
+            logging.critical('Inconsistent number of legends compared to variables and cuts')
+            sys.exit(1)
+        else:
+            self.list_legend = list_legend
+        if len(list_color) != len(list_legend):
+            logging.critical('Inconsistent number of colors compared to legends')
+            sys.exit(1)
+        else:
+            self.list_color = list_color
+
+        
+    def MakeHisto(self):
+        self.list_obj = []
+        for i in range(0,len(self.list_variable)):
+            instance = Plot_TH1(filename = self.filename,
+                                tree     = self.tree,
+                                variable = self.list_variable[i],
+                                weight   = self.weight,
+                                cut      = self.list_cut[i],
+                                name     = self.name,
+                                bins     = self.bins,
+                                xmin     = self.xmin,
+                                xmax     = self.xmax,
+                                title    = self.title,
+                                xlabel   = self.xlabel,
+                                ylabel   = self.ylabel)
+            instance.MakeHisto()
+            self.list_obj.append(copy.deepcopy(instance.histo))
+
+    def PlotOnCanvas(self,pdf_name):
+        tdrstyle.setTDRStyle() 
+        self.stack_hist = THStack("hs","")
+
+        for col,obj in zip(self.list_color,self.list_obj):
+            obj.SetFillColor(col)
+            self.stack_hist.Add(obj)
+
+        canvas = TCanvas("c1", "c1", 600, 600)
+
+        legend = TLegend(0.6,0.3,0.9,0.85)
+        legend.SetHeader("Legend","C")
+        for leg,obj in zip(self.list_legend,self.list_obj):
+            legend.AddEntry(obj,leg,"f")
+            obj.SetMaximum(self.stack_hist.GetMaximum())
+            obj.SetTitleOffset(1.6,'xyz')
+            obj.Draw()
+
+        self.stack_hist.Draw("same")
+
+
+        legend.Draw()
+
+        canvas.Print(pdf_name,'Title:'+self.title)
+        canvas.Close()
+
+
+        
 ####################################      Plot_ROC       ########################################
 class Plot_ROC:
     def __init__(self,variable1,variable2,weight,title,cut=''):
@@ -277,8 +362,54 @@ def MakeROCPlot(list_obj,name):
 
     fig.savefig(name+'.png')
 
+#####################################   ProcessYAML   ############################################
+class ProcessYAML():
+    def __init__(self,template):
+        self.template = template
+        self.OUTPUT_YAML = os.path.join(os.getcwd(),'YAML')
+        if not os.path.exists(self.OUTPUT_YAML):
+            os.makedirs(self.OUTPUT_YAML)
+        logging.debug('Instantiation of template %s'%template)
+
+    def Particularize(self,filename):
+        self.part_template = os.path.join(self.OUTPUT_YAML,self.template.replace('.yml.tpl','_')+filename+'.yml')
+        with open(self.template) as tpl_handle:
+            tpl = tpl_handle.read()
+        with open(self.part_template, 'w') as out_yml:
+            out_yml.write(tpl)
+        logging.debug('\tParticularized template saved as %s'%self.part_template)
+        self._loadYAML()
+        logging.debug('\tLoaded the template saved as %s'%self.part_template)
+
+    def _loadYAML(self): 
+        with open(self.part_template, 'r') as stream:
+            self.config = yaml.load(stream) # Dict of dicts 
+            # config is a dict : keys = names of hist
+            #                    values = dict of parameters  
+    def Override(self,changes):
+        for name,conf in self.config.items(): # name is a string, conf is the dict of params
+            # Loop over kwargs #
+            for key,value in changes.items():
+                # Check that the changes keys are in the config keys
+                if not key in conf.keys():
+                    logging.warning('Overriden key "%s" not found'%key)
+                    continue
+                # If string, depends if empty or not
+                if isinstance(self.config[name][key],str):
+                    if len(self.config[name][key]) == 0:
+                        self.config[name][key] = value
+                    else: # check if contains format
+                        form = [tup[1] for tup in string.Formatter().parse(self.config[name][key]) if tup[1] is not None]# List of format arguments
+                        if len(form)==0: # no format, replace value
+                            self.config[name][key] = value
+                        else:   # format present, will replace corresponding keys
+                            for f in form:
+                                self.config[name][key] = self.config[name][key].format(value)
+                else: # Not a string -> replace
+                    self.config[name][key] = value
+
 #################################################################################################
-""" Function definitions """
+###############################      Function definitions      ################################## 
 #################################################################################################
 def LoopPlotOnCanvas(pdf_name,list_histo):
     for idx,inst in enumerate(list_histo,1):
@@ -297,10 +428,6 @@ def LoopPlotOnCanvas(pdf_name,list_histo):
             c2.Print(pdf_name+'.pdf]')
             c2.Close()
     logging.info('Plots saved at %s'%(pdf_name+'.pdf'))
-
-
-
-
 
     # Save to root file #
     #f_root = TFile(pdf_name+".root", "recreate")
