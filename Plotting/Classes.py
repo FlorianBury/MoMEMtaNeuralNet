@@ -5,13 +5,19 @@ import copy
 import logging
 import yaml
 import string
+import itertools
 from array import array
+import numpy as np
+from sklearn.preprocessing import LabelBinarizer
+from root_numpy import root2array, rec2array
+from scipy import interp
 
 import ROOT
 from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT, TGaxis, TPad, TLegend, TImage, THStack
 
 from sklearn import metrics
 import matplotlib.pyplot as plt
+from matplotlib.pyplot import cm
 
 # ROOT STYLE #
 import CMS_lumi
@@ -148,7 +154,7 @@ class Plot_Ratio_TH1:
 
     def PlotOnCanvas(self,pdf_name):
         #gROOT.SetBatch(False)
-        #tdrstyle.setTDRStyle() 
+        tdrstyle.setTDRStyle() 
         canvas = TCanvas("c1", "c1", 600, 600)
         pad1 = TPad("pad1", "pad1", 0, 0.0, 1, 1.0)
         pad1.SetBottomMargin(0.32)
@@ -223,9 +229,8 @@ class Plot_Ratio_TH1:
         canvas.Print(pdf_name,'Title:'+self.title)
         canvas.Close()
 
-
-####################################    Plot_Stack_TH1    ########################################
-class Plot_Stack_TH1:
+####################################    Plot_Multi_TH1    #######################################
+class Plot_Multi_TH1:
     def __init__(self,filename,tree,list_variable,weight,list_cut,list_legend,list_color,name,bins,xmin,xmax,title,xlabel,ylabel):
         self.filename = filename
         self.tree = tree
@@ -282,31 +287,53 @@ class Plot_Stack_TH1:
 
     def PlotOnCanvas(self,pdf_name):
         tdrstyle.setTDRStyle() 
+
+        # Plot the histograms on over the other #
+        c1 = TCanvas("c1", "c1", 600, 600)
+
+        legend = TLegend(0.6,0.6,0.9,0.85)
+        legend.SetHeader("Legend","C")
+        maxY = 0
+        for leg,obj in zip(self.list_legend,self.list_obj):
+            legend.AddEntry(obj,leg,"l")
+            obj_max = obj.GetMaximum()
+            if obj_max>maxY:
+                maxY = obj_max
+        maxY *= 1.1
+ 
+        for col,obj in zip(self.list_color,self.list_obj):
+            obj.SetLineColor(col)
+            obj.SetLineWidth(3)
+            obj.SetMaximum(maxY)
+            obj.Draw("same")
+            
+        legend.Draw()
+        c1.Print(pdf_name,'Title:'+self.title+' Same')
+        c1.Close()
+            
+        # Plot the stacked histograms #
         self.stack_hist = THStack("hs","")
 
         for col,obj in zip(self.list_color,self.list_obj):
             obj.SetFillColor(col)
             self.stack_hist.Add(obj)
 
-        canvas = TCanvas("c1", "c1", 600, 600)
+        c2 = TCanvas("c2", "c2", 600, 600)
 
-        legend = TLegend(0.6,0.3,0.9,0.85)
+        legend.Clear()
         legend.SetHeader("Legend","C")
         for leg,obj in zip(self.list_legend,self.list_obj):
             legend.AddEntry(obj,leg,"f")
-            obj.SetMaximum(self.stack_hist.GetMaximum())
+            obj.SetMaximum(self.stack_hist.GetMaximum()*1.1)
             obj.SetTitleOffset(1.6,'xyz')
             obj.Draw()
 
         self.stack_hist.Draw("same")
 
-
         legend.Draw()
 
-        canvas.Print(pdf_name,'Title:'+self.title)
-        canvas.Close()
-
-
+        c2.Print(pdf_name,'Title:'+self.title+' Stack')
+        c2.Close()
         
 ####################################      Plot_ROC       ########################################
 class Plot_ROC:
@@ -361,6 +388,96 @@ def MakeROCPlot(list_obj,name):
     plt.suptitle(os.path.basename(name.replace('_',' ')))
 
     fig.savefig(name+'.png')
+    logging.info('ROC curved saved as %s.png'%name)
+
+#################################      Plot_Multi_ROC       #####################################
+class Plot_Multi_ROC:
+    def __init__(self,classes,weight,title,cut=''):
+        self.classes = classes                          # eg [0,1,2], just numbering
+        self.n_classes = len(classes)                   # number of classes
+        self.weight = weight                            # Weight (not used so far)
+        self.title = title                              # eg differentiate ROC from MEM and DNN
+        self.prob_per_class = np.empty((0,self.n_classes))# output of network
+        self.scores = np.empty((0,self.n_classes))      # Correct classes
+        self.cut = cut                                  # Potential cut
+        self.lb = LabelBinarizer()                      # eg ['A','B','C']-> labels [0,1,0]...
+        self.lb.fit(self.classes)                       # Carefull ! Alphabetic order !
+            # classes in lb -> lb.classes_
+        
+
+    def AddToROC(self,filename,tree,prob_branches,target):
+        """ 
+        Info of the root file, the name of the probability branches and the target (0 or 1 or ...)
+        """
+        # Get the output prob #
+        probs = rec2array(root2array(filename,tree,branches=prob_branches,selection=self.cut))
+        self.prob_per_class = np.concatenate((self.prob_per_class,probs),axis=0)
+
+        # Make the targets labelized #
+        target_arr = self.lb.transform([target]*probs.shape[0])
+        
+        # eg target = 1 and classes = [0,1,2] => scores = [0,1,0],...
+        self.scores = np.concatenate((self.scores,target_arr),axis=0)
+
+    def ProcessROC(self):
+        self.tpr = {}
+        self.fpr = {}
+        self.roc_auc = {}
+        # Process class by class #
+        for i,n in enumerate(self.lb.classes_):
+            self.fpr[n], self.tpr[n], _ = metrics.roc_curve(self.scores[:, i], self.prob_per_class[:, i])
+            self.roc_auc[n] = metrics.auc(self.fpr[n], self.tpr[n]) 
+            
+        ## Micro-average #
+        #self.fpr["micro"], self.tpr["micro"], _ = metrics.roc_curve(self.scores.ravel(), self.prob_per_class.ravel())
+        #self.roc_auc["micro"] = metrics.auc(self.fpr["micro"], self.tpr["micro"]) 
+
+        ## Macro-average #
+        ## First aggregate all false positive rates
+        #all_fpr = np.unique(np.concatenate([self.fpr[i] for i in self.lb.classes_]))
+        ## Then interpolate all ROC curves at this points
+        #mean_tpr = np.zeros_like(all_fpr)
+        #for i in self.classes:
+        #    mean_tpr += interp(all_fpr, self.fpr[i], self.tpr[i])
+        ## Finally average it and compute AUC
+        #mean_tpr /= self.n_classes
+
+        #self.fpr["macro"] = all_fpr
+        #self.tpr["macro"] = mean_tpr
+        #self.roc_auc["macro"] = metrics.auc(self.fpr["macro"], self.tpr["macro"])
+
+def MakeMultiROCPlot(list_obj,name):
+    # Generate figure #
+    fig, ax = plt.subplots(1,figsize=(10,8))
+    line_cycle = itertools.cycle(["-","--",":","-.",])
+    # Loop over plot objects #
+    for i,obj in enumerate(list_obj):
+        n_obj = len(list(obj.tpr.keys()))
+        color=iter(cm.gist_rainbow(np.linspace(0.,0.8,n_obj)))
+        linestyle = next(line_cycle)
+        for key in obj.tpr.keys():
+            # Label #
+            label = obj.title+' '+key
+            label += (' AUC = %0.5f'%obj.roc_auc[key])
+            # Color # 
+            c=next(color)
+            # Plot #
+            ax.plot(obj.tpr[key], obj.fpr[key], color=c, label=label, linestyle=linestyle)
+            ax.grid(True)
+
+    plt.legend(loc = 'upper left')
+    #plt.yscale('symlog',linthreshy=0.0001)
+    plt.plot([0, 1], [0, 1],'k--')
+    plt.xlim([0, 1])
+    plt.ylim([0, 1])
+    plt.xlabel(r'Correct identification')
+    plt.ylabel(r'Misidentification')
+    plt.suptitle(os.path.basename(name.replace('_',' ')))
+
+    fig.savefig(name+'.png')#,bbox_inches='tight')
+    logging.info('ROC curved saved as %s.png'%name)
+
+
 
 #####################################   ProcessYAML   ############################################
 class ProcessYAML():

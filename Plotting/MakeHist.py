@@ -12,7 +12,7 @@ import CMS_lumi
 import tdrstyle
 
 import Classes
-from Classes import Plot_TH1, Plot_TH2, Plot_Ratio_TH1, Plot_Stack_TH1, Plot_ROC, LoopPlotOnCanvas, MakeROCPlot, ProcessYAML
+from Classes import Plot_TH1, Plot_TH2, Plot_Ratio_TH1, Plot_Multi_TH1, Plot_ROC, LoopPlotOnCanvas, MakeROCPlot, ProcessYAML, Plot_Multi_ROC, MakeMultiROCPlot
 
 gROOT.SetBatch(True)
 ROOT.gErrorIgnoreLevel = 2000#[ROOT.kPrint, ROOT.kInfo]#, kWarning, kError, kBreak, kSysError, kFatal;
@@ -50,14 +50,16 @@ def main():
             self.list_histo = []                        # List of histograms to be filled
 
     list_plots = [
-                    Plots(name = 'valid_weights',
-                          override_params = {}),
-                    Plots(name = 'invalid_DY_weights',
-                          override_params = {}),
-                    Plots(name = 'invalid_TT_weights',
-                          override_params = {}),
-                    Plots(name = 'interpolation_weights',
-                          override_params = {}),
+                    #Plots(name = 'valid_weights',
+                    #      override_params = {}),
+                    #Plots(name = 'invalid_DY_weights',
+                    #      override_params = {}),
+                    #Plots(name = 'invalid_TT_weights',
+                    #      override_params = {}),
+                    #Plots(name = 'interpolation_weights',
+                    #      override_params = {}),
+                    Plots(name = 'classification_weights',
+                            override_params = {}),
                  ]
 
     # Select template #
@@ -67,18 +69,31 @@ def main():
             self.class_name = class_name            # Name of one of the class below to use
 
     templates = [
+                    ############       TH1       ##############
                     #Template(tpl = 'TH1_background.yml.tpl',
                     #         class_name = 'Plot_TH1'),
                     #Template(tpl = 'TH1_signal.yml.tpl',
                     #         class_name = 'Plot_TH1'),
+                    #Template(tpl = 'TH1_interpolation.yml.tpl',
+                    #         class_name = 'Plot_TH1'),
+                    Template(tpl = 'TH1_class.yml.tpl',
+                             class_name = 'Plot_TH1'),
+
+                    #########       TH1 Ratio       ###########
                     #Template(tpl = 'TH1Ratio_background.yml.tpl',
                     #         class_name = 'Plot_Ratio_TH1'),
-                    Template(tpl = 'TH1Ratio_signal.yml.tpl',
-                             class_name = 'Plot_Ratio_TH1'),
-                    Template(tpl = 'TH1Ratio_interpolation.yml.tpl',
-                             class_name = 'Plot_Ratio_TH1'),
+                    #Template(tpl = 'TH1Ratio_signal.yml.tpl',
+                    #         class_name = 'Plot_Ratio_TH1'),
+                    #Template(tpl = 'TH1Ratio_interpolation.yml.tpl',
+                    #         class_name = 'Plot_Ratio_TH1'),
+
+                    #########       TH1 Multi       ###########
                     #Template(tpl = 'TH1Stack_signal.yml.tpl',
-                    #         class_name = 'Plot_Stack_TH1)',
+                    #         class_name = 'Plot_Stack_TH1'),
+                    Template(tpl = 'TH1Multi_class.yml.tpl',
+                             class_name = 'Plot_Multi_TH1'),
+
+                    ############       TH2       ##############
                     #Template(tpl = 'TH2_background.yml.tpl',
                     #         class_name = 'Plot_TH2'),
                     #Template(tpl = 'TH2_signal.yml.tpl',
@@ -104,6 +119,11 @@ def main():
         # Start ROC curve #
         instance_ROC_MEM = Plot_ROC('weight_TT','weight_DY','total_weight','MEM')
         instance_ROC_DNN = Plot_ROC('output_TT','output_DY','total_weight','DNN')
+        instance_ROC_Multi_MEM = Plot_Multi_ROC(['DY','HToZA','TT'],'total_weight','MEM')
+        instance_ROC_Multi_DNN = Plot_Multi_ROC(['DY','HToZA','TT'],'total_weight','DNN')
+        list_ROC_MEM = ['Prob_MEM_DY','Prob_MEM_HToZA','Prob_MEM_TT']
+        list_ROC_DNN = ['Prob_DNN_DY','Prob_DNN_HToZA','Prob_DNN_TT']
+
         # Loop over files #
         for f in files:
             fullname = f.replace(obj.path+'/','').replace('.root','')
@@ -115,20 +135,40 @@ def main():
             elif fullname.startswith('HToZA'):
                 filename = 'Signal'
 
-            # If DY or TT, add to ROC #
+            ##############  ROC section ################ 
             if os.path.basename(f).startswith('DY'):
+                logging.info('\tAdded to ROC as DY')
                 try:
                     instance_ROC_MEM.AddToROC(f,'tree','DY')
                     instance_ROC_DNN.AddToROC(f,'tree','DY')
                 except Exception as e:
                     logging.warning('Could not compute ROC due to "%s"'%(e))
+                try:
+                    instance_ROC_Multi_MEM.AddToROC(f,'tree',list_ROC_MEM,'DY')
+                    instance_ROC_Multi_DNN.AddToROC(f,'tree',list_ROC_DNN,'DY')
+                except Exception as e:
+                    logging.warning('Could not compute Multi ROC due to "%s"'%(e))
             elif os.path.basename(f).startswith('TT'):
+                logging.info('\tAdded to ROC as TT')
                 try:
                     instance_ROC_MEM.AddToROC(f,'tree','TT')
                     instance_ROC_DNN.AddToROC(f,'tree','TT')
                 except Exception as e:
                     logging.warning('Could not compute ROC due to "%s"'%(e))
+                try:
+                    instance_ROC_Multi_MEM.AddToROC(f,'tree',list_ROC_MEM,'TT')
+                    instance_ROC_Multi_DNN.AddToROC(f,'tree',list_ROC_DNN,'TT')
+                except Exception as e:
+                    logging.warning('Could not compute Multi ROC due to "%s"'%(e))
+            elif os.path.basename(f).startswith('HToZA'):
+                logging.info('\tAdded to ROC as HToZA')
+                try:
+                    instance_ROC_Multi_MEM.AddToROC(f,'tree',list_ROC_MEM,'HToZA')
+                    instance_ROC_Multi_DNN.AddToROC(f,'tree',list_ROC_DNN,'HToZA')
+                except Exception as e:
+                    logging.warning('Could not compute Multi ROC due to "%s"'%(e))
 
+            ##############  HIST section ################ 
             # Loop over the templates #
             for template in templates: 
                 logging.debug('Template "%s" -> Class "%s"'%(template.tpl, template.class_name))
@@ -172,6 +212,14 @@ def main():
             MakeROCPlot([instance_ROC_MEM,instance_ROC_DNN],os.path.join(OUTPUT_PDF,obj.name+' ROC_MEM_vs_DNN'))
         except Exception as e:
             logging.warning('Could not process ROC due to "%s"'%e)
+        try:
+            instance_ROC_Multi_MEM.ProcessROC()
+            instance_ROC_Multi_DNN.ProcessROC()
+            MakeMultiROCPlot([instance_ROC_Multi_MEM],os.path.join(OUTPUT_PDF,obj.name+' MULTI_ROC_MEM'))
+            MakeMultiROCPlot([instance_ROC_Multi_DNN],os.path.join(OUTPUT_PDF,obj.name+' MULTI_ROC_DNN'))
+            MakeMultiROCPlot([instance_ROC_Multi_MEM,instance_ROC_Multi_DNN],os.path.join(OUTPUT_PDF,obj.name+' MULTI_ROC_MEM_vs_DNN'))
+        except Exception as e:
+            logging.warning('Could not process Multi ROC due to "%s"'%e)
     
     ####################################### INVALID #############################################
 #    invalid_cat = ['DY','TT']
