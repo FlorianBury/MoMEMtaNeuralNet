@@ -15,13 +15,13 @@ from CP3SlurmUtils.Exceptions import CP3SlurmUtilsException
 # Personal files #
 import parameters
 
-def submit_on_slurm(name,tt,dy,hza,debug=False):
+def submit_on_slurm(name,tt,dy,hza,classes,debug=False):
     config = Configuration()
 
     config.sbatch_partition = 'Def'
     config.sbatch_qos = 'normal'
     config.sbatch_workdir = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/'
-    config.sbatch_time = '0-16:00'
+    config.sbatch_time = '2-00:00:00'
     config.sbatch_mem = '20000'
     config.sbatch_additionalOptions = []
     config.inputSandboxContent = []
@@ -36,6 +36,8 @@ def submit_on_slurm(name,tt,dy,hza,debug=False):
         config.payload += " --DY"
     if hza:
         config.payload += " --HToZA"
+    if classes:
+        config.payload += " --class"
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     out_dir = parameters.main_path

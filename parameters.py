@@ -3,7 +3,7 @@
 
 from keras.losses import binary_crossentropy, mean_squared_error   
 from keras.optimizers import RMSprop, Adam, Nadam, SGD            
-from keras.activations import relu, elu, selu, softmax, tanh     
+from keras.activations import relu, elu, selu, softmax, tanh, sigmoid
 from keras.regularizers import l1,l2 
 
 # Global variables #
@@ -12,45 +12,48 @@ global path_out
 main_path = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/'   
 path_out = '/nfs/scratch/fynu/fbury/MoMEMta_output/NNOutput/' 
 
+# Datasets proportions #
+training_ratio = 0.7    # Training set sent to keras
+validation_ratio = 0.1  # Validation set sent to autom8
+output_ratio = 0.2      # Output set for plotting later
+    # Total must be 1
+
+# Model name 
+model = 'NeuralNetModel' #'ClassificationModel'
+scaler_name = 'scaler_signal.pkl' # If does not exist will be created
+mask_name = 'signal' # If does not exist will be created 
+
 # Scan dictionary #
+#p = { 
+#    'lr' : [0.01,0.001,0.0001], 
+#    'first_neuron' : [30,50,100,200],
+#    'activation' : [relu],
+#    'dropout' : [0,0.05,0.1],
+#    'hidden_layers' : [1,2,3,4], # does not take into account the first layer
+#    'output_activation' : [sigmoid],
+#    'l2' : [0,0.05,0.1],
+#    'optimizer' : [Adam],  
+#    'epochs' : [300],   
+#    'batch_size' : [512], 
+#    'loss_function' : [binary_crossentropy] 
+#}    
 p = { 
-    'lr' : [0.001,0.01,0.1], 
-    'first_neuron' : [50,100,150,200],
+    'lr' : [0.001,0.0001], 
+    'first_neuron' : [100,200,300,400,500],
     'activation' : [relu],
-    'dropout' : [0,0.1,0.25,0.5],
-    'hidden_layers' : [3,4,5], # does not take into account the first layer
+    'dropout' : [0.1,0.2,0.3],
+    'hidden_layers' : [5,6,7,8], # does not take into account the first layer
     'output_activation' : [selu],
-    'l2' : [0,0.1,0.25,0.5],
+    'l2' : [0.1,0.2,0.3],
     'optimizer' : [Adam],  
     'epochs' : [100],   
-    'batch_size' : [256,1024], 
-    'loss_function' : [mean_squared_error] 
-}    
+    'batch_size' : [512], 
+    'loss_function' : [binary_crossentropy] 
+}
 repetition = 1
 
-scaler_name = 'scaler_signal_weights.pkl' # If does not exist will be created
-#inputs = [
-#         'lep1_p4.Px()',
-#         'lep1_p4.Py()',
-#         'lep1_p4.Pz()',
-#         'lep1_p4.E()',
-#         'lep2_p4.Px()',
-#         'lep2_p4.Py()',
-#         'lep2_p4.Pz()',
-#         'lep2_p4.E()',
-#         'jet1_p4.Px()',
-#         'jet1_p4.Py()',
-#         'jet1_p4.Pz()',
-#         'jet1_p4.E()',
-#         'jet2_p4.Px()',
-#         'jet2_p4.Py()',
-#         'jet2_p4.Pz()',
-#         'jet2_p4.E()',
-#         'met_pt',
-#         'met_phi',
-#         ]
-#
 inputs = [
+         #######   Regression ##########
          'lep1_p4.Pt()',
          'lep1_p4.Eta()',
          'lep2_p4.Pt()',
@@ -64,8 +67,53 @@ inputs = [
          'jet2_p4.Phi()-lep1_p4.Phi()',
          'met_pt',
          'met_phi-lep1_p4.Phi()',
+
+         #######   Classification ##########
+         #'-log10(weight_TT)',
+         #'-log10(weight_DY)',
+         #'-log10(weight_HToZA_mH_200_mA_50)',
+         #'-log10(weight_HToZA_mH_200_mA_100)',
+         #'-log10(weight_HToZA_mH_250_mA_50)', 
+         #'-log10(weight_HToZA_mH_250_mA_100)',
+         #'-log10(weight_HToZA_mH_300_mA_50)', 
+         #'-log10(weight_HToZA_mH_300_mA_100)',
+         #'-log10(weight_HToZA_mH_300_mA_200)',
+         #'-log10(weight_HToZA_mH_500_mA_50)', 
+         #'-log10(weight_HToZA_mH_500_mA_100)',
+         #'-log10(weight_HToZA_mH_500_mA_200)',
+         #'-log10(weight_HToZA_mH_500_mA_300)',
+         #'-log10(weight_HToZA_mH_500_mA_400)',
+         #'-log10(weight_HToZA_mH_650_mA_50)', 
+         #'-log10(weight_HToZA_mH_800_mA_50)', 
+         #'-log10(weight_HToZA_mH_800_mA_100)',
+         #'-log10(weight_HToZA_mH_800_mA_200)',
+         #'-log10(weight_HToZA_mH_800_mA_400)',
+         #'-log10(weight_HToZA_mH_800_mA_700)',
+         #'-log10(weight_HToZA_mH_1000_mA_50)',
+         #'-log10(weight_HToZA_mH_1000_mA_200)', 
+         #'-log10(weight_HToZA_mH_1000_mA_500)', 
+         #'-log10(weight_HToZA_mH_2000_mA_1000)',
+         #'-log10(weight_HToZA_mH_3000_mA_2000)',
+
+         # Reprocess #
+         #'lep1_p4_Pt',
+         #'lep1_p4_Eta',
+         #'lep2_p4_Pt',
+         #'lep2_p4_Eta',
+         #'lep2_p4_Phi_minus_lep1_p4_Phi',
+         #'jet1_p4_Pt',
+         #'jet1_p4_Eta',
+         #'jet1_p4_Phi_minus_lep1_p4_Phi',
+         #'jet2_p4_Pt',
+         #'jet2_p4_Eta',
+         #'jet2_p4_Phi_minus_lep1_p4_Phi',
+         #'met_pt',
+         #'met_phi_minus_lep1_p4_Phi',
          ]
 outputs = [
+         #######   Regression ##########
+         #'weight_TT',
+         #'weight_DY',
          'weight_HToZA_mH_200_mA_50',
          'weight_HToZA_mH_200_mA_100',
          'weight_HToZA_mH_250_mA_50', 
@@ -89,12 +137,24 @@ outputs = [
          'weight_HToZA_mH_1000_mA_500', 
          'weight_HToZA_mH_2000_mA_1000',
          'weight_HToZA_mH_3000_mA_2000',
+         #'weight_HToZA_mH_600_mA_250', # interpolation 
+         #######   Classification ##########
           ] 
 other_variables = [
-                     'lep1_p4.Phi()',
-                     'lep2_p4.Phi()',
-                     'jet1_p4.Phi()',
-                     'jet2_p4.Phi()',
+                     #'lep1_p4.Pt()',
+                     #'lep1_p4.Eta()',
+                     #'lep1_p4.Phi()',
+                     #'lep2_p4.Pt()',
+                     #'lep2_p4.Eta()',
+                     #'lep2_p4.Phi()',
+                     #'jet1_p4.Pt()',
+                     #'jet1_p4.Eta()',
+                     #'jet1_p4.Phi()',
+                     #'jet2_p4.Pt()',
+                     #'jet2_p4.Eta()',
+                     #'jet2_p4.Phi()',
+                     #'met_phi',
+                     #'met_pt',
 
                      'lep1_p4.Px()',
                      'lep1_p4.Py()',
@@ -112,9 +172,64 @@ other_variables = [
                      'jet2_p4.Py()',
                      'jet2_p4.Pz()',
                      'jet2_p4.E()',
+                    
+                     'll_M',
+                     'jj_M',
+                     'lljj_M',
 
-                     'weight_DY',
-                     'weight_TT',
+                     #'weight_TT',
+                     #'weight_DY',
+                     #'output_DY',
+                     #'output_TT',
+
+                     #'weight_HToZA_mH_200_mA_50',
+                     #'weight_HToZA_mH_200_mA_100',
+                     #'weight_HToZA_mH_250_mA_50', 
+                     #'weight_HToZA_mH_250_mA_100',
+                     #'weight_HToZA_mH_300_mA_50', 
+                     #'weight_HToZA_mH_300_mA_100',
+                     #'weight_HToZA_mH_300_mA_200',
+                     #'weight_HToZA_mH_500_mA_50', 
+                     #'weight_HToZA_mH_500_mA_100',
+                     #'weight_HToZA_mH_500_mA_200',
+                     #'weight_HToZA_mH_500_mA_300',
+                     #'weight_HToZA_mH_500_mA_400',
+                     #'weight_HToZA_mH_650_mA_50', 
+                     #'weight_HToZA_mH_800_mA_50', 
+                     #'weight_HToZA_mH_800_mA_100',
+                     #'weight_HToZA_mH_800_mA_200',
+                     #'weight_HToZA_mH_800_mA_400',
+                     #'weight_HToZA_mH_800_mA_700',
+                     #'weight_HToZA_mH_1000_mA_50',
+                     #'weight_HToZA_mH_1000_mA_200', 
+                     #'weight_HToZA_mH_1000_mA_500', 
+                     #'weight_HToZA_mH_2000_mA_1000',
+                     #'weight_HToZA_mH_3000_mA_2000',
+
+                     #'output_HToZA_mH_200_mA_50',
+                     #'output_HToZA_mH_200_mA_100',
+                     #'output_HToZA_mH_250_mA_50', 
+                     #'output_HToZA_mH_250_mA_100',
+                     #'output_HToZA_mH_300_mA_50', 
+                     #'output_HToZA_mH_300_mA_100',
+                     #'output_HToZA_mH_300_mA_200',
+                     #'output_HToZA_mH_500_mA_50', 
+                     #'output_HToZA_mH_500_mA_100',
+                     #'output_HToZA_mH_500_mA_200',
+                     #'output_HToZA_mH_500_mA_300',
+                     #'output_HToZA_mH_500_mA_400',
+                     #'output_HToZA_mH_650_mA_50', 
+                     #'output_HToZA_mH_800_mA_50', 
+                     #'output_HToZA_mH_800_mA_100',
+                     #'output_HToZA_mH_800_mA_200',
+                     #'output_HToZA_mH_800_mA_400',
+                     #'output_HToZA_mH_800_mA_700',
+                     #'output_HToZA_mH_1000_mA_50',
+                     #'output_HToZA_mH_1000_mA_200', 
+                     #'output_HToZA_mH_1000_mA_500', 
+                     #'output_HToZA_mH_2000_mA_1000',
+                     #'output_HToZA_mH_3000_mA_2000',
+
                      'weight_DY_time',
                      'weight_DY_err',
                      'weight_TT_time',
@@ -163,11 +278,13 @@ other_variables = [
                      'weight_HToZA_mH_1000_mA_500_time', 
                      'weight_HToZA_mH_2000_mA_1000_time',
                      'weight_HToZA_mH_3000_mA_2000_time',
+                     #'weight_HToZA_mH_600_mA_250_err', 
+                     #'weight_HToZA_mH_600_mA_250_time', 
                   ]
 weights = 'total_weight'
 
 def make_dtype(list_names):
-    list_dtype = [(name.replace('.','_').replace('()','').replace('-','_minus_').replace('*','_times_'),'float64') for name in list_names]
+    list_dtype = [(name.replace('.','_').replace('(','').replace(')','').replace('-','_minus_').replace('*','_times_')) for name in list_names]
     return list_dtype
         
 

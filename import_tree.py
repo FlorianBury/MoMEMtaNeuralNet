@@ -3,6 +3,8 @@ import os
 import sys
 import logging
 import re
+import collections
+import copy
 
 import array
 import numpy as np
@@ -16,10 +18,17 @@ from ROOT import TChain, TFile, TTree
 # Tree2Pandas#
 ###############################################################################
 
-def Tree2Pandas(input_file, variables, weight, cut=None, reweight_to_cross_section=False, n=None):
+def Tree2Pandas(input_file, variables, weight=None, cut=None, reweight_to_cross_section=False, n=None):
     """
     Convert a ROOT TTree to a numpy array.
     """
+    # Check for repetitions in variables -> makes root_numpy crash #
+    variables = copy.copy(variables) # Otherwise will add the weight and have a duplicate branch
+    rep = [item for item, count in collections.Counter(variables).items() if count > 1]
+    if len(rep) != 0:
+        for r in rep:
+            logging.critical('The argument "%s" is repeated in the variables'%r)
+        sys.exit(1)
 
     file_handle = TFile.Open(input_file)
     tree = file_handle.Get('tree')
@@ -36,11 +45,16 @@ def Tree2Pandas(input_file, variables, weight, cut=None, reweight_to_cross_secti
         logging.debug('\t\t\tEvent weight sum : '+str(event_weight_sum))
         logging.debug('\t\t\tRelative weight : '+str(relative_weight))
     # Read the tree and convert it to a numpy structured array
-    data = tree2array(tree, branches=variables + [weight], selection=cut)
+    if weight is not None:
+        variables += [weight]
+    data = tree2array(tree, branches=variables, selection=cut)
     
     # Convert to pandas dataframe #
     df = pd.DataFrame(data)
-    df[weight] *= relative_weight
+    if weight is not None:
+        df[weight] *= relative_weight
+
+    # Only part of tree #
     if n:
         logging.info("Reading only {} from input tree".format(n))
         df = df[:n]

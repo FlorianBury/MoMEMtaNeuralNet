@@ -19,8 +19,8 @@ class ConcatenateCSV:
     def Concatenate(self):
         self.dict_tot = {} 
         self.counter = 0
-        if self.sample!='DY' and self.sample!='TT' and self.sample!='HToZA':
-            logging.critical('Sample type (TT or DY or HToZA) must be used to concatenate csv file')
+        if self.sample!='DY' and self.sample!='TT' and self.sample!='HToZA' and self.sample!='classes':
+            logging.critical('Sample type (TT or DY or HToZA or class) must be used to concatenate csv file')
             sys.exit(1)
 
         for f in glob.glob(os.path.join(self.path,'*.csv')):

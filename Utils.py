@@ -125,7 +125,7 @@ def CountVariables(path_files,var, part=[''],cut='',is_time_in_ms=False):
         print ('No files in %s matching %s have been found'%(path_files,part))
 
     for f in files:
-        filename = f.replace(path_files,'')
+        filename = f.replace(path_files,'').replace('root','')
         skip = False 
         for p in part:
             if filename.find(p)==-1: # Could not find part of name
@@ -196,6 +196,37 @@ def ListBranches(rootfile):
     print ('Branches from %s'%rootfile)
     for l in name_list:
         print ('\t%s'%l)
+    return name_list
+
+##################################################################################################
+##########################                 AppendTree                   ##########################
+##################################################################################################
+def AppendTree(rootfile1,rootfile2,branches):
+    """
+    Append the branches of rootfile2 to rootfile1
+    All the common branches must be identical
+    """
+    # Get the arrays #
+    import root_numpy
+    import pandas as pd
+    data1 = pd.DataFrame(root_numpy.root2array(rootfile1,'tree',branches=ListBranches(rootfile1)))
+    # Check that the requested branches are in rootfile2 #
+    list_branches2 = ListBranches(rootfile2)
+    for b in branches:
+        if not b in list_branches2:
+            print ('Branch %s not present in file %s'%(b,rootfile2))
+    data2 = pd.DataFrame(root_numpy.root2array(rootfile2,'tree',branches=branches))
+    if data1.shape[0] != data2.shape[0]:
+        sys.exit('The two files do not have the same number of events')
+    print ('Number of branches in first file : %d'%data1.shape[1])
+    print ('Number of branches in second file to append : %d'%data2.shape[1])
+
+    # Concatenate them #
+    all_df = pd.concat((data1,data2),axis=1)
+    all_data  = all_df.to_records(index=False,column_dtypes='float64')
+    
+    # Save them #
+    root_numpy.array2root(all_data,rootfile1,mode='recreate')
 
 ##################################################################################################
 ##########################                 Main                         ##########################
@@ -212,6 +243,7 @@ if __name__=='__main__':
     CountVar = parser.add_argument_group('Counts the sum of variables in all files')
     CountVar.add_argument('-v','--variable', action='store', required=False, type=str, help='Partial name of the branches to include in the count (--path must have been provided)')
     CountVar.add_argument('-l','--list', action='store', required=False, type=str, help='Lists all the branches of a given file')
+    zipArgs.add_argument('-a','--append', action='append', nargs='+', required=False, help='Name of first root file + Name of second root file + list of branches to be taen from second and appended to first')
 
     args = parser.parse_args()
     if args.path is not None:
@@ -228,6 +260,20 @@ if __name__=='__main__':
         CopyZip(args.zip[0][0],args.zip[0][1])
 
     if args.list is not None:
-        ListBranches(args.list)
+        _ = ListBranches(args.list)
+
+    if args.append is not None:
+        if len(args.append[0])<=2:
+            print ('Not enough arguments to append')
+        else:
+            file1 = args.append[0][0]
+            file2 = args.append[0][1]
+            branches = args.append[0][2:]
+            print ('File to be appended : %s'%file1)
+            print ('File to be append   : %s'%file2)
+            print ('Branches to append :')
+            for b in branches:
+                print ('..... %s'%b)
+            AppendTree(file1,file2,branches)
 
 

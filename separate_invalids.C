@@ -8,7 +8,7 @@ void separate_invalids(const char* dir, TString name){
     /* Paths */
     TString full_name = gSystem->ConcatFileName(dir,name);
     //TString valid_path = "/nfs/scratch/fynu/fbury/MoMEMta_output/valid_weights/";
-    TString valid_path = "/nfs/scratch/fynu/fbury/MoMEMta_output/signal_weights_valid/";
+    TString valid_path = "/nfs/scratch/fynu/fbury/MoMEMta_output/classification_weights_valid/";
     //TString invalid_DY_path = "/nfs/scratch/fynu/fbury/MoMEMta_output/invalid_DY_weights/";
     //TString invalid_TT_path = "/nfs/scratch/fynu/fbury/MoMEMta_output/invalid_TT_weights/";
     
@@ -29,12 +29,14 @@ void separate_invalids(const char* dir, TString name){
     auto N = tree->GetEntries();
     
     /* Branch Address */
-    //double w_DY, w_DY_err;
-    //double w_TT, w_TT_err;
-    //tree->SetBranchAddress( "weight_DY" , &w_DY );
-    //tree->SetBranchAddress( "weight_DY_err" , &w_DY_err );
-    //tree->SetBranchAddress( "weight_TT" , &w_TT );
-    //tree->SetBranchAddress( "weight_TT_err" , &w_TT_err );
+    double w_DY, w_DY_err;
+    double w_TT, w_TT_err;
+    tree->SetBranchAddress( "weight_DY" , &w_DY );
+    tree->SetBranchAddress( "weight_DY_err" , &w_DY_err );
+    tree->SetBranchAddress( "weight_TT" , &w_TT );
+    tree->SetBranchAddress( "weight_TT_err" , &w_TT_err );
+
+    /*
     std::vector<double> weight_HToZA;
     std::vector<double> weight_HToZA_err;
     for (int i=0; i<23 ; i++){
@@ -89,7 +91,7 @@ void separate_invalids(const char* dir, TString name){
     tree->SetBranchAddress( "weight_HToZA_mH_1000_mA_500_err" , &(weight_HToZA_err[20]) );
     tree->SetBranchAddress( "weight_HToZA_mH_2000_mA_1000_err" , &(weight_HToZA_err[21]) );
     tree->SetBranchAddress( "weight_HToZA_mH_3000_mA_2000_err" , &(weight_HToZA_err[22]) );
-
+    */
 
     /* Filling loop */
     bool valid = true;
@@ -101,14 +103,15 @@ void separate_invalids(const char* dir, TString name){
         //else if (w_TT<w_TT_err)
         //    invalid_TT_tree->Fill(); 
         //else
-        //    valid_tree->Fill();
-        //std::cout<<i<<"  "<<int(N/100)<<"  "<<i%(int(N/100))<<std::endl;
-        for (int j=0 ; j<weight_HToZA.size() ; j++){
-            if (weight_HToZA[j]<weight_HToZA_err[j])     
-                valid = false;
-        }
-        if (valid)
+        if (w_DY>w_DY_err && w_TT>w_TT_err)
             valid_tree->Fill();
+        //std::cout<<i<<"  "<<int(N/100)<<"  "<<i%(int(N/100))<<std::endl;
+        //for (int j=0 ; j<weight_HToZA.size() ; j++){
+        //    if (weight_HToZA[j]<weight_HToZA_err[j])     
+        //        valid = false;
+        //}
+        //if (valid)
+        //    valid_tree->Fill();
         if (i%(int(N/100))==0)
             std::cout<<"Status : "<<float(i)/N*100<<"%"<<std::endl;
     }

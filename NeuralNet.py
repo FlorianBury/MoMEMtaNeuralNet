@@ -42,135 +42,25 @@ import matplotlib.pyplot as plt
 # Personal files #
 import parameters
 from split_training import DictSplit
-from preprocessing import PreprocessLayer, MakeArrayMultiple, GenDictExtract
 from plot_scans import PlotScans
-
-#################################################################################################
-# LossHistory #
-#################################################################################################
-class LossHistory(keras.callbacks.Callback):
-    """ Records the history of the training per epoch and per batch """
-    def on_train_begin(self, logs={}):
-        self.losses = []
-        self.val_losses = []
-
-    def on_batch_end(self, batch, logs={}):
-        self.losses.append(logs.get('loss'))
-        self.val_losses.append(logs.get('val_loss'))
-
-#################################################################################################
-# NeuralNetModel #
-#################################################################################################
-def NeuralNetModel(x_train,y_train,x_val,y_val,params):
-    """
-    Keras model for the Neural Network, used to scan the hyperparameter space by Talos
-    Careful : y -> [output[N],weight[1]]
-    """
-    # Use the log of the output #
-    y_train = y_train.astype(np.float64) # because type issues
-    y_val = y_val.astype(np.float64) # because type issues
-    w_train = y_train[:,-1]
-    w_val = y_val[:,-1]
-    y_train = -np.log10(y_train[:,:-1])
-    y_val = -np.log10(y_val[:,:-1])
-    
-    # Check if batch_size is divisor of training set, if not extend it #
-    N_train = x_train.shape[0]
-    N_val = x_val.shape[0]
-    #if N_train%params['batch_size']!=0:
-    #    x_train, y_train, w_train = MakeArrayMultiple([x_train, y_train, w_train],params['batch_size'],repeat=True)
-    #    logging.warning("The batch size is not a divisor of the training set size (which is a problem for the preprocessing layer)")
-    #    logging.warning("\tThe set has been extended with its own elements : size = %d -> %d (added %d)"%(N_train,x_train.shape[0],x_train.shape[0]-N_train))
-    #if N_val%params['batch_size']!=0:
-    #    x_val, y_val, w_val = MakeArrayMultiple([x_val, y_val, w_val],params['batch_size'],crop=True)
-    #    logging.warning("The batch size is not a divisor of the validation set size (which is a problem for the preprocessing layer)")
-    #    logging.warning("\tThe set has been cropped : size = %d -> %d (removed %d)"%(N_val,x_val.shape[0],N_val-x_val.shape[0]))
-         
-
-    # Design network #
-    with open(os.path.abspath(parameters.scaler_name), 'rb') as handle: # Import scaler that was created before
-        scaler = pickle.load(handle)
-    IN = Input(shape=(x_train.shape[1],),name='IN')
-    L0 = PreprocessLayer(batch_size=params['batch_size'],mean=scaler.mean_,std=scaler.scale_,name='Preprocess')(IN)
-    L1 = Dense(params['first_neuron'],
-               activation=params['activation'],
-               kernel_regularizer=l2(params['l2']))(IN)
-    HIDDEN = hidden_layers(params,1,batch_normalization=True).API(L0)
-    OUT = Dense(1,activation=params['output_activation'],name='OUT')(HIDDEN)
-
-    # Define model #
-    model = Model(inputs=[IN], outputs=[OUT])
-    utils.print_summary(model=model) #used to print model
-
-    # Callbacks #
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0., patience=10, verbose=1, mode='min')
-    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=1, mode='min', epsilon=0.001, cooldown=3, min_lr=0.0001)
-    loss_history = LossHistory()
-    Callback_list = [loss_history,early_stopping,reduceLR]
-
-    # Check normalization #
-    preprocess = Model(inputs=[IN],outputs=[L0])
-    out_preprocess = preprocess.predict(x_train,batch_size=params['batch_size'])
-    mean_scale = np.mean(out_preprocess)
-    std_scale = np.std(out_preprocess)
-    if abs(mean_scale)>0.01 or abs((std_scale-1)/std_scale)>0.01: # Check that scaling is correct to 1%
-        logging.critical("Something is wrong with the preprocessing layer (mean = %0.6f, std = %0.6f), maybe you loaded an incorrect scaler"%(mean_scale,std_scale))
-        sys.exit()
-
-   # Compile #
-    model.compile(optimizer=Adam(lr=params['lr']),
-                  loss={'OUT':params['loss_function']},
-                  metrics=['accuracy'])
-    # Fit #
-    history = model.fit({'IN':x_train},
-                    {'OUT':y_train},
-                    sample_weight=w_train,
-                    epochs=params['epochs'],
-                    batch_size=params['batch_size'],
-                    verbose=1,
-                    validation_data=({'IN':x_val},{'OUT':y_val},w_val),
-                    callbacks=Callback_list
-                    )
-
-    # Plot history #
-    fig = plt.figure()
-    ax1 = plt.subplot(211)
-    ax2 = plt.subplot(212)
-    ax1.plot(history.history['loss'],c='r',label='train')
-    ax1.plot(history.history['val_loss'],c='g',label='test')
-    ax2.plot(loss_history.losses,c='r',label='train')
-    ax2.plot(loss_history.val_losses,c='g',label='test')
-    plt.title('model loss')
-    ax1.set_ylabel('loss')
-    ax2.set_ylabel('loss')
-    ax1.set_xlabel('epoch')
-    ax2.set_xlabel('batch')
-    ax1.legend(loc='upper right')
-    ax2.legend(loc='upper right')
-    ax1.set_yscale('log')
-    ax2.set_yscale('log')
-    rand_hash = ''.join(random.choice(string.ascii_uppercase) for _ in range(10)) # avoids overwritting
-    png_name = 'Loss_%s.png'%rand_hash
-    fig.savefig(png_name)
-    logging.info('Curves saved as %s'%png_name)
-
-    return history,model
+from preprocessing import PreprocessLayer
+import Model
 
 #################################################################################################
 # HyperModel #
 #################################################################################################
 class HyperModel:
-    #################################################################################################
+    #############################################################################################
     # __init ___#
-    #################################################################################################
+    #############################################################################################
     def __init__(self,name,sample):
         self.name = name
         self.sample = sample
         logging.info((' Starting '+self.sample+' case ').center(80,'='))
 
-    #################################################################################################
+    #############################################################################################
     # HyperScan #
-    #################################################################################################
+    #############################################################################################
     def HyperScan(self,data,list_inputs,list_outputs,task):
         """
         Performs the scan for hyperparameters
@@ -207,7 +97,8 @@ class HyperModel:
         self.name_model = self.name+'_'+str(no)
 
         # Data spltting splitting #
-        self.x_train, self.x_val, self.y_train, self.y_val = train_test_split(self.x,self.y,train_size=0.7)
+        size = parameters.training_ratio/(parameters.training_ratio+parameters.validation_ratio)
+        self.x_train, self.x_val, self.y_train, self.y_val = train_test_split(self.x,self.y,train_size=size)
         logging.info("Training set   : %d"%self.x_train.shape[0])
         logging.info("Evaluation set : %d"%self.x_val.shape[0])
 
@@ -218,7 +109,7 @@ class HyperModel:
                    params=self.p,
                    dataset_name=self.name,
                    experiment_no=str(no),
-                   model=NeuralNetModel,
+                   model=getattr(Model,parameters.model),
                    val_split=0.2,
                    reduction_metric='val_loss',
                    #grid_downsample=0.1,
@@ -235,7 +126,7 @@ class HyperModel:
                      x_val = self.x_val,
                      y_val = self.y_val[:,:-1], # last column is weight
                      n = -1,
-                     folds = 5,
+                     folds = 10,
                      metric = 'val_loss',
                      asc = True,
                      shuffle = True,
@@ -247,9 +138,9 @@ class HyperModel:
         logging.debug('Details')
         logging.debug(self.h.details)
 
-#################################################################################################
-# HyperDeploy #
-#################################################################################################
+    #############################################################################################
+    # HyperDeploy #
+    #############################################################################################
     def HyperDeploy(self,best='eval_error'):
         """
         Deploy the model according to the evaluation error (default) or val_loss if not found
@@ -287,9 +178,9 @@ class HyperModel:
                 logging.warning('Could not move file to model folder')
                 logging.warning('\tAttempted to move '+(os.path.abspath(self.name_model+'.zip') +' -> ' +os.path.join(parameters.main_path,'model',self.name_model+'.zip'))) 
 
-#################################################################################################
-# HyperReport #
-#################################################################################################
+    #############################################################################################
+    # HyperReport #
+    #############################################################################################
     def HyperReport(self):
         """
         Reports the model from csv file of previous scan
@@ -348,9 +239,9 @@ class HyperModel:
         # Make plots #
         PlotScans(data=r.data,path=path_plot,tag=self.sample)
 
-#################################################################################################
-# HyperRestore #
-#################################################################################################
+    #############################################################################################
+    # HyperRestore #
+    #############################################################################################
     def HyperRestore(self,inputs,batch_size=32):
         """
         Retrieve a zip containing the best model, parameters, x and y data, ... and restores it

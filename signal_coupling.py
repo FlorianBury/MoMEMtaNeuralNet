@@ -10,6 +10,7 @@ import parameters
 
 def Decoupler(data):
     """ 
+    Data is a pandas dataFrame
     For each event we have : [Pt,eta,phi]x4 and 23 weights (with mH, mA) as parameters
     We want to have as : (inputs) [Pt,eta,phi]x4 + mH + mA -> (output) weight_mA_mH
                                   [Pt,eta,phi]x4 + mH' + mA' -> (output) weight_mA'_m'H 
@@ -19,13 +20,6 @@ def Decoupler(data):
     inputs = [Pt,eta,phi]x4
     outputs = 23 set of weights
     """
-    # From padddddndas DF to numpy arrays #
-    #inputs = data[parameters.inputs].values
-    #outputs = data[parameters.outputs].values
-    #list_rest = [i for i in data.columns if i not in parameters.inputs and i not in parameters.output]
-    #other 
-    #print (list_rest)
-
     # Get the arrays of mH, mA ordered as in the outputs
     list_out = parameters.outputs
     list_rest = [i for i in data.columns if i not in parameters.outputs] # All but outputs
@@ -71,20 +65,32 @@ def Repeater(arr,n):
     return new_arr
 
 def Recoupler(data):
+    """ 
+    Do the opposite of Decoupler.
+    For the output we want one event with the different weights and outputs for each mass configuration
+    Data is a pandas dataFrame
+    """
+    # Parameters #
     N = len(parameters.outputs) # number of repetitions
-    columns = data.columns
-    col_to_recouple = ['mH_MEM','mA_MEM','weight_HToZA','output_HToZA']
-    col_repeated = [s for s in columns if s not in col_to_recouple]
+    columns = data.columns 
+    col_to_recouple = ['mH_MEM','mA_MEM','weight_HToZA','output_HToZA'] # the colmuns we need to transpose and concatenate in one line
+    col_repeated = [s for s in columns if s not in col_to_recouple] # The ones that are repeated N times, need to keep only one time
     
+    # Get the basic repeated values @
     #entry_base = np.unique(data[col_repeated].values.astype('float64'),axis=0)
-    entry_base = data[col_repeated].drop_duplicates().values
+    idx_base = np.arange(0,data.shape[0],N)
+    entry_base = data.iloc[idx_base][col_repeated].values # select one entry among the repeated
+
+    # generate the new columns #
     mH = data.iloc[0:N]['mH_MEM'].values.tolist()
-    mA = data.iloc[0:N]['mA_MEM'].values.tolist()
+    mA = data.iloc[0:N]['mA_MEM'].values.tolist() 
     new_col = ['weight_HToZA_mH_%d_mA_%d'%(H,A) for H,A in zip(mH,mA)] + ['output_HToZA_mH_%d_mA_%d'%(H,A) for H,A in zip(mH,mA)]
     
+    # Transpose on one line #
     data_to_recouple = data[['weight_HToZA','output_HToZA']].values
     data_recoupled = Transposer(data_to_recouple,N)
 
+    # Concatenate and make into DF #
     full_arr = np.c_[entry_base,data_recoupled]
     new_df = pd.DataFrame(full_arr,columns=col_repeated+new_col)
 

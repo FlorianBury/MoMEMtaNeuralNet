@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 import argparse
 import glob
 import logging
@@ -48,36 +49,40 @@ class LikelihoodMap():
         self.mH = Y.flatten()
 
     def AddEvent(self,event):
-        inputs = np.c_[np.tile(event,(self.N**2,1)),self.mA,self.mH]
+        inputs = np.c_[np.tile(event,(self.N**2,1)),self.mH,self.mA]
         outputs = self.model.HyperRestore(inputs)
         self.Z += outputs.reshape(-1,)
 
     def MakeGraph(self,title):
         self.title = title.replace('.root','')
-        graph = copy.deepcopy(TGraph2D(self.N**2,self.mA,self.mH,self.Z))
+        if title.find('DY')!=-1:
+            title = 'Drell-Yann events'
+        elif title.find('TT')!=-1:
+            title = r't\bar{t} events'
+        else:
+            mH_value = re.findall(r'\d+', title)[2]
+            mA_value = re.findall(r'\d+', title)[3]
+            title = 'Signal events with M_{H} = %s GeV and M_{A} = %s GeV'%(mH_value,mA_value)
 
-        graph.SetTitle('Log-Likelihood : %s;M_{A} [GeV]; M_{H} [GeV]; -\sum_{i=1}^{n} log(L)'%self.title)
-        graph.GetXaxis().SetTitleOffset(1.3)
-        graph.GetYaxis().SetTitleOffset(1.3)
-        graph.GetZaxis().SetTitleOffset(3)
+        graph = copy.deepcopy(TGraph2D(self.N**2,self.mA,self.mH,self.Z))
+        graph.SetTitle('Log-Likelihood : %s;M_{A} [GeV]; M_{H} [GeV]; -\sum_{i=1}^{n} log(L)'%(title))
         graph.SetNpx(1000)
         graph.SetNpy(1000)
 
         self.graph = graph
+        self._saveGraph()
 
-    def SaveOnCanvas(self):
-        canvas = TCanvas(self.title, self.title, 800, 600)
-        self.graph.Draw("colz")
-
+    def _saveGraph(self):
         full_name = self.path_output+"/likelihood.root"
         if os.path.exists(full_name):
             root_file = TFile(full_name,"update")
-            canvas.Write("",TObject.kOverwrite)
+            self.graph.Write(self.title,TObject.kOverwrite)
+            logging.info("New Graph saved in %s"%full_name)
         else:
             root_file = TFile(full_name,"recreate")
-            canvas.Write()
+            self.graph.Write(self.title)
+            logging.info("Graph replaced in %s"%full_name)
             
-        logging.info("Canvas saved as %s"%full_name)
 
 def main():
     #############################################################################################
@@ -122,26 +127,33 @@ def main():
     if opt.PDF:
         path_root = os.path.join('PDF',opt.model,'likelihood.root')
         path_pdf  = os.path.join('PDF',opt.model,'likelihood.pdf')
-        
         f = TFile(path_root)
-
         canvas = TCanvas()
         canvas.Print(path_pdf+'[')
         for i, (key,obj) in enumerate(getall(f)):
+            c1 = TCanvas()
+            c1.SetGrid()
             logging.info('Processing %s'%key)
-            
-            obj.SetTopMargin(0.1)
-            obj.SetBottomMargin(0.15)
-            obj.SetLeftMargin(0.15)
-            obj.SetRightMargin(0.2)
-            obj.Print(path_pdf,'Title:'+key.replace('.root','').replace('/',''))
+            hist = obj.GetHistogram()
+            hist.SetContour(100)
+            hist.Draw('colz') 
+            c1.SetTopMargin(0.1)
+            c1.SetBottomMargin(0.12)
+            c1.SetLeftMargin(0.12)
+            c1.SetRightMargin(0.18)
+            hist.GetXaxis().SetTitleOffset(1.3)
+            hist.GetYaxis().SetTitleOffset(1.3)
+            hist.GetZaxis().SetTitleOffset(1.5)
+            c1.Print(path_pdf,'Title:'+key.replace('.root','').replace('/',''))
         canvas.Print(path_pdf+']') 
+        logging.info('PDF saved as %s'%path_pdf)
 
         sys.exit()
     #############################################################################################
     # Make likelihood map #
     #############################################################################################
     # Get events from tree #
+    logging.info('Looking at file %s'%opt.file)
     events = Tree2Pandas(input_file=opt.file, variables=parameters.inputs, n=opt.number).values
 
     # Instantiate the map #
@@ -162,7 +174,6 @@ def main():
 
     # Make and print map #
     likelihood.MakeGraph(title=os.path.basename(opt.file))
-    likelihood.SaveOnCanvas()
 
 
     
