@@ -1,6 +1,7 @@
 import os
 import sys
 import glob
+import copy
 import argparse
 import shutil
 from operator import add
@@ -191,8 +192,18 @@ def ListBranches(rootfile):
     root_file = TFile.Open(rootfile)
     tree = root_file.Get("tree")
     br = tree.GetListOfBranches().Clone()
-    for b in br: # Loop over branch objetcs
-        name_list.append(b.GetName())
+    #br = tree.GetListOfLeaves().Clone()
+    for b in br: # Loop over branch objects
+        name = []
+        try:
+            if b.GetTypeName()=='ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<double> >':
+                name.extend([b.GetName()+'.Px()',b.GetName()+'.Py()',b.GetName()+'.Pz()',b.GetName()+'.E()'])
+                name.extend([b.GetName()+'.Pt()',b.GetName()+'.Eta()',b.GetName()+'.Phi()',b.GetName()+'.M()'])
+        except:
+            pass
+        if len(name)==0:
+            name.append(b.GetName())
+        name_list.extend(name)
     print ('Branches from %s'%rootfile)
     for l in name_list:
         print ('\t%s'%l)
@@ -201,10 +212,33 @@ def ListBranches(rootfile):
 ##################################################################################################
 ##########################                 AppendTree                   ##########################
 ##################################################################################################
-def AppendTree(rootfile1,rootfile2,branches):
+def find_rows(a, b):
+    """
+    Find the matching rows between a and b
+    Returns numpy arrays of the matches as [idx in a,idx in b]
+    """
+    import numpy as np
+    dt = np.dtype((np.void, a.dtype.itemsize * a.shape[1]))
+
+    a_view = np.ascontiguousarray(a).view(dt).ravel()
+    b_view = np.ascontiguousarray(b).view(dt).ravel()
+
+    sort_b = np.argsort(b_view)
+    where_in_b = np.searchsorted(b_view, a_view,
+                                 sorter=sort_b)
+    where_in_b = np.take(sort_b, where_in_b)
+    which_in_a = np.take(b_view, where_in_b) == a_view
+    where_in_b = where_in_b[which_in_a]
+    which_in_a = np.nonzero(which_in_a)[0]
+    return np.column_stack((which_in_a, where_in_b))
+
+def AppendTree(rootfile1,rootfile2,branches,event_filter=None):
     """
     Append the branches of rootfile2 to rootfile1
-    All the common branches must be identical
+    If event_filter=None : All the common branches must be identical (make sure events are the same)
+    if not None : only append events in rootfile2 that are in rootfile1 
+        -> event_filt = list of variable to compare events
+        /!\ len(rootfile1)<len(rootfile2) in this case
     """
     # Get the arrays #
     import root_numpy
@@ -215,18 +249,29 @@ def AppendTree(rootfile1,rootfile2,branches):
     for b in branches:
         if not b in list_branches2:
             print ('Branch %s not present in file %s'%(b,rootfile2))
-    data2 = pd.DataFrame(root_numpy.root2array(rootfile2,'tree',branches=branches))
-    if data1.shape[0] != data2.shape[0]:
+    if event_filter is None:
+        data2 = pd.DataFrame(root_numpy.root2array(rootfile2,'tree',branches=branches))
+    else:
+        data2 = pd.DataFrame(root_numpy.root2array(rootfile2,'tree',branches=branches+event_filter))
+
+    if data1.shape[0] != data2.shape[0] and event_filter is None:
         sys.exit('The two files do not have the same number of events')
     print ('Number of branches in first file : %d'%data1.shape[1])
     print ('Number of branches in second file to append : %d'%data2.shape[1])
+
+    # Event filtering #
+    if event_filter is not None:
+        indexes = find_rows(data1[event_filter].values,data2[event_filter].values)[:,1]
+            # [:,0] indexes in first array, [:,1] indexes in second array
+        data2 = data2[branches].iloc[indexes].reset_index(drop=True)
 
     # Concatenate them #
     all_df = pd.concat((data1,data2),axis=1)
     all_data  = all_df.to_records(index=False,column_dtypes='float64')
     
     # Save them #
-    root_numpy.array2root(all_data,rootfile1,mode='recreate')
+    root_numpy.array2root(all_data,rootfile1.replace('.root','_new.root'),mode='recreate')
+    print ('New file saved as %s'%rootfile1.replace('.root','_new.root'))
 
 ##################################################################################################
 ##########################                 Main                         ##########################
@@ -235,15 +280,16 @@ def AppendTree(rootfile1,rootfile2,branches):
 if __name__=='__main__':
     parser = argparse.ArgumentParser('Several useful tools in the context of MoMEMtaNeuralNet')
     countArgs = parser.add_argument_group('Count tree events in multiple root files')
-    countArgs.add_argument('-p','--path', action='store', required=False, help='Path for the count')
-    countArgs.add_argument('-i','--input', action='append', nargs='+', required=False, help='List of strings that must be contained in the filename')
-    countArgs.add_argument('-c','--cut', action='store', default='', type=str, required=False, help='Cuts to be applied')
+    countArgs.add_argument('--path', action='store', required=False, help='Path for the count')
+    countArgs.add_argument('--input', action='append', nargs='+', required=False, help='List of strings that must be contained in the filename')
+    countArgs.add_argument('--cut', action='store', default='', type=str, required=False, help='Cuts to be applied')
     zipArgs = parser.add_argument_group('Concatenate zip files (also modifying names of files inside the archive')
-    zipArgs.add_argument('-z','--zip', action='append', nargs=2, required=False, help='path to input .zip + path to output .zip')
+    zipArgs.add_argument('--zip', action='append', nargs=2, required=False, help='path to input .zip + path to output .zip')
     CountVar = parser.add_argument_group('Counts the sum of variables in all files')
-    CountVar.add_argument('-v','--variable', action='store', required=False, type=str, help='Partial name of the branches to include in the count (--path must have been provided)')
-    CountVar.add_argument('-l','--list', action='store', required=False, type=str, help='Lists all the branches of a given file')
-    zipArgs.add_argument('-a','--append', action='append', nargs='+', required=False, help='Name of first root file + Name of second root file + list of branches to be taen from second and appended to first')
+    CountVar.add_argument('--variable', action='store', required=False, type=str, help='Partial name of the branches to include in the count (--path must have been provided)')
+    CountVar.add_argument('--list', action='store', required=False, type=str, help='Lists all the branches of a given file')
+    zipArgs.add_argument('--append', action='append', nargs='+', required=False, help='Name of first root file + Name of second root file + list of branches to be taen from second and appended to first')
+    zipArgs.add_argument('--append_filter', action='append', nargs='+', required=False, help='Lits of branches that must be used in the filter to append files')
 
     args = parser.parse_args()
     if args.path is not None:
@@ -274,6 +320,11 @@ if __name__=='__main__':
             print ('Branches to append :')
             for b in branches:
                 print ('..... %s'%b)
-            AppendTree(file1,file2,branches)
+            if args.append_filter is not None:
+                filter_events = args.append_filter[0]
+                print ('Branches for filtering : ')
+                for fe in filter_events:
+                    print ('..... %s'%fe)
+            AppendTree(file1,file2,branches,event_filter=filter_events)
 
 
