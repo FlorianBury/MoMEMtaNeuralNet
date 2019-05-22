@@ -218,12 +218,18 @@ def find_rows(a, b):
     Returns numpy arrays of the matches as [idx in a,idx in b]
     """
     import numpy as np
+    print (a)
+    print (a.shape)
+    print (b.shape)
     dt = np.dtype((np.void, a.dtype.itemsize * a.shape[1]))
 
     a_view = np.ascontiguousarray(a).view(dt).ravel()
     b_view = np.ascontiguousarray(b).view(dt).ravel()
 
     sort_b = np.argsort(b_view)
+    for i in range(sort_b.shape[0]):
+        print (sort_b[i])
+    print (sort_b.shape)
     where_in_b = np.searchsorted(b_view, a_view,
                                  sorter=sort_b)
     where_in_b = np.take(sort_b, where_in_b)
@@ -268,6 +274,7 @@ def AppendTree(rootfile1,rootfile2,branches,event_filter=None):
     # Concatenate them #
     all_df = pd.concat((data1,data2),axis=1)
     all_data  = all_df.to_records(index=False,column_dtypes='float64')
+    all_data.dtype.names = [s.replace('(','').replace(')','').replace('.','_') for s in all_data.dtype.names] #root_numpy issues
     
     # Save them #
     root_numpy.array2root(all_data,rootfile1.replace('.root','_new.root'),mode='recreate')
@@ -288,7 +295,7 @@ if __name__=='__main__':
     CountVar = parser.add_argument_group('Counts the sum of variables in all files')
     CountVar.add_argument('--variable', action='store', required=False, type=str, help='Partial name of the branches to include in the count (--path must have been provided)')
     CountVar.add_argument('--list', action='store', required=False, type=str, help='Lists all the branches of a given file')
-    zipArgs.add_argument('--append', action='append', nargs='+', required=False, help='Name of first root file + Name of second root file + list of branches to be taen from second and appended to first')
+    zipArgs.add_argument('--append', action='append', nargs='+', required=False, help='Name of first root file + Name of second root file + list of branches to be taken from second and appended to first')
     zipArgs.add_argument('--append_filter', action='append', nargs='+', required=False, help='Lits of branches that must be used in the filter to append files')
 
     args = parser.parse_args()
@@ -316,7 +323,7 @@ if __name__=='__main__':
             file2 = args.append[0][1]
             branches = args.append[0][2:]
             print ('File to be appended : %s'%file1)
-            print ('File to be append   : %s'%file2)
+            print ('File to append      : %s'%file2)
             print ('Branches to append :')
             for b in branches:
                 print ('..... %s'%b)
@@ -325,6 +332,9 @@ if __name__=='__main__':
                 print ('Branches for filtering : ')
                 for fe in filter_events:
                     print ('..... %s'%fe)
+            else:
+                filter_events = None
+
             AppendTree(file1,file2,branches,event_filter=filter_events)
 
 

@@ -9,10 +9,9 @@ import numpy as np
 import enlighten
 
 sys.path.insert(0,"..") # We need our own version of talos
-                        # If we import our modules after the version is sites-package our versionis ignored
+                        # If we import our modules after the version is sites-package, our version is ignored
 from NeuralNet import HyperModel
 from import_tree import Tree2Pandas
-import parameters
 
 import ROOT
 from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT, TGraph2D, gPad, TObject
@@ -154,7 +153,23 @@ def main():
     #############################################################################################
     # Get events from tree #
     logging.info('Looking at file %s'%opt.file)
-    events = Tree2Pandas(input_file=opt.file, variables=parameters.inputs, n=opt.number).values
+    variables  = [
+                     'lep1_p4.Pt()',
+                     'lep1_p4.Eta()', 
+                     'lep2_p4.Pt()', 
+                     'lep2_p4.Eta()',
+                     'lep2_p4.Phi()-lep1_p4.Phi()',
+                     'jet1_p4.Pt()',
+                     'jet1_p4.Eta()',
+                     'jet1_p4.Phi()-lep1_p4.Phi()',
+                     'jet2_p4.Pt()',
+                     'jet2_p4.Eta()',
+                     'jet2_p4.Phi()-lep1_p4.Phi()',
+                     'met_pt',
+                     'met_phi-lep1_p4.Phi()',
+                ]
+
+    events = Tree2Pandas(input_file=opt.file, variables=parameters, n=opt.number).values
 
     # Instantiate the map #
     likelihood = LikelihoodMap(name = opt.model,

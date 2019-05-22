@@ -79,7 +79,6 @@ class HyperModel:
         for name in list_inputs:
             logging.info('..... %s'%name)
 
-
         # Talos hyperscan parameters #
         if self.task!='': # if task is specified load it otherwise get it from parameters.py
             with open(os.path.join(parameters.main_path,'split',self.name,self.task), 'rb') as f:
@@ -110,7 +109,7 @@ class HyperModel:
                    dataset_name=self.name,
                    experiment_no=str(no),
                    model=getattr(Model,parameters.model),
-                   val_split=0.2,
+                   val_split=0.1,
                    reduction_metric='val_loss',
                    #grid_downsample=0.1,
                    #random_method='lhs',
@@ -181,10 +180,11 @@ class HyperModel:
     #############################################################################################
     # HyperReport #
     #############################################################################################
-    def HyperReport(self):
+    def HyperReport(self,eval_criterion='val_loss'):
         """
         Reports the model from csv file of previous scan
         Plot several quantities and comparisons in dir /$name/
+        Selects the best models according to the eval_criterion (val_loss or eval_error)
         Reference :
         """
         logging.info(' Starting reporting '.center(80,'-'))
@@ -204,22 +204,23 @@ class HyperModel:
 
         # Lowest eval_error #
         logging.info('-'*80)
-        try:
+        if eval_criterion == 'eval_error':
             logging.info('Lowest eval_error = %0.5f obtained after %0.f rounds'%(r.low('eval_mean'),r.rounds2high('eval_mean')))
-        except:
-            logging.warning("Could not find key 'eval_mean', will switch to 'val_loss'")
+        elif eval_criterion == 'val_loss':
             logging.info('Lowest val_loss = %0.5f obtained after %0.f rounds'%(r.low('val_loss'),r.rounds2high('val_loss')))
+        else:
+            logging.critical('Could not find evaluation criterion "%s" in the results'%eval_criterion)
+            sys.exit(1)
 
         # Best params #
         logging.info('='*80)
         logging.info('Best parameters sets')
-        try:
+        if eval_criterion == 'eval_error':
             sorted_data = r.data.sort_values('eval_mean',ascending=True)
-        except:
-            logging.warning("Could not find key 'eval_mean', will swith to val_loss")
+        elif eval_criterion == 'val_loss':
             sorted_data = r.data.sort_values('val_loss',ascending=True)
 
-        for i in range(0,5):
+        for i in range(0,10):
             logging.info('-'*80)
             logging.info('Best params n°%d'%(i+1))
             try:
@@ -249,7 +250,7 @@ class HyperModel:
         Reference :
             /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/commands/restore.py
         """
-        logging.info((' Starting restoration of sample %s with model %s '%(self.sample,self.name)).center(80,'-'))
+        logging.info((' Starting restoration of sample %s with model %s_%s.zip '%(self.sample,self.name,self.sample)).center(80,'-'))
         # Load the preprocessing layer #
         custom_objects =  {'PreprocessLayer': PreprocessLayer}
         # Restore model #

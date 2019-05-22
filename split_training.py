@@ -46,7 +46,7 @@ class SplitTraining:
             self.params_per_job = self.param_grid.shape[0]
             logging.info('Single dict of %d parameters has been created'%(self.params_per_job))
         if self.params_per_job>1:
-            logging.warning("Be careful with the combinations of parameters, might be redundancies between the different dicts")
+            logging.warning("Be careful with the combinations of parameters, they scale as N_prams! ... might be redundencies")
 
 
 

@@ -12,9 +12,10 @@ import parameters
 
 
 class ProduceOutput:
-    def __init__(self,model,is_signal=False):
+    def __init__(self,model,list_model,is_signal=False):
         self.model = model              # Model of the NeuralNet
         self.is_signal = is_signal
+        self.list_model = list_model
 
     def OutputFromTraining(self,data,path_output,output_name=None):
         """
@@ -34,36 +35,21 @@ class ProduceOutput:
         columns = []
 
         # Get Model Output #
-
-        try:
-            instance = HyperModel(self.model,'DY')
-            out_DY = np.power(10,-instance.HyperRestore(inputs))
-            output = np.c_[output,out_DY]
-            columns.append('output_DY')
-        except Exception as e:
-            logging.warning('Could not find the DY model due to "%s"'%e)
-        try:
-            instance = HyperModel(self.model,'TT')
-            out_TT = np.power(10,-instance.HyperRestore(inputs))
-            output = np.c_[output,out_TT]
-            columns.append('output_TT')
-        except Exception as e:
-            logging.warning('Could not find the TT model due to "%s"'%e)
-        try:
-            instance = HyperModel(self.model,'HToZA')
-            out_HToZA = np.power(10,-instance.HyperRestore(inputs))
-            output = np.c_[output,out_HToZA]
-            columns.append('output_HToZA')
-        except Exception as e:
-            logging.warning('Could not find the HToZA model due to "%s"'%e)
-        try:
-            instance = HyperModel(self.model,'class')
-            out_class = instance.HyperRestore(inputs)
-            output = np.c_[output,out_class]
-            columns.extend(['Prob_DNN_DY','Prob_DNN_HToZA','Prob_DNN_TT'])
-        except Exception as e:
-            logging.warning('Could not find the classification model due to "%s"'%e)
-
+        for model in self.list_model:
+            if model not in ['DY','TT','HToZA','class']:
+                logging.critical('Wrong model type specified : %s must be either "DY", "TT", "HToZA" or "class"')
+                sys.exit(1)
+            #try:
+            instance = HyperModel(self.model,model)
+            if model in ['DY','TT','HToZA']:
+                out = np.power(10,-instance.HyperRestore(inputs))
+                columns.append('output_%s'%model)
+            elif model in ['class']:
+                out = instance.HyperRestore(inputs)
+                columns.extend(['Prob_MEM_DY','Prob_MEM_HToZA','Prob_MEM_TT'])
+            output = np.c_[output,out]
+            #except Exception as e:
+            #    logging.warning('Could not find the %s model due to "%s"'%(model,e))
 
         # From numpy output array to df #
         output_df = pd.DataFrame(output,columns=columns,index=data.index)
@@ -105,10 +91,11 @@ class ProduceOutput:
             The Network has never seen this data !
         """
         # Loop over datasets #
+        logging.info('Input directory : %s'%input_dir)
         for f in list_sample: 
             name = os.path.basename(f)
             full_path = os.path.join(input_dir,f)
-            logging.info('Looking at %s'%name)
+            logging.info('Looking at %s'%f)
 
             # Get the data #
             variables = parameters.inputs+parameters.outputs+parameters.other_variables
@@ -117,6 +104,7 @@ class ProduceOutput:
                                weight=parameters.weights,
                                reweight_to_cross_section=False)
             if data.shape[0]==0:
+                logging.info('\tEmpty tree')
                 continue # Avoids empty trees
             self.OutputFromTraining(data=data,path_output=path_output,output_name=name)
 

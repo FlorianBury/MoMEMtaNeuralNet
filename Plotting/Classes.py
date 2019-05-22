@@ -231,7 +231,7 @@ class Plot_Ratio_TH1:
 
 ####################################    Plot_Multi_TH1    #######################################
 class Plot_Multi_TH1:
-    def __init__(self,filename,tree,list_variable,weight,list_cut,list_legend,list_color,name,bins,xmin,xmax,title,xlabel,ylabel):
+    def __init__(self,filename,tree,list_variable,weight,list_cut,list_legend,list_color,name,bins,xmin,xmax,title,xlabel,ylabel,legend_pos=[0.5,0.5,0.9,0.85]):
         self.filename = filename
         self.tree = tree
         self.weight = weight
@@ -242,6 +242,7 @@ class Plot_Multi_TH1:
         self.title = title
         self.xlabel = xlabel
         self.ylabel = ylabel
+        self.legend_pos = legend_pos
         if len(list_variable) == 1 and len(list_cut) > 1:
             logging.debug('\tOnly one variable but several cuts')
             self.list_variable = list_variable*len(list_cut)
@@ -252,9 +253,12 @@ class Plot_Multi_TH1:
             self.list_variable = list_variable
         elif len(list_variable) == 1 and len(list_cut) == 1:
             logging.warning('\tWhy do you even need to stack ?')
-        else:
+        elif len(list_variable) != len(list_cut):
             logging.critical('Inconsistent number of variables and cuts')
             sys.exit(1)
+        else:
+            self.list_variable = list_variable
+            self.list_cut = list_cut
         if len(list_legend) != max(len(list_variable),len(list_cut)):
             logging.critical('Inconsistent number of legends compared to variables and cuts')
             sys.exit(1)
@@ -291,7 +295,7 @@ class Plot_Multi_TH1:
         # Plot the histograms on over the other #
         c1 = TCanvas("c1", "c1", 600, 600)
 
-        legend = TLegend(0.6,0.6,0.9,0.85)
+        legend = TLegend(self.legend_pos[0],self.legend_pos[1],self.legend_pos[2],self.legend_pos[3])
         legend.SetHeader("Legend","C")
         maxY = 0
         for leg,obj in zip(self.list_legend,self.list_obj):
@@ -369,7 +373,7 @@ class Plot_ROC:
         self.roc_auc = metrics.auc(self.fpr, self.tpr)
 
 
-def MakeROCPlot(list_obj,name):
+def MakeROCPlot(list_obj,name,title):
     # Generate figure #
     fig, ax = plt.subplots(1,figsize=(8,6))
 
@@ -385,15 +389,17 @@ def MakeROCPlot(list_obj,name):
     plt.ylim([0, 1])
     plt.xlabel(r'Correct $t\bar{t}$ identification')
     plt.ylabel(r'Misidentification of DY as $t\bar{t}$')
-    plt.suptitle(os.path.basename(name.replace('_',' ')))
+    plt.suptitle(title)
 
     fig.savefig(name+'.png')
     logging.info('ROC curved saved as %s.png'%name)
 
 #################################      Plot_Multi_ROC       #####################################
 class Plot_Multi_ROC:
-    def __init__(self,classes,weight,title,cut=''):
+    def __init__(self,classes,labels,colors,weight,title,cut=''):
         self.classes = classes                          # eg [0,1,2], just numbering
+        self.labels = labels                            # Labels to display on plot
+        self.colors= colors                             # Pyplot colors for each element
         self.n_classes = len(classes)                   # number of classes
         self.weight = weight                            # Weight (not used so far)
         self.title = title                              # eg differentiate ROC from MEM and DNN
@@ -446,33 +452,30 @@ class Plot_Multi_ROC:
         #self.tpr["macro"] = mean_tpr
         #self.roc_auc["macro"] = metrics.auc(self.fpr["macro"], self.tpr["macro"])
 
-def MakeMultiROCPlot(list_obj,name):
+def MakeMultiROCPlot(list_obj,name,title):
     # Generate figure #
     fig, ax = plt.subplots(1,figsize=(10,8))
     line_cycle = itertools.cycle(["-","--",":","-.",])
     # Loop over plot objects #
     for i,obj in enumerate(list_obj):
         n_obj = len(list(obj.tpr.keys()))
-        color=iter(cm.gist_rainbow(np.linspace(0.,0.8,n_obj)))
         linestyle = next(line_cycle)
-        for key in obj.tpr.keys():
+        for key,lab,col in zip(obj.tpr.keys(),obj.labels,obj.colors):
             # Label #
-            label = obj.title+' '+key
-            label += (' AUC = %0.5f'%obj.roc_auc[key])
-            # Color # 
-            c=next(color)
+            label = (obj.title+' '+lab)
+            label += ('\n AUC = %0.5f'%obj.roc_auc[key])
             # Plot #
-            ax.plot(obj.tpr[key], obj.fpr[key], color=c, label=label, linestyle=linestyle)
+            ax.plot(obj.tpr[key], obj.fpr[key], color=col, label=label, linestyle=linestyle)
             ax.grid(True)
 
-    plt.legend(loc = 'upper left')
+    plt.legend(loc = 'upper left')#,prop={'family': 'monospace'})
     #plt.yscale('symlog',linthreshy=0.0001)
     plt.plot([0, 1], [0, 1],'k--')
     plt.xlim([0, 1])
     plt.ylim([0, 1])
     plt.xlabel(r'Correct identification')
     plt.ylabel(r'Misidentification')
-    plt.suptitle(os.path.basename(name.replace('_',' ')))
+    plt.suptitle(title)
 
     fig.savefig(name+'.png')#,bbox_inches='tight')
     logging.info('ROC curved saved as %s.png'%name)

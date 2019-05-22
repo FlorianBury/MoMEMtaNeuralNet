@@ -74,7 +74,7 @@ def NeuralNetModel(x_train,y_train,x_val,y_val,params):
     y_val = -np.log10(y_val[:,:-1])
     
     # Design network #
-    with open(os.path.join(parameters.main_path,parameters.scaler_name), 'rb') as handle: # Import scaler that was created before
+    with open(os.path.join(parameters.main_path,'scaler_'+parameters.suffix+'.pkl'), 'rb') as handle: # Import scaler that was created before
         scaler = pickle.load(handle)
     IN = Input(shape=(x_train.shape[1],),name='IN')
     L0 = PreprocessLayer(batch_size=params['batch_size'],mean=scaler.mean_,std=scaler.scale_,name='Preprocess')(IN)
@@ -89,12 +89,12 @@ def NeuralNetModel(x_train,y_train,x_val,y_val,params):
     utils.print_summary(model=model) #used to print model
 
     # Callbacks #
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0., patience=50, verbose=1, mode='min')
+    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0., patience=25, verbose=1, mode='min')
     reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=1, mode='min', cooldown=1, min_lr=1e-6)
     loss_history = LossHistory()
     Callback_list = [loss_history,early_stopping,reduceLR]
 
-    # Check normalization #
+    # Check normalization 5
     preprocess = Model(inputs=[IN],outputs=[L0])
     out_preprocess = preprocess.predict(x_train,batch_size=params['batch_size'])
     mean_scale = np.mean(out_preprocess)
@@ -159,11 +159,9 @@ def ClassificationModel(x_train,y_train,x_val,y_val,params):
     w_val = y_val[:,-1]
     y_train = y_train[:,:-1]
     y_val= y_val[:,:-1]
-    #x_train = -np.log10(x_train)
-    #x_val = -np.log10(x_val)
     
     # Design network #
-    with open(os.path.abspath(parameters.scaler_name), 'rb') as handle: # Import scaler that was created before
+    with open(os.path.join(parameters.main_path,'scaler_'+parameters.suffix+'.pkl'), 'rb') as handle: # Import scaler that was created before
         scaler = pickle.load(handle)
     IN = Input(shape=(x_train.shape[1],),name='IN')
     L0 = PreprocessLayer(batch_size=params['batch_size'],mean=scaler.mean_,std=scaler.scale_,name='Preprocess')(IN)

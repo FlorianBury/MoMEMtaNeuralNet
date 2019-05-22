@@ -190,22 +190,28 @@ def main():
     if opt.report != '':
         if opt.DY: 
             instance = HyperModel(opt.report,'DY')
-            instance.HyperReport()
+            instance.HyperReport(parameters.eval_criterion)
         if opt.TT:
             instance = HyperModel(opt.report,'TT')
-            instance.HyperReport()
+            instance.HyperReport(parameters.eval_criterion)
         if opt.HToZA:
             instance = HyperModel(opt.report,'HToZA')
-            instance.HyperReport()
+            instance.HyperReport(parameters.eval_criterion)
         if opt.classes:
             instance = HyperModel(opt.report,'class')
-            instance.HyperReport()
+            instance.HyperReport(parameters.eval_criterion)
 
         sys.exit()
 
     #############################################################################################
     # Output of given files from given model #
     #############################################################################################
+    list_model = []
+    if opt.DY      : list_model.append('DY') 
+    if opt.TT      : list_model.append('TT') 
+    if opt.HToZA   : list_model.append('HToZA') 
+    if opt.classes : list_model.append('class') 
+
     if opt.model != '' and len(opt.output) != 0:
         # Create directory #
         path_output = os.path.join(parameters.path_out,opt.model)#,key+'_weights')
@@ -215,7 +221,7 @@ def main():
         # Check if need to decouple signal #
         is_signal = True if opt.HToZA else False
         # Instantiate #
-        inst_out = ProduceOutput(model=os.path.join(parameters.main_path,'model',opt.model),is_signal=is_signal)
+        inst_out = ProduceOutput(model=os.path.join(parameters.main_path,'model',opt.model),list_model=list_model,is_signal=is_signal)
         # Loop over output keys #
         for key in opt.output:
             # Create subdir #
@@ -227,7 +233,6 @@ def main():
             except Exception as e:
                 logging.critical('Could not process key "%s" due to "%s"'%(key,e))
         sys.exit()
-
     #############################################################################################
     # Data Input and preprocessing #
     #############################################################################################
@@ -251,6 +256,7 @@ def main():
                             variables=variables,
                             weight=parameters.weights,
                             reweight_to_cross_section=True,
+                            #reweight_to_cross_section=False,
                             list_sample=samples_dict['DY'],
                             tag='DY')
     logging.info('DY sample size : {}'.format(data_DY.shape[0]))
@@ -259,6 +265,7 @@ def main():
                             variables=variables,
                             weight=parameters.weights,
                             reweight_to_cross_section=True,
+                            #reweight_to_cross_section=False,
                             list_sample=samples_dict['TT'],
                             tag='TT')
     logging.info('TT sample size : {}'.format(data_TT.shape[0]))
@@ -292,9 +299,9 @@ def main():
     data_TT['learning_weights'] = pd.Series(weight_TT)
 
     # Data splitting #
-    mask_HToZA = GenerateMask(data_HToZA.shape[0],parameters.mask_name+'_HToZA')
-    mask_DY = GenerateMask(data_DY.shape[0],parameters.mask_name+'_weights_DY')
-    mask_TT = GenerateMask(data_TT.shape[0],parameters.mask_name+'_weights_TT')
+    mask_HToZA = GenerateMask(data_HToZA.shape[0],parameters.suffix+'_HToZA')
+    mask_DY = GenerateMask(data_DY.shape[0],parameters.suffix+'_DY')
+    mask_TT = GenerateMask(data_TT.shape[0],parameters.suffix+'_TT')
        # Needs to keep the same testing set for the evaluation of model that was selected earlier
     try:
         train_HToZA = data_HToZA[mask_HToZA==True]
@@ -333,16 +340,17 @@ def main():
     # The purpose is to create a scaler object and save it
     # The preprocessing will be implemented in the network with a custom layer
     if opt.scan!='': # If we don't scan we don't need to scale the data
-        scaler_path = os.path.join(parameters.main_path,parameters.scaler_name)
+        scaler_name = 'scaler_'+parameters.suffix+'.pkl'
+        scaler_path = os.path.join(parameters.main_path,scaler_name)
         if not os.path.exists(scaler_path):
             scaler = preprocessing.StandardScaler().fit(train_all[parameters.inputs])
             with open(scaler_path, 'wb') as handle:
                 pickle.dump(scaler, handle)
-            logging.info('Scaler %s has been created'%parameters.scaler_name)
+            logging.info('Scaler %s has been created'%scaler_name)
         else:
             with open(scaler_path, 'rb') as handle:
                 scaler = pickle.load(handle)
-            logging.info('Scaler %s has been imported'%parameters.scaler_name)
+            logging.info('Scaler %s has been imported'%scaler_name)
 
         # Test the scaler #
         try:
@@ -400,17 +408,17 @@ def main():
             instance = HyperModel(opt.scan,'class')
             instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['DY','HToZA','TT'],task=opt.task)
             instance.HyperDeploy(best='eval_error')
-            
         
     if opt.model!='': 
-    # Make path #
-        path_output = os.path.join(parameters.path_out,opt.model,'valid_weights')
+        # Make path #
+        output_name = 'valid_weights_'+'_'.join(list_model)
+        path_output = os.path.join(parameters.path_out,opt.model,output_name)
         if not os.path.exists(path_output):
             os.makedirs(path_output)
 
         # Instance of output class #
         is_signal = True if opt.HToZA else False
-        inst_out = ProduceOutput(model=os.path.join(parameters.main_path,'model',opt.model),is_signal=is_signal)
+        inst_out = ProduceOutput(model=os.path.join(parameters.main_path,'model',opt.model),list_model=list_model,is_signal=is_signal)
 
         # Use it on test samples #
         if opt.test:

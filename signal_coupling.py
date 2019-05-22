@@ -5,10 +5,11 @@ import numpy as np
 import pandas as pd
 import logging
 import enlighten
+import copy
 
 import parameters
 
-def Decoupler(data):
+def Decoupler(data,list_outputs=None):
     """ 
     Data is a pandas dataFrame
     For each event we have : [Pt,eta,phi]x4 and 23 weights (with mH, mA) as parameters
@@ -20,9 +21,9 @@ def Decoupler(data):
     inputs = [Pt,eta,phi]x4
     outputs = 23 set of weights
     """
+    list_out = parameters.outputs if list_outputs is None else copy.copy(list_outputs)
     # Get the arrays of mH, mA ordered as in the outputs
-    list_out = parameters.outputs
-    list_rest = [i for i in data.columns if i not in parameters.outputs] # All but outputs
+    list_rest = [i for i in data.columns if i not in list_out] # All but outputs
     n_weights = len(list_out)
     mHmA = np.empty((0,2))
     for ol in list_out:
