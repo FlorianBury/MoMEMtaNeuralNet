@@ -18,7 +18,7 @@ class massWindow:
     # Go from ellipses to circles via the rotation matrix |M11, M12| to favour the couting of the points inside the ellipse
     #                                                     |M21, M22|
     self.M11g = ROOT.TGraph2D(len(self.data))
-    print ("len(self.data): ", len(self.data))
+    #print ("len(self.data): ", len(self.data))
     self.M11g.SetNameTitle("M11g_%d"%self.instance,"M11")
     self.M12g = ROOT.TGraph2D(len(self.data))
     self.M12g.SetNameTitle("M12g_%d"%self.instance,"M12")

@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import enlighten
 
-from Sample import Sample
+from Sample import Sample ,Ellipse
 
 def main():
     # Get the files #
@@ -43,41 +43,43 @@ def main():
                  ]
     cuts = 'met_pt<80 && ll_M>70 && ll_M<110'
 
-    list_signal_outputs = [
-                            '-log10(weight_HToZA_mH_200_mA_50)',
-                            '-log10(weight_HToZA_mH_200_mA_100)',
-                            '-log10(weight_HToZA_mH_250_mA_50)',
-                            '-log10(weight_HToZA_mH_250_mA_100)',
-                            '-log10(weight_HToZA_mH_300_mA_50)',   
-                            '-log10(weight_HToZA_mH_300_mA_100)', 
-                            '-log10(weight_HToZA_mH_300_mA_200)',
-                            '-log10(weight_HToZA_mH_500_mA_50)', 
-                            '-log10(weight_HToZA_mH_500_mA_100)',
-                            '-log10(weight_HToZA_mH_500_mA_200)', 
-                            '-log10(weight_HToZA_mH_500_mA_300)', 
-                            '-log10(weight_HToZA_mH_500_mA_400)', 
-                            '-log10(weight_HToZA_mH_650_mA_50)',
-                            '-log10(weight_HToZA_mH_800_mA_50)',
-                            '-log10(weight_HToZA_mH_800_mA_100)',
-                            '-log10(weight_HToZA_mH_800_mA_200)',
-                            '-log10(weight_HToZA_mH_800_mA_400)',
-                            '-log10(weight_HToZA_mH_800_mA_700)',
-                            '-log10(weight_HToZA_mH_1000_mA_50)',  
-                            '-log10(weight_HToZA_mH_1000_mA_200)',
-                            '-log10(weight_HToZA_mH_1000_mA_500)', 
-                            '-log10(weight_HToZA_mH_2000_mA_1000)',
-                            '-log10(weight_HToZA_mH_3000_mA_2000)',
-                          ]
-   
-    #HToZA = Sample('HToZA')
-    #HToZA.GetData(list_HToZA)
-    #print (HToZA.data)
-    DY = Sample('DY')
-    DY.GetData(list_DY,list_inputs+list_other,cuts)
+    # Instantiate #
 
-    DY.ProduceWeights('BestModel',list_inputs,list_signal_outputs)
+    DY = Sample(model_name='BestModel',
+                list_inputs=list_inputs,
+                label='DY',
+                list_files = list_DY,
+                variables = list_inputs+list_other,
+                cuts = cuts)            
 
-    #list_signal_outputs 
+    #TT = Sample(model_name='BestModel',
+    #            list_inputs=list_inputs,
+    #            label='TT',
+    #            list_files = list_TT,
+    #            variables = list_inputs+list_other,
+    #            cuts = cuts)            
+
+    #HToZA = Sample(model_name='BestModel',
+    #            list_inputs=list_inputs,
+    #            label='HToZA',
+    #            list_files = list_HToZA,
+    #            variables = list_inputs+list_other,
+    #            cuts = cuts)            
+    
+    # Instantiate ellipse # 
+    #DY = None
+    TT = None
+    HToZA = None
+    ellipse = Ellipse(inst_DY = DY,
+                      inst_TT = TT,
+                      inst_HToZA = HToZA, 
+                      path_json = 'fullEllipseParamWindowFit_ElEl.json',
+                      mA = 47.08,
+                      mH = 609.21,
+                     )
+                      
+
+
                 
               
 
