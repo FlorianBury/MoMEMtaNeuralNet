@@ -14,7 +14,7 @@ sys.path.append('/home/ucl/cp3/fbury/scratch/CMSSW_7_1_20_patch2/src/cp3_llbb/Ca
 from Calc2HDM import Calc2HDM
 
 import ROOT
-from ROOT import TFile,  gROOT, TGraph2D, TCanvas
+from ROOT import TFile,  gROOT, TGraph2D, TCanvas, TH2F
 import CMS_lumi
 import tdrstyle
 
@@ -36,6 +36,8 @@ def main():
             help='Compute the cross-sections and produce graphs')
     parser.add_argument('--acceptance', action='store_true', required=False, default=False,
             help='Compute the acceptance and produce graph')
+    parser.add_argument('--combine', action='store_true', required=False, default=False,
+            help='Combine the acceptance, xsec and BR to get the visible cross section')
     parser.add_argument('--PDF', action='store_true', required=False, default=False,
             help='Produce PDF from the root file')
     parser.add_argument('-v','--verbose', action='store_true', required=False, default=False,
@@ -49,6 +51,179 @@ def main():
     else:
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s - %(levelname)s - %(message)s')
+                                
+    #############################################################################################
+    # Make grid #
+    #############################################################################################
+    xy = np.linspace(0,opt.max,opt.bins) 
+    mA_plane,mH_plane = np.meshgrid(xy,xy)
+    mh = 125
+    mZ = 90
+    condition1 = np.greater(mH_plane,mA_plane)
+    condition2 = np.greater(mH_plane,mh)
+    condition3 = np.greater(np.subtract(mH_plane,mA_plane),mZ)
+    upper = np.logical_and(np.logical_and(condition1,condition2),condition3)
+        # Ensure that mH > mh
+        # Ensure that mH > mA
+        # Ensure that mH-mA > mZ
+    mA = mA_plane[upper].flatten().astype(int)
+    mH = mH_plane[upper].flatten().astype(int)
+    mA_plane = mA_plane.flatten()
+    mH_plane = mH_plane.flatten()
+    N = mA.shape[0]
+    N_plane = mA_plane.shape[0]
+    # Bug in Sushi -> if both mH and mA have decimals the computation of Xsec fails
+
+    #############################################################################################
+    # Make PDF #
+    #############################################################################################
+    def getall(d, basepath="/"):
+        "Generator function to recurse into a ROOT file/dir and yield (path, obj) pairs"
+        for key in d.GetListOfKeys():
+            kname = key.GetName()
+            if key.IsFolder():
+                for i in getall(d.Get(kname), basepath+kname+'/'):
+                    yield i
+            else:
+                yield basepath+kname, d.Get(kname)
+
+    if opt.PDF:
+        path_root = ['AcceptanceMap.root','XsecMap.root','VisibleXsecMap.root']
+
+        path_pdf  = ['AcceptanceMap.pdf','XsecMap.pdf','VisibleXsecMap.pdf']
+    
+        for root,pdf in zip(path_root,path_pdf):
+            f = TFile(root)
+            canvas = TCanvas()
+            canvas.Print(pdf+'[')
+            for i, (key,obj) in enumerate(getall(f)):
+                c1 = TCanvas()
+                c1.SetGrid()
+                logging.info('Processing %s'%key)
+                hist = obj.GetHistogram()
+                hist.GetXaxis().SetRangeUser(0,opt.max)
+                hist.GetYaxis().SetRangeUser(0,opt.max)
+                hist.SetContour(opt.bins)
+                hist.SetMaximum(0.3)
+                hist.SetMinimum(0.)
+                hist.GetXaxis().SetRangeUser(0,1000)
+                hist.GetYaxis().SetRangeUser(0,1000)
+                hist.Draw('colz') 
+                c1.SetTopMargin(0.1)
+                c1.SetBottomMargin(0.12)
+                c1.SetLeftMargin(0.12)
+                c1.SetRightMargin(0.18)
+                hist.GetXaxis().SetTitleOffset(1.3)
+                hist.GetYaxis().SetTitleOffset(1.3)
+                hist.GetZaxis().SetTitleOffset(1.5)
+                hist.SetTitle(obj.GetTitle())
+                c1.Print(pdf,'Title:'+key.replace('.root','').replace('/',''))
+            canvas.Print(pdf+']') 
+            logging.info('PDF saved as %s'%pdf)
+
+        sys.exit()
+    #############################################################################################
+    # Combine graph #
+    #############################################################################################
+    if opt.combine:
+        # Load the graphs #
+        file_xsec = TFile.Open('XsecMap.root')                                                                                                                                                     
+        file_acc = TFile.Open('AcceptanceMap.root')                                                                                                                                                
+        
+        xsec = copy.deepcopy(file_xsec.Get('Xsec'))                                                                                                                                             
+        BR_HtoZA = copy.deepcopy(file_xsec.Get('BR_HtoZA'))                                                                                                                                    
+        BR_Atobb = copy.deepcopy(file_xsec.Get('BR_Atobb'))                                                                                                                                    
+        BR_Ztoll = copy.deepcopy(file_xsec.Get('BR_Ztoll'))                                                                                                                                    
+        acc = copy.deepcopy(file_acc.Get('Acceptance'))    
+
+        # Make combined graph #
+        comb_graph = TGraph2D(N)
+        manager = enlighten.get_manager()
+        pbar = manager.counter(total=N, desc='Progress', unit='Point')
+        for i in range(N):
+            m_A = mA[i]
+            m_H = mH[i]
+            XsecVis =  xsec.Interpolate(m_A,m_H)
+            XsecVis *= BR_HtoZA.Interpolate(m_A,m_H)
+            #XsecVis *= BR_Atobb.Interpolate(m_A,m_H)
+            #XsecVis *= BR_Ztoll.Interpolate(m_A,m_H)
+            XsecVis *= acc.Interpolate(m_A,m_H)
+            comb_graph.SetPoint(i,m_A,m_H,XsecVis)
+            pbar.update()
+        manager.stop()
+    
+        comb_graph.SetTitle('Visible Cross-section; MA [GeV] ; MH [GeV] ; Xsec [pb]')
+        comb_graph.SetNpx(500)
+        comb_graph.SetNpy(500)
+        name = 'VisibleXsecMap.root'
+        root_file = TFile(name,"recreate")
+        comb_graph.Write('Visible_XsecMap')
+       
+
+    #############################################################################################
+    # Extrapolate graph #
+    #############################################################################################
+    def ExtrapolateGraph(graph,points):
+        print ('Extrapolation')
+        manager = enlighten.get_manager()
+        pbar = manager.counter(total=N_plane, desc='Progress', unit='Point')
+        new_graph = TGraph2D(N_plane)
+        # Extrapolation #
+        #from scipy.interpolate import interp2d
+        #f = interp2d(points[:,0],points[:,1],points[:,2])
+        from scipy.optimize import curve_fit
+        
+        #def func(x,a,b,c,d,e):
+        #    z = np.absolute(a*x[0]**2+b*x[1]**2+c*x[0]+d*x[1]+e)
+        #    return z.ravel()
+        #popt, pcov = curve_fit(func, (points[:,0],points[:,1]), points[:,2])
+        def twoD_Gaussian(x, amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
+            xo = float(xo)
+            yo = float(yo)    
+            a = (np.cos(theta)**2)/(2*sigma_x**2) + (np.sin(theta)**2)/(2*sigma_y**2)
+            b = -(np.sin(2*theta))/(4*sigma_x**2) + (np.sin(2*theta))/(4*sigma_y**2)
+            c = (np.sin(theta)**2)/(2*sigma_x**2) + (np.cos(theta)**2)/(2*sigma_y**2)
+            g = offset + amplitude*np.exp( - (a*((x[0]-xo)**2) + 2*b*(x[0]-xo)*(x[1]-yo) 
+                                    + c*((x[1]-yo)**2)))
+            return g.ravel()
+        initial_guess = (0.3,400,1000,400,400,3.14/4,0)
+        bounds = (0,np.inf)
+        popt, pcov = curve_fit(twoD_Gaussian, (points[:,0],points[:,1]), points[:,2],p0=initial_guess, bounds=bounds)
+        print (popt)
+
+
+        for i in range(N_plane):
+            pbar.update()
+            m_A = mA_plane[i]
+            m_H = mH_plane[i]
+            if m_A>=m_H or m_H<=mh or m_H-m_A<mZ:
+                new_graph.SetPoint(i,m_A,m_H,0)
+                continue
+            else:
+                #Z = graph.Interpolate(m_A,m_H)
+                Z = 0
+            if Z == 0:
+                Z = twoD_Gaussian((m_A,m_H),*popt)
+                #Z = func((m_A,m_H),*popt)
+                #Z = f(m_A,m_H) 
+                ## Find closest know point #
+                #max_dist1 = 100000
+                #max_dist2 = 100001
+                #for j in range(points.shape[0]):
+                #    dist = np.sqrt((m_A-points[j,0])**2+(m_H-points[j,1])**2)
+                #    if dist<max_dist1:
+                #        idx1 = j
+                #        max_dist1 = dist
+                #    elif dist<max_dist2:
+                #        idx2 = j
+                #        max_dist2 = dist
+                #Z = max_dist1*graph.Interpolate(points[idx1,0],points[idx1,1])
+                #Z += max_dist2*graph.Interpolate(points[idx2,0],points[idx2,1])
+                #Z /= (max_dist1+max_dist2)
+                #new_graph.SetPoint(i,m_A,m_H,Z)
+            new_graph.SetPoint(i,m_A,m_H,Z)
+        manager.stop()
+        return new_graph
 
     #############################################################################################
     # Cross section and Branching Ratio graphs #
@@ -62,18 +237,6 @@ def main():
         sba = math.sqrt(1 - pow(cba, 2)) 
         workdir = '/home/ucl/cp3/fbury/scratch/CMSSW_7_1_20_patch2/src/cp3_llbb/Calculators42HDM/'
         outputFile = os.path.join(workdir,"out.dat")
-
-
-        # Make grid #
-        xy = np.linspace(0,opt.max,opt.bins) 
-        mA,mH = np.meshgrid(xy,xy)
-        upper = np.logical_and(np.greater(mH,mA),np.greater(mH,mh))
-            # Ensure that mH > mh
-            # Ensure that mH > mA
-        mA = mA[upper].flatten().astype(int)
-        mH = mH[upper].flatten().astype(int)
-        N = mA.shape[0]
-        # Bug in Sushi -> if both mH and mA have decimals the computation of Xsec fails
 
         # Randomize mA and mH (launch multiple)
         index = np.arange(N)
@@ -169,36 +332,78 @@ def main():
     # Acceptance graphs #
     #############################################################################################
     if opt.acceptance:
+        # Paths and files #
         path_to_207_signal_files = "/nfs/scratch/fynu/asaggio/CMSSW_8_0_30/src/cp3_llbb/ZATools/factories_ZA/skimmed_for_Florian_2019_all207signals/slurm/output/"
         path_to_23_signal_files = "/nfs/user/asaggio/CMSSW_8_0_30/src/cp3_llbb/ZATools/factories_ZA/skimmedPlots_for_Florian/slurm/output/"
         files_207 = glob.glob(os.path.join(path_to_207_signal_files,'HToZA*root'))
-        files_23 = glob.glob(os.path.join(path_to_23_signal_files,'HToZA*root'))
-        files = files_207 + files_23
-        graph_acc = TGraph2D(len(files))
+        #files_23 = glob.glob(os.path.join(path_to_23_signal_files,'HToZA*root'))
+        files = files_207 
+
+        # Initialize #
+        points = np.empty((0,3))
+        manager = enlighten.get_manager()
+        pbar = manager.counter(total=len(files), desc='Progress', unit='Point')
+
+        # Loop over mass points #
         for i,f in enumerate(files):
             name = os.path.basename(f)
+            # check if signal #
             if not name.startswith('HToZA'):
                 continue
-            print ( name)
+            
+            # Get the mA and mH #
             file_handle = TFile.Open(f)
             p = re.compile(r'\d+[p]\d+')
             if len(p.findall(name))==0:
-                mH = float(re.findall(r'\d+', filename)[2])
-                mA = float(re.findall(r'\d+', filename)[3])
+                m_H = float(re.findall(r'\d+', name)[2])
+                m_A = float(re.findall(r'\d+', name)[3])
             else:
-                mH = float(p.findall(name)[0].replace('p','.'))
-                mA = float(p.findall(name)[1].replace('p','.'))
-            print ( mH, mA)
+                m_H = float(p.findall(name)[0].replace('p','.'))
+                m_A = float(p.findall(name)[1].replace('p','.'))
+            print ('Sample MH = %0.2f mA = %0.2f'%(m_H,m_A))
 
+            # Get the ratio #
             tree = file_handle.Get('t') 
             weight_sum = file_handle.Get('event_weight_sum').GetVal()  
             N = tree.GetEntries()           
-            print (N,weight_sum,N/weight_sum)
-            graph_acc.SetPoint(i,mA,mH,N/weight_sum)
-        sys.exit()
+            ratio = N/weight_sum
+            print ('\tRatio : %0.5f'%(ratio))
+
+            # if seen before -> add #
+            seen = False
+            idx = i
+            for j in range(points.shape[0]):
+                if m_H == points[j,1] and m_A == points[j,0]:
+                    idx = j # if seen before records that index, else keep i
+                    seen = True
+
+            # Records #
+            if not seen :
+                new_entry = np.array([m_A,m_H,0],ndmin=2)
+                points = np.append(points,new_entry,axis=0) # add mA,mH to record
+            points[idx,2] +=  ratio
+            pbar.update()
+        manager.stop()
+
+        # Fill TGraph2D #
+        graph_acc = TGraph2D(points.shape[0])
+        for i in range(points.shape[0]):
+            graph_acc.SetPoint(i,points[i,0],points[i,1],points[i,2])
+
+        graph_acc.SetTitle('Acceptance; MA [GeV] ; MH [GeV] ; Ratio')
+        graph_acc.SetNpx(500)
+        graph_acc.SetNpy(500)
+
+        extra_graph_acc = ExtrapolateGraph(graph_acc,points)
+        extra_graph_acc.SetTitle('Acceptance; MA [GeV] ; MH [GeV] ; Ratio')
+        extra_graph_acc.SetNpx(500)
+        extra_graph_acc.SetNpy(500)
+        np.save('points',points)
+
         name = 'AcceptanceMap.root'
         root_file = TFile(name,"recreate")
-        graph_acc.Write('Acceptance')
+        graph_acc.Write('Acceptance_intra')
+        extra_graph_acc.Write('Acceptance')
        
 if __name__ == "__main__":
     main() 

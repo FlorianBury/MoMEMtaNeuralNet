@@ -56,7 +56,7 @@ def main():
                     #      override_params = {}),
                     #Plots(name = 'valid_weights_HToZA',
                     #      override_params = {}),
-                    Plots(name = 'valid_weights_class_MEM_DNN',
+                    Plots(name = 'valid_weights_class',
                           override_params = {}),
                     #Plots(name = 'invalid_DY_weights',
                     #      override_params = {}),

@@ -23,35 +23,75 @@ gROOT.SetBatch(True)
 ROOT.gErrorIgnoreLevel = 2000#[ROOT.kPrint, ROOT.kInfo]#, kWarning, kError, kBreak, kSysError, kFatal;
 
 class LikelihoodMap():
-    def __init__(self,name,xmin,ymin,xmax,ymax,N):
+    def __init__(self,name,xmin,ymin,xmax,ymax,N,normalize=False):
         self.xmin  = xmin
         self.ymin  = ymin
         self.xmax  = xmax
         self.ymax  = ymax
         self.N     = N    
         self.name  = name
+        self.normalize = normalize # Xsec*BR*Acc
+        self.nevents = 0 # count the number of events
         self.model = HyperModel(name,'HToZA')
+        # Make directory output #
+        self.path_output = os.path.join('/home/ucl/cp3/fbury/MoMEMtaNeuralNet/Plotting/PDF',self.name)
+        if not os.path.exists(self.path_output):
+            os.makedirs(self.path_output)
+        # Get the normalization #
+        if self.normalize:
+            self._importGraphs()
         # Make the grid #
         self._make_grid()
         # Prepare output #
-        self.Z = np.zeros(N**2)
-        # Make directory output #
-        self.path_output = os.path.join('PDF',self.name)
-        if not os.path.exists(self.path_output):
-            os.makedirs(self.path_output)
+        self.Z = np.zeros(self.N) # N has chnaged because of unphysical phase space point
+
+        ################################################
+        # L(x_i|alpha)       = \prod_i 1/sigma_vis W(x_i|alpha)
+        # -ln (L(x_i|alpha)) = \sum_i [ -ln(W(x_i|alpha)) + ln(sigma_vis) ]
+        #                    = \sum_i [ output_DNN ] + n*ln(sigma_vis)
+
 
     def _make_grid(self):
         x = np.linspace(self.xmin,self.xmax,self.N)
         y = np.linspace(self.ymin,self.ymax,self.N)
         X,Y = np.meshgrid(x,y)
-        self.mA = X.flatten()
-        self.mH = Y.flatten()
+        mA = X.flatten()
+        mH = Y.flatten()
+        mh = 125
+        mZ = 90
+        # Unphysical phase-space points #
+        condition1 = np.greater(mH,mA) 
+        condition2 = np.greater(mH,mh) 
+        condition3 = np.greater(np.subtract(mH,mA),mZ)
+        upper = np.logical_and(np.logical_and(condition1,condition2),condition3)
+        # Ensure that mH > mh
+        # Ensure that mH > mA
+        # Ensure that mH-mA > mZ 
+        self.mA = mA[upper]
+        self.mH = mH[upper]
+        self.N = self.mA.shape[0]
+
+        # Normalisation with xsec visible #
+        self.norm = np.ones(self.mA.shape[0])
+        if self.normalize:
+            logging.info('Normalization enabled')
+            for i in range(0,self.mH.shape[0]):
+                 self.norm[i] *= (self.xsec.Interpolate(self.mA[i],self.mH[i])*1e-14) 
+                 self.norm[i] *= self.BR_HtoZA.Interpolate(self.mA[i],self.mH[i])
+                 #self.norm[i] *= self.BR_Atobb.Interpolate(self.mA[i],self.mH[i])
+                 self.norm[i] *= self.BR_Ztoll.Interpolate(self.mA[i],self.mH[i])
+                 self.norm[i] *= self.acc.Interpolate(self.mA[i],self.mH[i])
+        # Get log(normalization) #
+        self.norm = np.log10(self.norm) # if normalize == False => norm =1 => log(norm)=0 (thus not used)
+        # phase space points non physical(xsec=0) -> will produce -inf 
 
     def AddEvent(self,event):
-        inputs = np.c_[np.tile(event,(self.N**2,1)),self.mH,self.mA]
+        # Get the -log(weight) #
+        inputs = np.c_[np.tile(event,(self.N,1)),self.mH,self.mA]
         outputs = self.model.HyperRestore(inputs)
         self.Z += outputs.reshape(-1,)
-
+        self.nevents += 1
+        
     def MakeGraph(self,title):
         self.title = title.replace('.root','')
         if title.find('DY')!=-1:
@@ -63,8 +103,18 @@ class LikelihoodMap():
             mA_value = re.findall(r'\d+', title)[3]
             title = 'Signal events with M_{H} = %s GeV and M_{A} = %s GeV'%(mH_value,mA_value)
 
-        graph = copy.deepcopy(TGraph2D(self.N**2,self.mA,self.mH,self.Z))
-        graph.SetTitle('Log-Likelihood : %s;M_{A} [GeV]; M_{H} [GeV]; -\sum_{i=1}^{n} log(L)'%(title))
+        # Normalize #
+        if self.normalize:
+            save_Z = copy.deepcopy(self.Z)
+            self.Z += self.nevents*self.norm#*0.1
+        inf_entries = np.isneginf(self.Z)
+        max_Z = np.amax(self.Z[np.invert(inf_entries)])
+        min_Z = np.amin(self.Z[np.invert(inf_entries)])
+        self.Z[inf_entries] = 0 # removes non physical points 
+        graph = copy.deepcopy(TGraph2D(self.N,self.mA,self.mH,self.Z))
+        graph.SetTitle('Log-Likelihood : %s;M_{A} [GeV]; M_{H} [GeV]; -log(L)'%(title))
+        graph.SetMaximum(max_Z)
+        graph.SetMinimum(min_Z)
         graph.SetNpx(1000)
         graph.SetNpy(1000)
 
@@ -73,6 +123,8 @@ class LikelihoodMap():
 
     def _saveGraph(self):
         full_name = self.path_output+"/likelihood.root"
+        if self.normalize:
+            self.title += ' [Normalized]'
         if os.path.exists(full_name):
             root_file = TFile(full_name,"update")
             self.graph.Write(self.title,TObject.kOverwrite)
@@ -81,6 +133,37 @@ class LikelihoodMap():
             root_file = TFile(full_name,"recreate")
             self.graph.Write(self.title)
             logging.info("Graph replaced in %s"%full_name)
+
+    def _importGraphs(self):
+        # import the TGraphs 2D #
+        file_xsec = TFile.Open('XsecMap.root')
+        file_acc = TFile.Open('AcceptanceMap.root')
+
+        try: # Deepcopy necessary to avoid seg fault
+            self.xsec = copy.deepcopy(file_xsec.Get('Xsec'))
+            self.BR_HtoZA = copy.deepcopy(file_xsec.Get('BR_HtoZA'))
+            self.BR_Atobb = copy.deepcopy(file_xsec.Get('BR_Atobb'))
+            self.BR_Ztoll = copy.deepcopy(file_xsec.Get('BR_Ztoll'))
+            self.acc = copy.deepcopy(file_acc.Get('Acceptance'))
+        except:
+            self.normalize = False
+            logging.warning ('Could not load the Objects -> normalization off')
+
+        if not isinstance(self.xsec,ROOT.TGraph2D):
+            self.normalize = False
+            logging.warning ('Xsec is %s and not TGraph2D -> normalization off'%type(self.xsec))
+        if not isinstance(self.BR_HtoZA,ROOT.TGraph2D):
+            self.normalize = False
+            logging.warning ('BR_HtoZA is %s and not TGraph2D -> normalization off'%type(self.BR_HtoZA))
+        if not isinstance(self.BR_Atobb,ROOT.TGraph2D):
+            self.normalize = False
+            logging.warning ('BR_Atobb is %s and not TGraph2D -> normalization off'%type(self.BR_Atobb))
+        if not isinstance(self.BR_Ztoll,ROOT.TGraph2D):
+            self.normalize = False
+            logging.warning ('BR_Ztoll is %s and not TGraph2D -> normalization off'%type(self.BR_Ztoll))
+        if not isinstance(self.acc,ROOT.TGraph2D):
+            self.normalize = False
+            logging.warning ('Acceptance is %s and not TGraph2D -> normalization off'%type(self.acc))
             
 
 def main():
@@ -98,6 +181,8 @@ def main():
                   help='Maximum values for mA and mH in the graph')
     parser.add_argument('--PDF', action='store_true', required=False, default=False,
             help='Produce PDF from the root file')
+    parser.add_argument('--norm', action='store_true', required=False, default=False,
+            help='Use the normalization by the visible cross section')
     parser.add_argument('-v','--verbose', action='store_true', required=False, default=False,
             help='Show DEGUG logging')
     opt = parser.parse_args() 
@@ -124,8 +209,8 @@ def main():
                 yield basepath+kname, d.Get(kname)
 
     if opt.PDF:
-        path_root = os.path.join('PDF',opt.model,'likelihood.root')
-        path_pdf  = os.path.join('PDF',opt.model,'likelihood.pdf')
+        path_root = os.path.abspath(os.path.join('PDF',opt.model,'likelihood.root'))
+        path_pdf  = os.path.abspath(os.path.join('PDF',opt.model,'likelihood.pdf'))
         f = TFile(path_root)
         canvas = TCanvas()
         canvas.Print(path_pdf+'[')
@@ -135,6 +220,8 @@ def main():
             logging.info('Processing %s'%key)
             hist = obj.GetHistogram()
             hist.SetContour(100)
+            hist.SetMinimum(hist.GetMinimum())
+            hist.SetMaximum(hist.GetMaximum())
             hist.Draw('colz') 
             c1.SetTopMargin(0.1)
             c1.SetBottomMargin(0.12)
@@ -143,6 +230,7 @@ def main():
             hist.GetXaxis().SetTitleOffset(1.3)
             hist.GetYaxis().SetTitleOffset(1.3)
             hist.GetZaxis().SetTitleOffset(1.5)
+            hist.SetTitle(obj.GetTitle())
             c1.Print(path_pdf,'Title:'+key.replace('.root','').replace('/',''))
         canvas.Print(path_pdf+']') 
         logging.info('PDF saved as %s'%path_pdf)
@@ -169,7 +257,7 @@ def main():
                      'met_phi-lep1_p4.Phi()',
                 ]
 
-    events = Tree2Pandas(input_file=opt.file, variables=parameters, n=opt.number).values
+    events = Tree2Pandas(input_file=opt.file, variables=variables, n=opt.number).values
 
     # Instantiate the map #
     likelihood = LikelihoodMap(name = opt.model,
@@ -177,13 +265,14 @@ def main():
                                ymin = 0,
                                xmax = opt.max,
                                ymax = opt.max,
-                               N    = 100)
+                               N    = 100,
+                               normalize=opt.norm)
 
     # Loop over events #
     manager = enlighten.get_manager()
     pbar = manager.counter(total=opt.number, desc='Progress', unit='Event')
     for i in range(events.shape[0]):
-        likelihood.AddEvent(events[i,:]) 
+        likelihood.AddEvent(events[i,:])
         pbar.update()
     manager.stop()
 
