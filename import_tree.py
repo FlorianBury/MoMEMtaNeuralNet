@@ -18,7 +18,7 @@ from ROOT import TChain, TFile, TTree
 # Tree2Pandas#
 ###############################################################################
 
-def Tree2Pandas(input_file, variables, weight=None, cut=None, reweight_to_cross_section=False, n=None):
+def Tree2Pandas(input_file, variables, weight=None, cut=None, reweight_to_cross_section=False, n=None, tree_name='tree'):
     """
     Convert a ROOT TTree to a numpy array.
     """
@@ -31,7 +31,7 @@ def Tree2Pandas(input_file, variables, weight=None, cut=None, reweight_to_cross_
         sys.exit(1)
 
     file_handle = TFile.Open(input_file)
-    tree = file_handle.Get('tree')
+    tree = file_handle.Get(tree_name)
     N = tree.GetEntries()
     logging.debug('\t\tNumber of events : '+str(N))
 

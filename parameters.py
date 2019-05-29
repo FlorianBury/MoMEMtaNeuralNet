@@ -101,8 +101,8 @@ inputs = [
          #'met_phi-lep1_p4.Phi()',
 
          #######   Classification ##########
-         '-log10(weight_TT)',
-         '-log10(weight_DY)',
+         '-log10(output_TT)',
+         '-log10(output_DY)',
          #'-log10(weight_HToZA_mH_200_mA_50)',
          #'-log10(weight_HToZA_mH_200_mA_100)',
          #'-log10(weight_HToZA_mH_250_mA_50)', 

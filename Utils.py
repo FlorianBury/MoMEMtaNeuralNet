@@ -186,17 +186,20 @@ def convert_time(time):
 ##################################################################################################
 ##########################                 ListBranches                 ##########################
 ##################################################################################################
-def ListBranches(rootfile):
+def ListBranches(rootfile,tree_name ='tree',verbose=False):
     from ROOT import TFile
     name_list = []
     root_file = TFile.Open(rootfile)
-    tree = root_file.Get("tree")
+    tree = root_file.Get(tree_name)
     br = tree.GetListOfBranches().Clone()
     #br = tree.GetListOfLeaves().Clone()
     for b in br: # Loop over branch objects
         name = []
         try:
-            if b.GetTypeName()=='ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<double> >':
+            if b.GetTypeName()=='ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<double> >' or \
+               b.GetTypeName()=='ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<float> >' or \
+               b.GetTypeName()=='ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiE4D<double> >' or \
+               b.GetTypeName()=='ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiE4D<float> >':
                 name.extend([b.GetName()+'.Px()',b.GetName()+'.Py()',b.GetName()+'.Pz()',b.GetName()+'.E()'])
                 name.extend([b.GetName()+'.Pt()',b.GetName()+'.Eta()',b.GetName()+'.Phi()',b.GetName()+'.M()'])
         except:
@@ -204,9 +207,10 @@ def ListBranches(rootfile):
         if len(name)==0:
             name.append(b.GetName())
         name_list.extend(name)
-    print ('Branches from %s'%rootfile)
-    for l in name_list:
-        print ('\t%s'%l)
+    if verbose:
+        print ('Branches from %s'%rootfile)
+        for l in name_list:
+            print ('\t%s'%l)
     return name_list
 
 ##################################################################################################
@@ -313,7 +317,7 @@ if __name__=='__main__':
         CopyZip(args.zip[0][0],args.zip[0][1])
 
     if args.list is not None:
-        _ = ListBranches(args.list)
+        _ = ListBranches(args.list,verbose=True)
 
     if args.append is not None:
         if len(args.append[0])<=2:

@@ -12,10 +12,13 @@ import parameters
 
 
 class ProduceOutput:
-    def __init__(self,model,list_model,is_signal=False):
+    def __init__(self,model,list_model,is_signal=False,list_inputs=None):
         self.model = model              # Model of the NeuralNet
         self.is_signal = is_signal
         self.list_model = list_model
+        self.list_inputs = list_inputs
+        if self.list_inputs is None:
+            self.list_inputs = copy.deepcopy(parameters.inputs) 
 
     def OutputFromTraining(self,data,path_output,output_name=None):
         """
@@ -24,13 +27,12 @@ class ProduceOutput:
             If output_name is specified, the whole data will be written in 'output_name'.root
                 if not, the tags in the dataframe are used to split into different files with names 'tag'.root
         """
-        list_inputs = copy.deepcopy(parameters.inputs)
         # If signal, decouple the data #
         if self.is_signal:
             data = Decoupler(data)
             list_inputs += ['mH_MEM','mA_MEM'] 
 
-        inputs = data[list_inputs].values
+        inputs = data[self.list_inputs].values
         output = np.empty((inputs.shape[0],0))
         columns = []
 
@@ -85,7 +87,7 @@ class ProduceOutput:
             logging.info('Output saved as : '+full_output_name)
 
          
-    def OutputNewData(self,input_dir,list_sample,path_output):
+    def OutputNewData(self,input_dir,list_sample,path_output,variables=None):
         """
             Given a model, produce the output 
             The Network has never seen this data !
@@ -98,9 +100,12 @@ class ProduceOutput:
             logging.info('Looking at %s'%f)
 
             # Get the data #
-            variables = parameters.inputs+parameters.outputs+parameters.other_variables
+            if variables is None:
+                var = parameters.inputs+parameters.outputs+parameters.other_variables
+            else:
+                var = copy.deepcopy(variables)
             data = Tree2Pandas(input_file=full_path,
-                               variables=variables,
+                               variables=var,
                                weight=parameters.weights,
                                reweight_to_cross_section=False)
             if data.shape[0]==0:

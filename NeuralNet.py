@@ -243,7 +243,7 @@ class HyperModel:
     #############################################################################################
     # HyperRestore #
     #############################################################################################
-    def HyperRestore(self,inputs,batch_size=32):
+    def HyperRestore(self,inputs,batch_size=32,verbose=0):
         """
         Retrieve a zip containing the best model, parameters, x and y data, ... and restores it
         Produces an output from the input numpy array
@@ -257,6 +257,6 @@ class HyperModel:
         a = Restore(os.path.join(parameters.main_path,'model',self.name+'_'+self.sample+'.zip'),custom_objects = custom_objects)
 
         # Output of the model #
-        outputs = a.model.predict(inputs)
+        outputs = a.model.predict(inputs,batch_size=batch_size,verbose=verbose)
 
         return outputs

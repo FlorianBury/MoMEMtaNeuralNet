@@ -7,7 +7,7 @@
 #SBATCH --mem-per-cpu=5000 # megabytes
 #SBATCH --partition=Def
 #SBATCH --qos=normal
-#SBATCH --array=1-100
+#SBATCH --array=1-200
 #
 
 python AcceptanceAndXsecGraph.py --bins 500 --max 3500 --xsec
