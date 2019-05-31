@@ -15,7 +15,7 @@ from CP3SlurmUtils.Exceptions import CP3SlurmUtilsException
 # Personal files #
 import parameters
 
-def submit_on_slurm(name,tt,dy,hza,classes,debug=False):
+def submit_on_slurm(name,tt,dy,hza,classes,binary,debug=False):
     config = Configuration()
 
     config.sbatch_partition = 'Def'
@@ -38,6 +38,8 @@ def submit_on_slurm(name,tt,dy,hza,classes,debug=False):
         config.payload += " --HToZA"
     if classes:
         config.payload += " --class"
+    if binary:
+        config.payload += " --binary"
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     out_dir = parameters.main_path

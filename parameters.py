@@ -28,9 +28,10 @@ output_ratio = 0.2      # Output set for plotting later
 ######################################  Name   ########################################
 # Model name (only for scans)
 #model = 'NeuralNetModel' 
-model = 'ClassificationModel'
+#model = 'ClassificationModel'
+model = 'BinaryModel'
 # scaler and mask names #
-suffix = 'class_back' 
+suffix = 'binary_back' 
 # scaler_name -> 'scaler_{suffix}.pkl'  If does not exist will be created 
 # mask_name -> 'mask_{suffix}_{sample}.npy'  If does not exist will be created 
 
@@ -40,14 +41,14 @@ eval_criterion = "eval_error" # either val_loss or eval_error
     
 #################################  Scan dictionary   ##################################
 # Classification #
-# /!\ Lists mus always contain something (even if 0), otherwise 0 hyperparameters #
+# /!\ Lists must always contain something (even if 0), otherwise 0 hyperparameters #
 p = { 
     'lr' : [0.0001], 
     'first_neuron' : [100,200,300,400,500],
     'activation' : [relu],
-    'dropout' : [0],
+    'dropout' : [0,0.1],
     'hidden_layers' : [2,3,4,5,6], # does not take into account the first layer
-    'output_activation' : [sigmoid],
+    'output_activation' : [tanh],
     'l2' : [0,0.1,0.2,0.3,0.4,0.5],
     'optimizer' : [Adam],  
     'epochs' : [300],   
@@ -101,8 +102,8 @@ inputs = [
          #'met_phi-lep1_p4.Phi()',
 
          #######   Classification ##########
-         '-log10(output_TT)',
-         '-log10(output_DY)',
+         '-log10(weight_TT)',
+         '-log10(weight_DY)',
          #'-log10(weight_HToZA_mH_200_mA_50)',
          #'-log10(weight_HToZA_mH_200_mA_100)',
          #'-log10(weight_HToZA_mH_250_mA_50)', 

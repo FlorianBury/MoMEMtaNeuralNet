@@ -208,9 +208,6 @@ class ProcessEllipse:
             self._concatenate()
             self._saveAsROOT()
 
-        self._getFPRAndTPR()
-        self._makeROC()
-
     def _getCenter(self):
         with open(self.path_json) as json_file:
             data_json = json.load(json_file)
@@ -252,20 +249,46 @@ class ProcessEllipse:
         df = pd.concat(df,axis=0)
         self.data = df
         del df
+       
+
+    def _saveAsROOT(self):
+        output = self.data.to_records(index=False,column_dtypes='float64')
+        output.dtype.names = [(name.replace('.','_').replace('(','').replace(')','').replace('-','_minus_').replace('*','_times_')) for name in output.dtype.names] # root_numpy issues
+        array2root(output,self.root_path,mode='recreate') 
+        print('Output saved as : '+self.root_path)
+    def _recoverFromROOT(self):
+        selection = self.sigmas_columns + ['Prob_HToZA','target'] # TODO remove later
+        list_variables = ListBranches(self.save_path)
+        #self.data = Tree2Pandas(input_file=self.root_path,variables=list_variables)
+        self.data = Tree2Pandas(input_file=self.root_path,variables=selection)
+        print ('Output recovered from : '+self.root_path)
+        
+
+#################################################################################################
+# ProcessROC#
+#################################################################################################
+class ProcessROC:
+    def __init__(self,inst_ellipse):
+        self.inst_ellipse = inst_ellipse
+        self.path_ROC = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/Ellipses/ROC/'
+
+        self._getFPRAndTPR()
+        self._makeROC()
+
 
     def _getFPRAndTPR(self):
-        selection = self.sigmas_columns + ['Prob_HToZA','target'] #TODO : weight
+        selection = self.inst_ellipse.sigmas_columns + ['Prob_HToZA','target'] #TODO : weight
 
         self.scores = {}
         # Loop over the ellipses #
         print ('Process the ellipse with the DNN')
-        for i in range(len(self.sigmas)):
-            print ('....... Processing ellipse with sigma = %0.1f'%self.sigmas[i])
+        for i in range(len(self.inst_ellipse.sigmas)):
+            print ('....... Processing ellipse with sigma = %0.1f'%self.inst_ellipse.sigmas[i])
             #Select subDF #
-            df = copy.deepcopy(self.data[selection])
+            df = copy.deepcopy(self.inst_ellipse.data[selection])
 
             # Get ellipses FPR and TPR #
-            idx_ell_in = df[self.sigmas_columns[i]]==1
+            idx_ell_in = df[self.inst_ellipse.sigmas_columns[i]]==1
             idx_ell_out = np.invert(idx_ell_in)
             tp_ell = np.sum(np.logical_and(idx_ell_in,df['target']==1)*1)
             tn_ell = np.sum(np.logical_and(idx_ell_out,df['target']==0)*1)
@@ -291,7 +314,7 @@ class ProcessEllipse:
                 tpr.append(tp/(tp+fn))
                 fpr.append(fp/(fp+tn))
 
-            self.scores[(self.sigmas[i],tpr_ell,fpr_ell)] = np.c_[tpr,fpr]
+            self.scores[(self.inst_ellipse.sigmas[i],tpr_ell,fpr_ell)] = np.c_[tpr,fpr]
             del df
 
 
@@ -300,6 +323,9 @@ class ProcessEllipse:
         fig = plt.figure(figsize=(9,7))
         color= iter(cm.rainbow(np.linspace(0,1,len(self.scores))))
         print ('Starting the ROC section')
+        # Get the roc curve for ellipses #
+        list_tpr_ell = [e[1] for e in self.scores.keys()]
+        list_fpr_ell = [e[2] for e in self.scores.keys()]
         # Loop over ellipses #
         for key,val in self.scores.items():
             # Unpack 
@@ -311,27 +337,16 @@ class ProcessEllipse:
             c = next(color)
             plt.plot(tpr,fpr,color=c,label='Ellipse + DNN')
             plt.scatter(tpr_ell,fpr_ell,marker='X',s=100,color=c,label='Ellipse WP : %0.1f sigmas'%sigma)
-            plt.legend(loc='lower right',ncol=2)
-            plt.yscale('symlog', linthreshy=0.00001)
-            plt.xlim([0, 1])
-            plt.ylim([0, 1])
-            plt.xlabel('Signal selection efficiency')
-            plt.ylabel('Background selection efficiency')
-            plt.suptitle('ROC curve MH = %0.2f GeV MA = %0.2f GeV'%(self.mH,self.mA))
-            plt.grid(b=True,which='both',axis='both')
-            fig.savefig(('ROC_mH_%0.2f_mA_%0.2f'%(self.mH,self.mA)).replace('.','p'))
-            
-
-    def _saveAsROOT(self):
-        output = self.data.to_records(index=False,column_dtypes='float64')
-        output.dtype.names = [(name.replace('.','_').replace('(','').replace(')','').replace('-','_minus_').replace('*','_times_')) for name in output.dtype.names] # root_numpy issues
-        array2root(output,self.root_path,mode='recreate') 
-        print('Output saved as : '+self.root_path)
-    def _recoverFromROOT(self):
-        selection = self.sigmas_columns + ['Prob_HToZA','target'] # TODO remove later
-        list_variables = ListBranches(self.save_path)
-        #self.data = Tree2Pandas(input_file=self.root_path,variables=list_variables)
-        self.data = Tree2Pandas(input_file=self.root_path,variables=selection)
-        print ('Output recovered from : '+self.root_path)
-        
-
+        plt.plot(list_tpr_ell,list_fpr_ell,color='k',label='Ellipse ROC curve')
+        plt.legend(loc='lower right',ncol=2)
+        plt.yscale('symlog', linthreshy=0.00001)
+        plt.xlim([0, 1])
+        plt.ylim([0, 1])
+        plt.xlabel('Signal selection efficiency')
+        plt.ylabel('Background selection efficiency')
+        plt.suptitle('ROC curve MH = %0.2f GeV MA = %0.2f GeV'%(self.inst_ellipse.mH,self.inst_ellipse.mA))
+        plt.grid(b=True,which='both',axis='both')
+        roc_name = os.path.join(self.path_ROC,('ROC_mH_%0.2f_mA_%0.2f'%(self.inst_ellipse.mH,self.inst_ellipse.mA)).replace('.','p')+'.png')
+        fig.savefig(roc_name)
+        print ('ROC curve saved as %s'%roc_name)
+     

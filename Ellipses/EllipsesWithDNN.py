@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 import enlighten
 
-from Processing import ProcessDNN ,ProcessEllipse#, ProcessROC
+from Processing import ProcessDNN ,ProcessEllipse, ProcessROC
 
 def main():
     #############################################################################################
@@ -108,11 +108,12 @@ def main():
                           mA = mA,
                           mH = mH,
                           sigmas = sigmas,
-                          save_path = os.path.join(path_save,'Processed'+os.path.basename(list_HToZA[0])),
+                          save_path = os.path.join(path_save,os.path.basename(list_HToZA[0])),
                           force = opt.force)            
-                          
 
-
+    # Instantiate ellipse # 
+    if opt.ROC:
+        ROC = ProcessROC(ellipse)
                 
               
 

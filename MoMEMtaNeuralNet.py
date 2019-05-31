@@ -43,14 +43,16 @@ def get_options():
     a = parser.add_argument_group('Scan, deploy and restore arguments')
     a.add_argument('-s','--scan', action='store', required=False, type=str, default='',
         help='Name of the scan to be used (modify scan parameters in NeuralNet.py)')
-    a.add_argument('-dy','--DY', action='store_true', required=False, default=False,
+    a.add_argument('--DY', action='store_true', required=False, default=False,
         help='Use DY MEM weights (must be specified if --scan or --report or --output are used')
-    a.add_argument('-tt','--TT', action='store_true', required=False, default=False,
+    a.add_argument('--TT', action='store_true', required=False, default=False,
         help='Use TT MEM weights (must be specified if --scan or --report or --output are used')
-    a.add_argument('-hza','--HToZA', action='store_true', required=False, default=False,
+    a.add_argument('--HToZA', action='store_true', required=False, default=False,
         help='Use HToZA MEM weights (must be specified if --scan or --report or --output are used')
     a.add_argument('--class', dest='classes', action='store_true', required=False, default=False,
         help='Turn the tags into a one-hot vector for the classification')
+    a.add_argument('--binary', action='store_true', required=False, default=False,
+        help='Turn the tags into targets (0 or 1) for the binary classification (background vs signal)')
     a.add_argument('-task','--task', action='store', required=False, type=str, default='',
         help='Name of dict to be used for scan (Used by function itself when submitting jobs or DEBUG)')
 
@@ -89,9 +91,9 @@ def get_options():
 
     opt = parser.parse_args()
 
-    if not opt.DY and not opt.TT and not opt.HToZA and not opt.classes:
+    if not opt.DY and not opt.TT and not opt.HToZA and not opt.classes and not opt.binary:
         if opt.scan!='' or opt.report!='' or opt.submit!='':
-            logging.critical('Either --DY, --TT, --HToZA or --classes must be specified')  
+            logging.critical('Either --DY, --TT, --HToZA --class or --binary must be specified')  
             sys.exit(1)
     if opt.split!=0 or opt.submit:
         if opt.scan!='' or opt.report!='':
@@ -155,9 +157,9 @@ def main():
         if opt.submit!='':
             logging.info('Submitting jobs')
             if opt.resubmit:
-                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug,tt=opt.TT,dy=opt.DY,hza=opt.HToZA,classes=opt.classes)
+                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug,tt=opt.TT,dy=opt.DY,hza=opt.HToZA,classes=opt.classes,binary=opt.binary)
             else:
-                submit_on_slurm(name=opt.submit,debug=opt.debug,tt=opt.TT,dy=opt.DY,hza=opt.HToZA,classes=opt.classes)
+                submit_on_slurm(name=opt.submit,debug=opt.debug,tt=opt.TT,dy=opt.DY,hza=opt.HToZA,classes=opt.classes,binary=opt.binary)
         sys.exit()
 
     #############################################################################################
@@ -169,6 +171,7 @@ def main():
         dict_TT = ConcatenateCSV(opt.csv,'TT')
         dict_HToZA = ConcatenateCSV(opt.csv,'HToZA')
         dict_class = ConcatenateCSV(opt.csv,'class')
+        dict_binary = ConcatenateCSV(opt.csv,'binary')
         
         dict_DY.Concatenate()
         dict_DY.WriteToFile()
@@ -181,6 +184,9 @@ def main():
 
         dict_class.Concatenate()
         dict_class.WriteToFile()
+
+        dict_binary.Concatenate()
+        dict_binary.WriteToFile()
 
         sys.exit()
 
@@ -200,6 +206,9 @@ def main():
         if opt.classes:
             instance = HyperModel(opt.report,'class')
             instance.HyperReport(parameters.eval_criterion)
+        if opt.binary:
+            instance = HyperModel(opt.report,'binary')
+            instance.HyperReport(parameters.eval_criterion)
 
         sys.exit()
 
@@ -211,10 +220,11 @@ def main():
     if opt.TT      : list_model.append('TT') 
     if opt.HToZA   : list_model.append('HToZA') 
     if opt.classes : list_model.append('class') 
+    if opt.binary    : list_model.append('binary') 
 
     if opt.model != '' and len(opt.output) != 0:
         # Create directory #
-        path_output = os.path.join(parameters.path_out,opt.model)#,key+'_weights')
+        path_output = os.path.join(parameters.path_out,opt.model)
         if not os.path.exists(path_output):
             os.mkdir(path_output)
 
@@ -237,7 +247,7 @@ def main():
     # Data Input and preprocessing #
     #############################################################################################
     # Input path #
-    logging.info('Starting histograms input')
+    logging.info('Starting tree importation')
 
     # Import variables from parameters.py
     variables = parameters.inputs+parameters.outputs+parameters.other_variables
@@ -382,6 +392,23 @@ def main():
         train_all = pd.concat([train_all,train_cat],axis=1)
         test_all = pd.concat([test_all,test_cat],axis=1)
 
+    # Turns signal or background into 0 or 1 #
+    if opt.binary:
+        # Get the booleans #
+        train_target = train_all['tag']=='HToZA'
+        test_target = test_all['tag']=='HToZA'
+        # From booleans to 0 or 1 #
+        train_target *= 1 
+        test_target *= 1
+        # Turn into DF #
+        train_binary = pd.DataFrame(train_target,index=train_all.index)
+        train_binary.columns = ['Prob_signal']
+        test_binary = pd.DataFrame(test_target,index=test_all.index)
+        test_binary.columns = ['Prob_signal']
+        # Concat #
+        train_all = pd.concat([train_all,train_binary],axis=1)
+        test_all = pd.concat([test_all,test_binary],axis=1)
+
     logging.info("Sample size seen by network : %d"%train_all.shape[0])
     logging.info("Sample size for the output  : %d"%test_all.shape[0])
 
@@ -407,6 +434,10 @@ def main():
         if opt.classes:
             instance = HyperModel(opt.scan,'class')
             instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['DY','HToZA','TT'],task=opt.task)
+            instance.HyperDeploy(best='eval_error')
+        if opt.binary:
+            instance = HyperModel(opt.scan,'binary')
+            instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['Prob_signal'],task=opt.task)
             instance.HyperDeploy(best='eval_error')
         
     if opt.model!='': 
