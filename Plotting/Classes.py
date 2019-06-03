@@ -341,32 +341,19 @@ class Plot_Multi_TH1:
         
 ####################################      Plot_ROC       ########################################
 class Plot_ROC:
-    def __init__(self,variable1,variable2,weight,title,cut=''):
-        self.variable1 = variable1
-        self.variable2 = variable2
+    def __init__(self,variable,weight,title,cut=''):
+        self.variable = variable
         self.weight = weight
         self.cut = cut
         self.title = title
-        self.output = []
-        self.target = []
+        self.output = np.empty((0,1))
+        self.target = np.empty((0,1))
 
-    def AddToROC(self,filename,tree,sample):
-        file_handle = TFile.Open(filename)
-        tree = file_handle.Get(tree)
-        var1 = array('d',[0])
-        var2 = array('d',[0])
-        tree.SetBranchAddress( self.variable1, var1 )
-        tree.SetBranchAddress( self.variable2, var2 )
-        i = 0
-        while tree.GetEntry(i):
-            i += 1
-            self.output.append(var1[0]/(var2[0]+var1[0]))
-
-    
-        if sample == 'DY':
-            self.target.extend([0]*i)
-        elif sample == 'TT':
-            self.target.extend([1]*i)
+    def AddToROC(self,filename,tree,target):
+        out = rec2array(root2array(filename,tree,branches=self.variable,selection=self.cut))
+        tar = np.ones((out.shape[0],1))*target
+        self.output = np.concatenate((self.output,out),axis=0)
+        self.target = np.concatenate((self.target,tar),axis=0)
 
     def ProcessROC(self):
         self.fpr, self.tpr, threshold = metrics.roc_curve(self.target,self.output)

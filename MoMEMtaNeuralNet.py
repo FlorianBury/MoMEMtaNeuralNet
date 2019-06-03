@@ -105,7 +105,7 @@ def get_options():
     if opt.split!=0 and (opt.report!='' or opt.output!='' or opt.csv!='' or opt.scan!=''):
         logging.warning('Since you have specified a split, all the other arguments will be skipped')
     if opt.csv!='' and (opt.report!='' or opt.output!='' or opt.scan!=''):
-        logging.warning('Since you have specifised a csv concatenation, all the other arguments will be skipped')
+        logging.warning('Since you have specified a csv concatenation, all the other arguments will be skipped')
     if opt.report!='' and (opt.output!='' or opt.scan!=''):
         logging.warning('Since you have specified a scan report, all the other arguments will be skipped')
     if (opt.test or len(opt.output)!=0) and opt.output == '': 
@@ -265,8 +265,8 @@ def main():
     data_DY = LoopOverTrees(input_dir=samples_path,
                             variables=variables,
                             weight=parameters.weights,
-                            reweight_to_cross_section=True,
-                            #reweight_to_cross_section=False,
+                            #reweight_to_cross_section=True,
+                            reweight_to_cross_section=False,
                             list_sample=samples_dict['DY'],
                             tag='DY')
     logging.info('DY sample size : {}'.format(data_DY.shape[0]))
@@ -274,8 +274,8 @@ def main():
     data_TT = LoopOverTrees(input_dir=samples_path,
                             variables=variables,
                             weight=parameters.weights,
-                            reweight_to_cross_section=True,
-                            #reweight_to_cross_section=False,
+                            #reweight_to_cross_section=True,
+                            reweight_to_cross_section=False,
                             list_sample=samples_dict['TT'],
                             tag='TT')
     logging.info('TT sample size : {}'.format(data_TT.shape[0]))
@@ -402,9 +402,9 @@ def main():
         test_target *= 1
         # Turn into DF #
         train_binary = pd.DataFrame(train_target,index=train_all.index)
-        train_binary.columns = ['Prob_signal']
+        train_binary.columns = ['Target_signal']
         test_binary = pd.DataFrame(test_target,index=test_all.index)
-        test_binary.columns = ['Prob_signal']
+        test_binary.columns = ['Target_signal']
         # Concat #
         train_all = pd.concat([train_all,train_binary],axis=1)
         test_all = pd.concat([test_all,test_binary],axis=1)
@@ -437,7 +437,7 @@ def main():
             instance.HyperDeploy(best='eval_error')
         if opt.binary:
             instance = HyperModel(opt.scan,'binary')
-            instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['Prob_signal'],task=opt.task)
+            instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['Target_signal'],task=opt.task)
             instance.HyperDeploy(best='eval_error')
         
     if opt.model!='': 

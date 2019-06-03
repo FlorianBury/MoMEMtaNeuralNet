@@ -34,6 +34,8 @@ def main():
                   help='Maximum values for mA and mH in the graph')
     parser.add_argument('--xsec', action='store_true', required=False, default=False,
             help='Compute the cross-sections and produce graphs')
+    parser.add_argument('--recover', action='store_true', required=False, default=False,
+            help='Only use the already computed xsec files from Sushy')
     parser.add_argument('--acceptance', action='store_true', required=False, default=False,
             help='Compute the acceptance and produce graph')
     parser.add_argument('--combine', action='store_true', required=False, default=False,
@@ -104,7 +106,7 @@ def main():
                 hist.GetXaxis().SetRangeUser(0,opt.max)
                 hist.GetYaxis().SetRangeUser(0,opt.max)
                 hist.SetContour(opt.bins)
-                hist.SetMaximum(0.3)
+                #hist.SetMaximum(0.3)
                 hist.SetMinimum(0.)
                 hist.GetXaxis().SetRangeUser(0,1000)
                 hist.GetYaxis().SetRangeUser(0,1000)
@@ -145,8 +147,8 @@ def main():
             m_H = mH[i]
             XsecVis =  xsec.Interpolate(m_A,m_H)
             XsecVis *= BR_HtoZA.Interpolate(m_A,m_H)
-            #XsecVis *= BR_Atobb.Interpolate(m_A,m_H)
-            #XsecVis *= BR_Ztoll.Interpolate(m_A,m_H)
+            XsecVis *= BR_Atobb.Interpolate(m_A,m_H)
+            XsecVis *= BR_Ztoll.Interpolate(m_A,m_H)
             XsecVis *= acc.Interpolate(m_A,m_H)
             comb_graph.SetPoint(i,m_A,m_H,XsecVis)
             pbar.update()
@@ -165,8 +167,6 @@ def main():
     #############################################################################################
     def ExtrapolateGraph(graph,points):
         print ('Extrapolation')
-        manager = enlighten.get_manager()
-        pbar = manager.counter(total=N_plane, desc='Progress', unit='Point')
         new_graph = TGraph2D(N_plane)
         # Extrapolation #
         #from scipy.interpolate import interp2d
@@ -192,6 +192,8 @@ def main():
         print (popt)
 
 
+        manager = enlighten.get_manager()
+        pbar = manager.counter(total=N_plane, desc='Progress', unit='Point')
         for i in range(N_plane):
             pbar.update()
             m_A = mA_plane[i]
@@ -226,8 +228,44 @@ def main():
         return new_graph
 
     #############################################################################################
+    # ImproveGraph #
+    #############################################################################################
+    def ImproveGraph(graph):
+        print ('Improving graph')
+        new_graph = TGraph2D(mA_plane.shape[0])
+        manager = enlighten.get_manager()
+        pbar = manager.counter(total=mA_plane.shape[0], desc='Progress', unit='Point')
+        for i in range(mA_plane.shape[0]):
+            new_graph.SetPoint(i,mA_plane[i],mH_plane[i],graph.Interpolate(mA_plane[i],mH_plane[i])) 
+            pbar.update()
+        manager.stop()
+
+        return new_graph
+            
+    #############################################################################################
     # Cross section and Branching Ratio graphs #
     #############################################################################################
+    if opt.recover:   
+        save_dir = '/home/ucl/cp3/fbury/scratch/CMSSW_7_1_20_patch2/src/cp3_llbb/Calculators42HDM/Scan/*.out'
+        files = glob.glob(save_dir)
+        N_files = len(files)
+        mA = []
+        mH = []
+        print ('Recovering the outputs from Sushi')
+        manager = enlighten.get_manager()
+        pbar = manager.counter(total=N_files, desc='Progress', unit='Files')
+        for i,f in enumerate(files):
+            ints = re.findall(r"\d+", os.path.basename(f))
+            if int(ints[0])>1500 or int(ints[1])>1500:
+                continue
+            mH.append(int(ints[0]))
+            mA.append(int(ints[1]))
+            print ('\tMH = %d MA = %d'%(int(ints[1]),int(ints[0])))
+        mA = np.asarray(mA)
+        mH = np.asarray(mH)
+        N = mA.shape[0]
+        print ("Total configurations %d"%N)
+        
     if opt.xsec:
         # Alexia's PhD thesis parameters
         sqrts = 13000
@@ -239,10 +277,10 @@ def main():
         outputFile = os.path.join(workdir,"out.dat")
 
         # Randomize mA and mH (launch multiple)
-        index = np.arange(N)
-        np.random.shuffle(index)
-        mA = mA[index]
-        mH = mH[index]
+        #index = np.arange(mA.shape[0])
+        #np.random.shuffle(index)
+        #mA = mA[index]
+        #mH = mH[index]
 
         # Initialize TGraph2D #
         graph_Xsec     = TGraph2D(N)
@@ -268,43 +306,82 @@ def main():
                             workdir = workdir)
         instance.setpdf('NNPDF30_lo_as_0130_nf_4')
 
+        if os.path.exists('xsec_arr.npy') and os.path.exists('BR_HtoZA_arr.npy') and os.path.exists('BR_Atobb_arr.npy'):
+            print ('Recovered npy files')
+            xsec_arr = np.load('xsec_arr.npy')
+            BR_HtoZA_arr = np.load('BR_HtoZA_arr.npy')
+            BR_Atobb_arr = np.load('BR_Atobb_arr.npy')
 
-        manager = enlighten.get_manager()
-        pbar = manager.counter(total=N, desc='Progress', unit='Point')
-        for i in range(N):
-            print ('-'*80)
-            print ('MH = %0.2f, MA = %0.2f'%(mH[i], mA[i]))
-            mhc = max(mH[i], mA[i])
-            m12 = math.sqrt(pow(mhc, 2) * tb / (1 + pow(tb, 2)))
-            # change the masses #
-            instance.setmA(mA[i])
-            instance.setmH(mH[i])
-            instance.setmHc(mhc)
-            instance.setm12(m12)
+            for i in range(xsec_arr.shape[0]):
+                graph_Xsec.SetPoint(i,xsec_arr[i,0],xsec_arr[i,1],xsec_arr[i,2])
+                graph_BR_HtoZA.SetPoint(i,BR_HtoZA_arr[i,0],BR_HtoZA_arr[i,1],BR_HtoZA_arr[i,2])
+                graph_BR_Atobb.SetPoint(i,BR_Atobb_arr[i,0],BR_Atobb_arr[i,1],BR_Atobb_arr[i,2])
+                graph_BR_Ztoll.SetPoint(i,BR_Atobb_arr[i,0],BR_Atobb_arr[i,1],3.3658 * 2 / 100)
+                
+        else:
+            manager = enlighten.get_manager()
+            pbar = manager.counter(total=N, desc='Progress', unit='Point')
+            xsec_arr = []
+            BR_HtoZA_arr = []
+            BR_Atobb_arr = []       
+            mH_arr = []
+            mA_arr = []
+            for i in range(N):
+                print ('-'*80)
+                print ('MH = %0.2f, MA = %0.2f'%(mH[i], mA[i]))
+                mhc = max(mH[i], mA[i])
+                m12 = math.sqrt(pow(mhc, 2) * tb / (1 + pow(tb, 2)))
+                # change the masses #
+                instance.setmA(int(mA[i]))
+                instance.setmH(int(mH[i]))
+                instance.setmHc(mhc)
+                instance.setm12(m12)
+                mH_arr.append(mH[i])
+                mA_arr.append(mA[i])
 
-            # Get BR #
-            instance.computeBR()
-            # Get Xsec #
-            try:
-                xsec, _, _, _ = instance.getXsecFromSusHi()
-                print ('Xsec      : ',xsec)
-            except Exception as e:
-                print ('Exception "%s" -> Xsec put to 0'%e)
-                xsec = 0
-            # Record values #
-            print ('H->ZA     : ',instance.HtoZABR)
-            print ('A->bb     : ',instance.AtobbBR)
-            print ('Z->ll     : ',3.3658 * 2 / 100)
-            print ('Xsec x BR : ',xsec*instance.HtoZABR*instance.AtobbBR*3.3658 * 2 / 100)
+                # Get BR #
+                instance.computeBR()
+                # Get Xsec #
+                try:
+                    xsec, _, _, _ = instance.getXsecFromSusHi()
+                    print ('Xsec      : ',xsec)
+                except Exception as e:
+                    print ('Exception "%s" -> Xsec put to 0'%e)
+                    xsec = 0
+                # Record values #
+                print ('H->ZA     : ',instance.HtoZABR)
+                print ('A->bb     : ',instance.AtobbBR)
+                print ('Z->ll     : ',3.3658 * 2 / 100)
+                print ('Xsec x BR : ',xsec*instance.HtoZABR*instance.AtobbBR*3.3658 * 2 / 100)
 
-            graph_Xsec.SetPoint(i,mA[i],mH[i],xsec)
-            graph_BR_HtoZA.SetPoint(i,mA[i],mH[i],instance.HtoZABR)
-            graph_BR_Atobb.SetPoint(i,mA[i],mH[i],instance.AtobbBR)
-            graph_BR_Ztoll.SetPoint(i,mA[i],mH[i],3.3658 * 2 / 100)
+                graph_Xsec.SetPoint(i,mA[i],mH[i],xsec)
+                graph_BR_HtoZA.SetPoint(i,mA[i],mH[i],instance.HtoZABR)
+                graph_BR_Atobb.SetPoint(i,mA[i],mH[i],instance.AtobbBR)
+                graph_BR_Ztoll.SetPoint(i,mA[i],mH[i],3.3658 * 2 / 100)
+                xsec_arr.append(xsec)
+                BR_HtoZA_arr.append(instance.HtoZABR)
+                BR_Atobb_arr.append(instance.AtobbBR)
 
-            # Update loading bar #
-            pbar.update()
-        manager.stop()
+                # Update loading bar #
+                pbar.update()
+            manager.stop()
+
+            # Save numpy objects #
+            xsec_arr = np.asarray(xsec_arr)
+            BR_HtoZA_arr = np.asarray(BR_HtoZA_arr)
+            BR_Atobb_arr = np.asarray(BR_Atobb_arr)
+            mA_arr = np.asarray(mA_arr)
+            mH_arr = np.asarray(mH_arr)
+            np.save('xsec_arr',np.c_[mA_arr,mH_arr,xsec_arr])
+            np.save('BR_HtoZA_arr',np.c_[mA_arr,mH_arr,BR_HtoZA_arr])
+            np.save('BR_Atobb_arr',np.c_[mA_arr,mH_arr,BR_Atobb_arr])
+
+        # Improve graphs #
+        graph_Xsec = ImproveGraph(graph_Xsec)
+        graph_BR_HtoZA = ImproveGraph(graph_BR_HtoZA)
+        graph_BR_Atobb = ImproveGraph(graph_BR_Atobb)
+
+        # Save graph #
 
         graph_Xsec.SetNpx(500)
         graph_Xsec.SetNpy(500)

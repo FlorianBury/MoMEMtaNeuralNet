@@ -1,5 +1,6 @@
 import os
 import copy
+import sys
 import logging
 import numpy as np
 import pandas as pd
@@ -38,20 +39,22 @@ class ProduceOutput:
 
         # Get Model Output #
         for model in self.list_model:
-            if model not in ['DY','TT','HToZA','class']:
-                logging.critical('Wrong model type specified : %s must be either "DY", "TT", "HToZA" or "class"')
+            if model not in ['DY','TT','HToZA','class','binary']:
+                logging.critical('Wrong model type specified : %s must be either "DY", "TT", "HToZA", "class" or binary')
                 sys.exit(1)
-            #try:
+
             instance = HyperModel(self.model,model)
             if model in ['DY','TT','HToZA']:
                 out = np.power(10,-instance.HyperRestore(inputs))
                 columns.append('output_%s'%model)
-            elif model in ['class']:
+            else:
                 out = instance.HyperRestore(inputs)
-                columns.extend(['Prob_MEM_DY','Prob_MEM_HToZA','Prob_MEM_TT'])
+                if model in ['binary']:
+                    columns.extend(['Prob_MEM_signal'])
+                if model in ['class']:
+                    columns.extend(['Prob_MEM_DY','Prob_MEM_HToZA','Prob_MEM_TT'])
+                
             output = np.c_[output,out]
-            #except Exception as e:
-            #    logging.warning('Could not find the %s model due to "%s"'%(model,e))
 
         # From numpy output array to df #
         output_df = pd.DataFrame(output,columns=columns,index=data.index)

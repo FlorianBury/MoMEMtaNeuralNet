@@ -56,7 +56,9 @@ def main():
                     #      override_params = {}),
                     #Plots(name = 'valid_weights_HToZA',
                     #      override_params = {}),
-                    Plots(name = 'valid_weights_class',
+                    #Plots(name = 'valid_weights_class',
+                    #      override_params = {}),
+                    Plots(name = 'valid_weights_binary',
                           override_params = {}),
                     #Plots(name = 'invalid_DY_weights',
                     #      override_params = {}),
@@ -86,7 +88,9 @@ def main():
                     #         class_name = 'Plot_TH1'),
                     #Template(tpl = 'TH1_interpolation.yml.tpl',
                     #          class_name = 'Plot_TH1'),
-                    Template(tpl = 'TH1_class.yml.tpl',
+                    #Template(tpl = 'TH1_class.yml.tpl',
+                    #         class_name = 'Plot_TH1'),
+                    Template(tpl = 'TH1_binary.yml.tpl',
                              class_name = 'Plot_TH1'),
 
                     #########       TH1 Ratio       ###########
@@ -96,13 +100,17 @@ def main():
                     #         class_name = 'Plot_Ratio_TH1'),
                     #Template(tpl = 'TH1Ratio_interpolation.yml.tpl',
                     #         class_name = 'Plot_Ratio_TH1'),
-                    Template(tpl = 'TH1Ratio_class.yml.tpl',
+                    #Template(tpl = 'TH1Ratio_class.yml.tpl',
+                    #         class_name = 'Plot_Ratio_TH1'),
+                    Template(tpl = 'TH1Ratio_binary.yml.tpl',
                              class_name = 'Plot_Ratio_TH1'),
 
                     #########       TH1 Multi       ###########
                     #Template(tpl = 'TH1Multi_signal.yml.tpl',
                     #         class_name = 'Plot_Multi_TH1'),
-                    Template(tpl = 'TH1Multi_class.yml.tpl',
+                    #Template(tpl = 'TH1Multi_class.yml.tpl',
+                    #         class_name = 'Plot_Multi_TH1'),
+                    Template(tpl = 'TH1Multi_binary.yml.tpl',
                              class_name = 'Plot_Multi_TH1'),
                     #Template(tpl = 'TH1Multi_interpolation.yml.tpl',
                     #         class_name = 'Plot_Multi_TH1'),
@@ -112,8 +120,8 @@ def main():
                     #         class_name = 'Plot_TH2'),
                     #Template(tpl = 'TH2_signal.yml.tpl',
                     #         class_name = 'Plot_TH2'),
-                    Template(tpl = 'TH2_class.yml.tpl',
-                             class_name = 'Plot_TH2'),
+                    #Template(tpl = 'TH2_class.yml.tpl',
+                    #         class_name = 'Plot_TH2'),
                 ] 
 
     # Make the output dir #
@@ -133,8 +141,18 @@ def main():
             logging.error('Could not find %s at %s'%(obj.name,obj.path))
 
         # Start ROC curve #
-        instance_ROC_MEM = Plot_ROC('weight_TT','weight_DY','total_weight','MEM')
-        instance_ROC_DNN = Plot_ROC('output_TT','output_DY','total_weight','DNN')
+        instance_ROC_MEM = Plot_ROC(variable = ['weight_TT/(weight_TT+weight_DY)'],
+                                    weight = 'total_weight',
+                                    title = 'MEM')
+        instance_ROC_MEM = Plot_ROC(variable = ['output_TT/(output_TT+output_DY)'],
+                                    weight = 'total_weight',
+                                    title = 'DNN')
+        instance_binary_ROC_MEM = Plot_ROC(variable = ['Prob_MEM_signal'],
+                                           weight = 'total_weight',
+                                           title = 'MEM')
+        instance_binary_ROC_DNN = Plot_ROC(variable = ['Prob_DNN_signal'],
+                                           weight = 'total_weight',
+                                           title = 'DNN')
         instance_ROC_Multi_MEM = Plot_Multi_ROC(
                             classes = ['DY','HToZA','TT'],
                             labels = ['P(Drell-Yann)',r'P(Signal H$\rightarrow ZA))$',r'P($t\bar{t}$)'],
@@ -166,35 +184,50 @@ def main():
             if opt.ROC:
                 if os.path.basename(f).startswith('DY'):
                     logging.info('\tAdded to ROC as DY')
+                    #try:
+                    #    instance_ROC_MEM.AddToROC(f,'tree',0)
+                    #    instance_ROC_DNN.AddToROC(f,'tree',0)
+                    #except Exception as e:
+                    #    logging.warning('Could not compute ROC due to "%s"'%(e))
                     try:
-                        instance_ROC_MEM.AddToROC(f,'tree','DY')
-                        instance_ROC_DNN.AddToROC(f,'tree','DY')
+                        instance_binary_ROC_MEM.AddToROC(f,'tree',0)
+                        instance_binary_ROC_DNN.AddToROC(f,'tree',0)
                     except Exception as e:
-                        logging.warning('Could not compute ROC due to "%s"'%(e))
-                    try:
-                        instance_ROC_Multi_MEM.AddToROC(f,'tree',list_ROC_MEM,'DY')
-                        instance_ROC_Multi_DNN.AddToROC(f,'tree',list_ROC_DNN,'DY')
-                    except Exception as e:
-                        logging.warning('Could not compute Multi ROC due to "%s"'%(e))
+                        logging.warning('Could not compute binary ROC due to "%s"'%(e))
+                    #try:
+                    #    instance_ROC_Multi_MEM.AddToROC(f,'tree',list_ROC_MEM,'DY')
+                    #    instance_ROC_Multi_DNN.AddToROC(f,'tree',list_ROC_DNN,'DY')
+                    #except Exception as e:
+                    #    logging.warning('Could not compute Multi ROC due to "%s"'%(e))
                 elif os.path.basename(f).startswith('TT'):
                     logging.info('\tAdded to ROC as TT')
+                    #try:
+                    #    instance_ROC_MEM.AddToROC(f,'tree',1)
+                    #    instance_ROC_DNN.AddToROC(f,'tree',1)
+                    #except Exception as e:
+                    #    logging.warning('Could not compute ROC due to "%s"'%(e))
                     try:
-                        instance_ROC_MEM.AddToROC(f,'tree','TT')
-                        instance_ROC_DNN.AddToROC(f,'tree','TT')
+                        instance_binary_ROC_MEM.AddToROC(f,'tree',0)
+                        instance_binary_ROC_DNN.AddToROC(f,'tree',0)
                     except Exception as e:
-                        logging.warning('Could not compute ROC due to "%s"'%(e))
-                    try:
-                        instance_ROC_Multi_MEM.AddToROC(f,'tree',list_ROC_MEM,'TT')
-                        instance_ROC_Multi_DNN.AddToROC(f,'tree',list_ROC_DNN,'TT')
-                    except Exception as e:
-                        logging.warning('Could not compute Multi ROC due to "%s"'%(e))
+                        logging.warning('Could not compute binary ROC due to "%s"'%(e))
+                    #try:
+                    #    instance_ROC_Multi_MEM.AddToROC(f,'tree',list_ROC_MEM,'TT')
+                    #    instance_ROC_Multi_DNN.AddToROC(f,'tree',list_ROC_DNN,'TT')
+                    #except Exception as e:
+                    #    logging.warning('Could not compute Multi ROC due to "%s"'%(e))
                 elif os.path.basename(f).startswith('HToZA'):
                     logging.info('\tAdded to ROC as HToZA')
                     try:
-                        instance_ROC_Multi_MEM.AddToROC(f,'tree',list_ROC_MEM,'HToZA')
-                        instance_ROC_Multi_DNN.AddToROC(f,'tree',list_ROC_DNN,'HToZA')
+                        instance_binary_ROC_MEM.AddToROC(f,'tree',1)
+                        instance_binary_ROC_DNN.AddToROC(f,'tree',1)
                     except Exception as e:
-                        logging.warning('Could not compute Multi ROC due to "%s"'%(e))
+                        logging.warning('Could not compute binary ROC due to "%s"'%(e))
+                    #try:
+                    #    instance_ROC_Multi_MEM.AddToROC(f,'tree',list_ROC_MEM,'HToZA')
+                    #    instance_ROC_Multi_DNN.AddToROC(f,'tree',list_ROC_DNN,'HToZA')
+                    #except Exception as e:
+                    #    logging.warning('Could not compute Multi ROC due to "%s"'%(e))
 
             ##############  HIST section ################ 
             # Loop over the templates #
@@ -217,22 +250,33 @@ def main():
                     except Exception as e:
                             logging.warning('Could not plot %s due to "%s"'%(name,e))
         if opt.ROC:
+            #try:
+            #    instance_ROC_MEM.ProcessROC()
+            #    instance_ROC_DNN.ProcessROC()
+            #    instance_binary_ROC_MEM.ProcessROC()
+            #    instance_binary_ROC_DNN.ProcessROC()
+            #    MakeROCPlot([instance_ROC_MEM],os.path.join(OUTPUT_PDF,obj.name+'_ROC_MEM'),'ROC MEM')
+            #    MakeROCPlot([instance_ROC_DNN],os.path.join(OUTPUT_PDF,obj.name+'_ROC_DNN'),'ROC DNN')
+            #    MakeROCPlot([instance_ROC_MEM,instance_ROC_DNN],os.path.join(OUTPUT_PDF,obj.name+'_ROC_MEM_vs_DNN'),'ROC MEM vs DNN')
+            #except Exception as e:
+            #    logging.warning('Could not process ROC due to "%s"'%e)
             try:
-                instance_ROC_MEM.ProcessROC()
-                instance_ROC_DNN.ProcessROC()
-                MakeROCPlot([instance_ROC_MEM],os.path.join(OUTPUT_PDF,obj.name+'_ROC_MEM'),'ROC MEM')
-                MakeROCPlot([instance_ROC_DNN],os.path.join(OUTPUT_PDF,obj.name+'_ROC_DNN'),'ROC DNN')
-                MakeROCPlot([instance_ROC_MEM,instance_ROC_DNN],os.path.join(OUTPUT_PDF,obj.name+'_ROC_MEM_vs_DNN'),'ROC MEM vs DNN')
+                instance_binary_ROC_MEM.ProcessROC()
+                instance_binary_ROC_DNN.ProcessROC()
+                MakeROCPlot([instance_binary_ROC_MEM],os.path.join(OUTPUT_PDF,obj.name+'_binary_ROC_MEM'),'ROC MEM')
+                MakeROCPlot([instance_binary_ROC_DNN],os.path.join(OUTPUT_PDF,obj.name+'_binary_ROC_DNN'),'ROC DNN')
+                MakeROCPlot([instance_binary_ROC_MEM,instance_binary_ROC_DNN],os.path.join(OUTPUT_PDF,obj.name+'_binary_ROC_MEM_vs_DNN'),'ROC MEM vs DNN')
             except Exception as e:
-                logging.warning('Could not process ROC due to "%s"'%e)
-            try:
-                instance_ROC_Multi_MEM.ProcessROC()
-                instance_ROC_Multi_DNN.ProcessROC()
-                MakeMultiROCPlot([instance_ROC_Multi_MEM],os.path.join(OUTPUT_PDF,obj.name+'_MULTI_ROC_MEM'),'Classification ROC MEM')
-                MakeMultiROCPlot([instance_ROC_Multi_DNN],os.path.join(OUTPUT_PDF,obj.name+'_MULTI_ROC_DNN'),'Classification ROC DNN')
-                MakeMultiROCPlot([instance_ROC_Multi_MEM,instance_ROC_Multi_DNN],os.path.join(OUTPUT_PDF,obj.name+'_MULTI_ROC_MEM_vs_DNN'),'Classification ROC MEM vs DNN')
-            except Exception as e:
-                logging.warning('Could not process Multi ROC due to "%s"'%e)
+                logging.warning('Could not process binary ROC due to "%s"'%e)
+
+            #try:
+            #    instance_ROC_Multi_MEM.ProcessROC()
+            #    instance_ROC_Multi_DNN.ProcessROC()
+            #    MakeMultiROCPlot([instance_ROC_Multi_MEM],os.path.join(OUTPUT_PDF,obj.name+'_MULTI_ROC_MEM'),'Classification ROC MEM')
+            #    MakeMultiROCPlot([instance_ROC_Multi_DNN],os.path.join(OUTPUT_PDF,obj.name+'_MULTI_ROC_DNN'),'Classification ROC DNN')
+            #    MakeMultiROCPlot([instance_ROC_Multi_MEM,instance_ROC_Multi_DNN],os.path.join(OUTPUT_PDF,obj.name+'_MULTI_ROC_MEM_vs_DNN'),'Classification ROC MEM vs DNN')
+            #except Exception as e:
+            #    logging.warning('Could not process Multi ROC due to "%s"'%e)
 
     #############################################################################################
     # Save histograms #

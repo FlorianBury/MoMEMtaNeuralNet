@@ -76,7 +76,7 @@ class LikelihoodMap():
         if self.normalize:
             logging.info('Normalization enabled')
             for i in range(0,self.mH.shape[0]):
-                 self.norm[i] *= (self.xsec.Interpolate(self.mA[i],self.mH[i])*1e-14) 
+                 self.norm[i] *= (self.xsec.Interpolate(self.mA[i],self.mH[i])*1e-12) 
                  self.norm[i] *= self.BR_HtoZA.Interpolate(self.mA[i],self.mH[i])
                  #self.norm[i] *= self.BR_Atobb.Interpolate(self.mA[i],self.mH[i])
                  self.norm[i] *= self.BR_Ztoll.Interpolate(self.mA[i],self.mH[i])
@@ -106,7 +106,7 @@ class LikelihoodMap():
         # Normalize #
         if self.normalize:
             save_Z = copy.deepcopy(self.Z)
-            self.Z += self.nevents*self.norm#*0.1
+            self.Z += self.nevents*self.norm
         inf_entries = np.isneginf(self.Z)
         max_Z = np.amax(self.Z[np.invert(inf_entries)])
         min_Z = np.amin(self.Z[np.invert(inf_entries)])
@@ -136,8 +136,9 @@ class LikelihoodMap():
 
     def _importGraphs(self):
         # import the TGraphs 2D #
-        file_xsec = TFile.Open('XsecMap.root')
-        file_acc = TFile.Open('AcceptanceMap.root')
+        path_graphs = '/home/users/f/b/fbury/MoMEMtaNeuralNet/Plotting/'
+        file_xsec = TFile.Open(os.path.join(path_graphs,'XsecMap.root'))
+        file_acc = TFile.Open(os.path.join(path_graphs,'AcceptanceMap.root'))
 
         try: # Deepcopy necessary to avoid seg fault
             self.xsec = copy.deepcopy(file_xsec.Get('Xsec'))
