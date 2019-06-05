@@ -19,9 +19,9 @@ python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_
 python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-800_MA-400_signal_weights.root      -n $2 --max 1500 --norm
 python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-800_MA-50_signal_weights.root       -n $2 --max 1500 --norm
 python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-800_MA-700_signal_weights.root      -n $2 --max 1500 --norm
-python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-1500_MA-200_signal_weights.root     -n $2 --max 1500 --norm 
-python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-1500_MA-500_signal_weights.root     -n $2 --max 1500 --norm
-python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-1500_MA-50_signal_weights.root      -n $2 --max 1500 --norm
+python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-1000_MA-200_signal_weights.root     -n $2 --max 1500 --norm 
+python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-1000_MA-500_signal_weights.root     -n $2 --max 1500 --norm
+python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-1000_MA-50_signal_weights.root      -n $2 --max 1500 --norm
 python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/All_DY.root                                        -n $2 --max 1500 --norm
 python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/All_TT.root                                        -n $2 --max 1500 --norm
 
@@ -43,9 +43,9 @@ python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_
 python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-800_MA-400_signal_weights.root      -n $2 --max 1500 
 python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-800_MA-50_signal_weights.root       -n $2 --max 1500 
 python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-800_MA-700_signal_weights.root      -n $2 --max 1500 
-python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-1500_MA-200_signal_weights.root     -n $2 --max 1500 
-python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-1500_MA-500_signal_weights.root     -n $2 --max 1500 
-python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-1500_MA-50_signal_weights.root      -n $2 --max 1500 
+python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-1000_MA-200_signal_weights.root     -n $2 --max 1500 
+python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-1000_MA-500_signal_weights.root     -n $2 --max 1500 
+python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/HToZATo2L2B_MH-1000_MA-50_signal_weights.root      -n $2 --max 1500 
 python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/All_DY.root                                        -n $2 --max 1500 
 python Likelihood.py -m $1 -f /home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/All_TT.root                                        -n $2 --max 1500 
 

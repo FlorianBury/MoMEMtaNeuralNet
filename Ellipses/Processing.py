@@ -317,10 +317,15 @@ class ProcessROC:
             self.scores[(self.inst_ellipse.sigmas[i],tpr_ell,fpr_ell)] = np.c_[tpr,fpr]
             del df
 
+        # Get the fpr and tpr for the DNN alone #
+        self.fpr_DNN, self.tpr_DNN, thresholds = metrics.roc_curve(self.inst_ellipse.data['target'], self.inst_ellipse.data['Prob_HToZA'])
+
 
     def _makeROC(self):
         # Make figure #
         fig = plt.figure(figsize=(9,7))
+        #fig,ax = plt.subplots(1)
+        ax = fig.add_subplot(111)
         color= iter(cm.rainbow(np.linspace(0,1,len(self.scores))))
         print ('Starting the ROC section')
         # Get the roc curve for ellipses #
@@ -335,15 +340,24 @@ class ProcessROC:
             print ('....... Processing sigma %0.1f'%sigma)
             # plot #
             c = next(color)
-            plt.plot(tpr,fpr,color=c,label='Ellipse + DNN')
-            plt.scatter(tpr_ell,fpr_ell,marker='X',s=100,color=c,label='Ellipse WP : %0.1f sigmas'%sigma)
-        plt.plot(list_tpr_ell,list_fpr_ell,color='k',label='Ellipse ROC curve')
-        plt.legend(loc='lower right',ncol=2)
-        plt.yscale('symlog', linthreshy=0.00001)
-        plt.xlim([0, 1])
-        plt.ylim([0, 1])
-        plt.xlabel('Signal selection efficiency')
-        plt.ylabel('Background selection efficiency')
+            ax.scatter(tpr_ell,fpr_ell,marker='X',s=100,color=c,label='Ellipse WP : %0.1f sigmas'%sigma)
+            ax.plot(tpr,fpr,color=c,label='Ellipse + DNN')
+        ax.plot(list_tpr_ell,list_fpr_ell,'k',label='Ellipse ROC curve')
+        ax.plot(self.tpr_DNN,self.fpr_DNN,'k--',label='DNN ROC curve')
+        handles,labels = ax.get_legend_handles_labels()
+        print (handles)
+        print (labels)
+        handles = [handles[len(self.scores)]]+handles[-len(self.scores):]+[handles[len(self.scores)+1]]+handles[:len(self.scores)]
+        labels = [labels[len(self.scores)]]+labels[-len(self.scores):]+[labels[len(self.scores)+1]]+labels[:len(self.scores)]
+        print (handles)
+        print (labels)
+        #ax.set_legend([line_left,line_right],loc='lower right',ncol=2)
+        ax.legend(handles,labels,loc='lower right',ncol=2)
+        ax.set_yscale('symlog', linthreshy=0.00001)
+        ax.set_xlim([0, 1])
+        ax.set_ylim([0, 1])
+        ax.set_xlabel('Signal selection efficiency')
+        ax.set_ylabel('Background selection efficiency')
         plt.suptitle('ROC curve MH = %0.2f GeV MA = %0.2f GeV'%(self.inst_ellipse.mH,self.inst_ellipse.mA))
         plt.grid(b=True,which='both',axis='both')
         roc_name = os.path.join(self.path_ROC,('ROC_mH_%0.2f_mA_%0.2f'%(self.inst_ellipse.mH,self.inst_ellipse.mA)).replace('.','p')+'.png')

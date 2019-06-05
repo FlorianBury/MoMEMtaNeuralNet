@@ -155,13 +155,13 @@ def main():
                                            title = 'DNN')
         instance_ROC_Multi_MEM = Plot_Multi_ROC(
                             classes = ['DY','HToZA','TT'],
-                            labels = ['P(Drell-Yann)',r'P(Signal H$\rightarrow ZA))$',r'P($t\bar{t}$)'],
+                            labels = ['P(Drell-Yann)',r'P(Signal H$\rightarrow ZA)$',r'P($t\bar{t}$)'],
                             colors = ['navy','green','darkred'],
                             weight = 'total_weight',
                             title = 'MEM')
         instance_ROC_Multi_DNN = Plot_Multi_ROC(        
                             classes = ['DY','HToZA','TT'],
-                            labels = ['P(Drell-Yann)',r'P(Signal H$\rightarrow ZA))$',r'P($t\bar{t}$)'],
+                            labels = ['P(Drell-Yann)',r'P(Signal H$\rightarrow ZA)$',r'P($t\bar{t}$)'],
                             colors = ['dodgerblue','lawngreen','red'],
                             weight = 'total_weight',
                             title = 'DNN')

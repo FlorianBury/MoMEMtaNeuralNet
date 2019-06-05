@@ -10,8 +10,10 @@ import enlighten
 
 sys.path.insert(0,"..") # We need our own version of talos
                         # If we import our modules after the version is sites-package, our version is ignored
-from NeuralNet import HyperModel
+#from NeuralNet import HyperModel
 from import_tree import Tree2Pandas
+from preprocessing import PreprocessLayer
+from talos import Restore
 
 import ROOT
 from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT, TGraph2D, gPad, TObject
@@ -32,7 +34,9 @@ class LikelihoodMap():
         self.name  = name
         self.normalize = normalize # Xsec*BR*Acc
         self.nevents = 0 # count the number of events
-        self.model = HyperModel(name,'HToZA')
+        custom_objects =  {'PreprocessLayer': PreprocessLayer}
+        self.model = Restore(os.path.join('/home/users/f/b/fbury/MoMEMtaNeuralNet/model/',name+'_HToZA.zip'),custom_objects=custom_objects).model
+        #self.model = HyperModel(name,'HToZA')
         # Make directory output #
         self.path_output = os.path.join('/home/ucl/cp3/fbury/MoMEMtaNeuralNet/Plotting/PDF',self.name)
         if not os.path.exists(self.path_output):
@@ -79,6 +83,7 @@ class LikelihoodMap():
                  self.norm[i] *= (self.xsec.Interpolate(self.mA[i],self.mH[i])*1e-12) 
                  self.norm[i] *= self.BR_HtoZA.Interpolate(self.mA[i],self.mH[i])
                  #self.norm[i] *= self.BR_Atobb.Interpolate(self.mA[i],self.mH[i])
+                 #self.norm[i] *= 0.1
                  self.norm[i] *= self.BR_Ztoll.Interpolate(self.mA[i],self.mH[i])
                  self.norm[i] *= self.acc.Interpolate(self.mA[i],self.mH[i])
         # Get log(normalization) #
@@ -88,7 +93,8 @@ class LikelihoodMap():
     def AddEvent(self,event):
         # Get the -log(weight) #
         inputs = np.c_[np.tile(event,(self.N,1)),self.mH,self.mA]
-        outputs = self.model.HyperRestore(inputs)
+        #outputs = self.model.HyperRestore(inputs)
+        outputs = self.model.predict(inputs,batch_size=512)
         self.Z += outputs.reshape(-1,)
         self.nevents += 1
         
@@ -107,10 +113,10 @@ class LikelihoodMap():
         if self.normalize:
             save_Z = copy.deepcopy(self.Z)
             self.Z += self.nevents*self.norm
-        inf_entries = np.isneginf(self.Z)
-        max_Z = np.amax(self.Z[np.invert(inf_entries)])
-        min_Z = np.amin(self.Z[np.invert(inf_entries)])
-        self.Z[inf_entries] = 0 # removes non physical points 
+        invalid_entries = np.logical_or(np.isinf(self.Z),np.isnan(self.Z))
+        max_Z = np.amax(self.Z[np.invert(invalid_entries)])
+        min_Z = np.amin(self.Z[np.invert(invalid_entries)])
+        self.Z[invalid_entries] = 0 # removes non physical points 
         graph = copy.deepcopy(TGraph2D(self.N,self.mA,self.mH,self.Z))
         graph.SetTitle('Log-Likelihood : %s;M_{A} [GeV]; M_{H} [GeV]; -log(L)'%(title))
         graph.SetMaximum(max_Z)
@@ -137,8 +143,8 @@ class LikelihoodMap():
     def _importGraphs(self):
         # import the TGraphs 2D #
         path_graphs = '/home/users/f/b/fbury/MoMEMtaNeuralNet/Plotting/'
-        file_xsec = TFile.Open(os.path.join(path_graphs,'XsecMap.root'))
-        file_acc = TFile.Open(os.path.join(path_graphs,'AcceptanceMap.root'))
+        file_xsec = TFile.Open(os.path.join(path_graphs,'XsecMap_save.root'))
+        file_acc = TFile.Open(os.path.join(path_graphs,'AcceptanceMap_save.root'))
 
         try: # Deepcopy necessary to avoid seg fault
             self.xsec = copy.deepcopy(file_xsec.Get('Xsec'))
@@ -215,24 +221,31 @@ def main():
         f = TFile(path_root)
         canvas = TCanvas()
         canvas.Print(path_pdf+'[')
-        for i, (key,obj) in enumerate(getall(f)):
-            c1 = TCanvas()
-            c1.SetGrid()
-            logging.info('Processing %s'%key)
-            hist = obj.GetHistogram()
-            hist.SetContour(100)
-            hist.SetMinimum(hist.GetMinimum())
-            hist.SetMaximum(hist.GetMaximum())
-            hist.Draw('colz') 
-            c1.SetTopMargin(0.1)
-            c1.SetBottomMargin(0.12)
-            c1.SetLeftMargin(0.12)
-            c1.SetRightMargin(0.18)
-            hist.GetXaxis().SetTitleOffset(1.3)
-            hist.GetYaxis().SetTitleOffset(1.3)
-            hist.GetZaxis().SetTitleOffset(1.5)
-            hist.SetTitle(obj.GetTitle())
-            c1.Print(path_pdf,'Title:'+key.replace('.root','').replace('/',''))
+        graphs = [(key,obj) for (key,obj) in getall(f)]
+        graphs = sorted(graphs, key=lambda tup: tup[0]) # Sort according to name
+        for  i,(key,obj) in enumerate(graphs):
+            try:
+                c1 = TCanvas()
+                c1.SetGrid()
+                logging.info('Processing %s'%key)
+                hist = obj.GetHistogram()
+                hist.SetContour(100)
+                hist.SetMinimum(hist.GetMinimum())
+                hist.SetMaximum(hist.GetMaximum())
+                hist.Draw('colz') 
+                c1.SetTopMargin(0.1)
+                c1.SetBottomMargin(0.12)
+                c1.SetLeftMargin(0.12)
+                c1.SetRightMargin(0.18)
+                #c1.SetLogz()
+                hist.GetXaxis().SetTitleOffset(1.3)
+                hist.GetYaxis().SetTitleOffset(1.3)
+                hist.GetZaxis().SetTitleOffset(1.5)
+                hist.SetTitle(obj.GetTitle())
+                c1.Print(path_pdf,'Title:'+key.replace('.root','').replace('/',''))
+            except Exception as e:
+                logging.critical('Could not save %s due to error "%s"'%(key,e))
+        canvas.Print(path_pdf) 
         canvas.Print(path_pdf+']') 
         logging.info('PDF saved as %s'%path_pdf)
 

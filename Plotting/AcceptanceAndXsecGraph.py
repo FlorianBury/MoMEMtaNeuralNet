@@ -14,7 +14,7 @@ sys.path.append('/home/ucl/cp3/fbury/scratch/CMSSW_7_1_20_patch2/src/cp3_llbb/Ca
 from Calc2HDM import Calc2HDM
 
 import ROOT
-from ROOT import TFile,  gROOT, TGraph2D, TCanvas, TH2F
+from ROOT import TFile,  gROOT, TGraph2D, TCanvas, TH2F, gPad, gStyle
 import CMS_lumi
 import tdrstyle
 
@@ -63,8 +63,9 @@ def main():
     mZ = 90
     condition1 = np.greater(mH_plane,mA_plane)
     condition2 = np.greater(mH_plane,mh)
-    condition3 = np.greater(np.subtract(mH_plane,mA_plane),mZ)
-    upper = np.logical_and(np.logical_and(condition1,condition2),condition3)
+    #condition3 = np.greater(np.subtract(mH_plane,mA_plane),mZ)
+    #upper = np.logical_and(np.logical_and(condition1,condition2),condition3)
+    upper = np.logical_and(condition1,condition2)
         # Ensure that mH > mh
         # Ensure that mH > mA
         # Ensure that mH-mA > mZ
@@ -102,15 +103,16 @@ def main():
                 c1 = TCanvas()
                 c1.SetGrid()
                 logging.info('Processing %s'%key)
+                base_hist = TH2F('','',opt.bins,0,opt.max,opt.bins,0,opt.max)
+                obj.SetHistogram(base_hist)
                 hist = obj.GetHistogram()
                 hist.GetXaxis().SetRangeUser(0,opt.max)
                 hist.GetYaxis().SetRangeUser(0,opt.max)
                 hist.SetContour(opt.bins)
                 #hist.SetMaximum(0.3)
                 hist.SetMinimum(0.)
-                hist.GetXaxis().SetRangeUser(0,1000)
-                hist.GetYaxis().SetRangeUser(0,1000)
-                hist.Draw('colz') 
+                hist.Draw('colz')
+                gStyle.SetOptStat(0)
                 c1.SetTopMargin(0.1)
                 c1.SetBottomMargin(0.12)
                 c1.SetLeftMargin(0.12)
@@ -147,8 +149,8 @@ def main():
             m_H = mH[i]
             XsecVis =  xsec.Interpolate(m_A,m_H)
             XsecVis *= BR_HtoZA.Interpolate(m_A,m_H)
-            XsecVis *= BR_Atobb.Interpolate(m_A,m_H)
-            XsecVis *= BR_Ztoll.Interpolate(m_A,m_H)
+            #XsecVis *= BR_Atobb.Interpolate(m_A,m_H)
+            XsecVis *= 3.3658 * 2 / 100 #BR_Ztoll.Interpolate(m_A,m_H)
             XsecVis *= acc.Interpolate(m_A,m_H)
             comb_graph.SetPoint(i,m_A,m_H,XsecVis)
             pbar.update()
@@ -174,21 +176,27 @@ def main():
         from scipy.optimize import curve_fit
         
         #def func(x,a,b,c,d,e):
-        #    z = np.absolute(a*x[0]**2+b*x[1]**2+c*x[0]+d*x[1]+e)
+        #    z = a*x[0]**2+b*x[1]**2+c*x[0]+d*x[1]+e
         #    return z.ravel()
-        #popt, pcov = curve_fit(func, (points[:,0],points[:,1]), points[:,2])
-        def twoD_Gaussian(x, amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
-            xo = float(xo)
-            yo = float(yo)    
-            a = (np.cos(theta)**2)/(2*sigma_x**2) + (np.sin(theta)**2)/(2*sigma_y**2)
-            b = -(np.sin(2*theta))/(4*sigma_x**2) + (np.sin(2*theta))/(4*sigma_y**2)
-            c = (np.sin(theta)**2)/(2*sigma_x**2) + (np.cos(theta)**2)/(2*sigma_y**2)
-            g = offset + amplitude*np.exp( - (a*((x[0]-xo)**2) + 2*b*(x[0]-xo)*(x[1]-yo) 
-                                    + c*((x[1]-yo)**2)))
-            return g.ravel()
-        initial_guess = (0.3,400,1000,400,400,3.14/4,0)
-        bounds = (0,np.inf)
-        popt, pcov = curve_fit(twoD_Gaussian, (points[:,0],points[:,1]), points[:,2],p0=initial_guess, bounds=bounds)
+        def func(x,a,b,c,x0,y0,e1,e2):
+            #z = (c*x[0]**2+d*x[1]**2+e*x[0]+f*x[1]+d)*np.exp(-x[0]/h-x[1]/i)
+            z = (a*(x[0]-x0)**2 + b*(x[1]-y0)**2 + c*(x[0]-x0)*(x[1]-y0))*np.exp(-x[0]/e1-x[1]/e2)
+            return z.ravel()
+        #initial_guess = (2.17887017e-09,-3.65140966e-10,-3.19304169e-06,5.29680444e-07,1.40572382e-03,-1.34401338e-04,1,1000,1000) 
+        initial_guess = (-1,-1,1,500,1000,1000,1000) 
+        popt, pcov = curve_fit(func, (points[:,0],points[:,1]), points[:,2], p0=initial_guess)
+        #def twoD_Gaussian(x, amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
+        #    xo = float(xo)
+        #    yo = float(yo)    
+        #    a = (np.cos(theta)**2)/(2*sigma_x**2) + (np.sin(theta)**2)/(2*sigma_y**2)
+        #    b = -(np.sin(2*theta))/(4*sigma_x**2) + (np.sin(2*theta))/(4*sigma_y**2)
+        #    c = (np.sin(theta)**2)/(2*sigma_x**2) + (np.cos(theta)**2)/(2*sigma_y**2)
+        #    g = offset + amplitude*np.exp( - (a*((x[0]-xo)**2) + 2*b*(x[0]-xo)*(x[1]-yo) 
+        #                            + c*((x[1]-yo)**2)))
+        #    return g.ravel()
+        #initial_guess = (0.3,400,1000,400,400,3.14/4,0)
+        #bounds = (0,np.inf)
+        #popt, pcov = curve_fit(twoD_Gaussian, (points[:,0],points[:,1]), points[:,2],p0=initial_guess, bounds=bounds)
         print (popt)
 
 
@@ -198,16 +206,15 @@ def main():
             pbar.update()
             m_A = mA_plane[i]
             m_H = mH_plane[i]
-            if m_A>=m_H or m_H<=mh or m_H-m_A<mZ:
+            if m_A>=m_H or m_H<=mh :#or m_H-m_A<mZ:
                 new_graph.SetPoint(i,m_A,m_H,0)
                 continue
             else:
                 #Z = graph.Interpolate(m_A,m_H)
                 Z = 0
             if Z == 0:
-                Z = twoD_Gaussian((m_A,m_H),*popt)
-                #Z = func((m_A,m_H),*popt)
-                #Z = f(m_A,m_H) 
+                #Z = twoD_Gaussian((m_A,m_H),*popt)
+                Z = func((m_A,m_H),*popt)
                 ## Find closest know point #
                 #max_dist1 = 100000
                 #max_dist2 = 100001
@@ -306,7 +313,8 @@ def main():
                             workdir = workdir)
         instance.setpdf('NNPDF30_lo_as_0130_nf_4')
 
-        if os.path.exists('xsec_arr.npy') and os.path.exists('BR_HtoZA_arr.npy') and os.path.exists('BR_Atobb_arr.npy'):
+        if 0 == 1:
+        #if os.path.exists('xsec_arr.npy') and os.path.exists('BR_HtoZA_arr.npy') and os.path.exists('BR_Atobb_arr.npy'):
             print ('Recovered npy files')
             xsec_arr = np.load('xsec_arr.npy')
             BR_HtoZA_arr = np.load('BR_HtoZA_arr.npy')

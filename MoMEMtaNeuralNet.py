@@ -51,6 +51,8 @@ def get_options():
         help='Use HToZA MEM weights (must be specified if --scan or --report or --output are used')
     a.add_argument('--class', dest='classes', action='store_true', required=False, default=False,
         help='Turn the tags into a one-hot vector for the classification')
+    a.add_argument('--class_param', dest='classes_param', action='store_true', required=False, default=False,
+        help='Turns on the one-hot classification AND adds the decoupling for the parametrization')
     a.add_argument('--binary', action='store_true', required=False, default=False,
         help='Turn the tags into targets (0 or 1) for the binary classification (background vs signal)')
     a.add_argument('-task','--task', action='store', required=False, type=str, default='',
@@ -91,6 +93,9 @@ def get_options():
 
     opt = parser.parse_args()
 
+    if opt.classes_param:
+        opt.classes = True
+        logging.warning('In addition to one-hot classification, will parametrize the inputs')
     if not opt.DY and not opt.TT and not opt.HToZA and not opt.classes and not opt.binary:
         if opt.scan!='' or opt.report!='' or opt.submit!='':
             logging.critical('Either --DY, --TT, --HToZA --class or --binary must be specified')  
