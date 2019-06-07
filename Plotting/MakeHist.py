@@ -24,8 +24,6 @@ def main():
     parser = argparse.ArgumentParser(description='From given set of root files, make different histograms in a root file')
     parser.add_argument('-m','--model', action='store', required=True, type=str, default='',
                   help='NN model to be used')
-    parser.add_argument('--ROC',action='store_true',default=False,
-                  help='Whether to compute the ROCs')
     parser.add_argument('-v','--verbose', action='store_true', required=False, default=False,
             help='Show DEGUG logging')
     opt = parser.parse_args() 
@@ -56,10 +54,12 @@ def main():
                     #      override_params = {}),
                     #Plots(name = 'valid_weights_HToZA',
                     #      override_params = {}),
-                    #Plots(name = 'valid_weights_class',
+                    #Plots(name = 'valid_weights_class_MEM_DNN',
                     #      override_params = {}),
-                    Plots(name = 'valid_weights_binary',
+                    Plots(name = 'valid_weights_class',
                           override_params = {}),
+                    #Plots(name = 'valid_weights_binary',
+                    #      override_params = {}),
                     #Plots(name = 'invalid_DY_weights',
                     #      override_params = {}),
                     #Plots(name = 'invalid_TT_weights',
@@ -78,7 +78,7 @@ def main():
     class Template:
         def __init__(self,tpl,class_name):
             self.tpl = tpl                          # Template ".yml.tpl" to be used
-            self.class_name = class_name            # Name of one of the class below to use
+            self.class_name = class_name            # Name of one of the class to use (TH1,TH2,...)
 
     templates = [
                     ############       TH1       ##############
@@ -88,10 +88,12 @@ def main():
                     #         class_name = 'Plot_TH1'),
                     #Template(tpl = 'TH1_interpolation.yml.tpl',
                     #          class_name = 'Plot_TH1'),
-                    #Template(tpl = 'TH1_class.yml.tpl',
+                    #Template(tpl = 'TH1_class_global.yml.tpl',
                     #         class_name = 'Plot_TH1'),
-                    Template(tpl = 'TH1_binary.yml.tpl',
-                             class_name = 'Plot_TH1'),
+                    #Template(tpl = 'TH1_class_param.yml.tpl',
+                    #         class_name = 'Plot_TH1'),
+                    #Template(tpl = 'TH1_binary.yml.tpl',
+                    #         class_name = 'Plot_TH1'),
 
                     #########       TH1 Ratio       ###########
                     #Template(tpl = 'TH1Ratio_background.yml.tpl',
@@ -100,29 +102,181 @@ def main():
                     #         class_name = 'Plot_Ratio_TH1'),
                     #Template(tpl = 'TH1Ratio_interpolation.yml.tpl',
                     #         class_name = 'Plot_Ratio_TH1'),
-                    #Template(tpl = 'TH1Ratio_class.yml.tpl',
+                    #Template(tpl = 'TH1Ratio_class_global.yml.tpl',
                     #         class_name = 'Plot_Ratio_TH1'),
-                    Template(tpl = 'TH1Ratio_binary.yml.tpl',
-                             class_name = 'Plot_Ratio_TH1'),
+                    #Template(tpl = 'TH1Ratio_binary.yml.tpl',
+                    #         class_name = 'Plot_Ratio_TH1'),
 
                     #########       TH1 Multi       ###########
                     #Template(tpl = 'TH1Multi_signal.yml.tpl',
                     #         class_name = 'Plot_Multi_TH1'),
-                    #Template(tpl = 'TH1Multi_class.yml.tpl',
+                    #Template(tpl = 'TH1Multi_class_global.yml.tpl',
                     #         class_name = 'Plot_Multi_TH1'),
-                    Template(tpl = 'TH1Multi_binary.yml.tpl',
-                             class_name = 'Plot_Multi_TH1'),
+                    #Template(tpl = 'TH1Multi_binary.yml.tpl',
+                    #         class_name = 'Plot_Multi_TH1'),
                     #Template(tpl = 'TH1Multi_interpolation.yml.tpl',
                     #         class_name = 'Plot_Multi_TH1'),
+                    Template(tpl = 'TH1Multi_class_param.yml.tpl',
+                             class_name = 'Plot_Multi_TH1'),
 
                     ############       TH2       ##############
                     #Template(tpl = 'TH2_background.yml.tpl',
                     #         class_name = 'Plot_TH2'),
                     #Template(tpl = 'TH2_signal.yml.tpl',
                     #         class_name = 'Plot_TH2'),
-                    #Template(tpl = 'TH2_class.yml.tpl',
+                    #Template(tpl = 'TH2_class_global.yml.tpl',
                     #         class_name = 'Plot_TH2'),
                 ] 
+
+    # Select template #
+    class ROC:
+        def __init__(self,tpl,class_name,def_name,plot_name,title):
+            self.tpl = tpl                          # Template ".yml.tpl" to be used containing all the ROC curves parameters (they will all be plotted in the same figure)
+            self.class_name = class_name            # Name of one of the class to use (ROC or multiROC)
+            self.def_name = def_name                # Name of of the processing function 
+            self.plot_name = plot_name              # Name of the plot -> .png
+            self.title = title                      # Title of the plot
+            self.list_instance = []
+        def AddInstance(self,instance):
+            self.list_instance.append(instance) # Contains the ROC configs listed in the tpl file
+
+    rocs = [
+                ########### Discriminant TT/DY ###########
+                #ROC(tpl = 'ROC_discriminant.yml.tpl',
+                #    class_name = 'Plot_ROC',
+                #    def_name = 'MakeROCPlot',
+                #    plot_name = 'Discriminant_MEM_DNN',
+                #    title = 'Discriminant MEM vs DNN')
+                ########### Binary Classification ###########
+                #ROC(tpl = 'ROC_binary.yml.tpl',
+                #    class_name = 'Plot_ROC',
+                #    def_name = 'MakeROCPlot',
+                #    plot_name = 'Binary_MEM_DNN',
+                #    title = 'Binary classification MEM vs DNN')
+                ########### Global Classification ###########
+                #ROC(tpl = 'ROCMulti_class_global.yml.tpl',
+                #    class_name = 'Plot_Multi_ROC',
+                #    def_name = 'MakeMultiROCPlot',
+                #    plot_name = 'Global_class_MEM_DNN',
+                #    title = 'Global classification MEM vs DNN')
+                ########### Param Classification ###########
+                ROC(tpl = 'ROCMulti_class_param_mH_200_mA_50.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_200_mA_50',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 200 GeV, $M_A$ = 50 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_200_mA_100.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_200_mA_100',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 200 GeV, $M_A$ = 100 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_250_mA_100.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_250_mA_100',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 250 GeV, $M_A$ = 100 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_250_mA_50.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_250_mA_50',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 250 GeV, $M_A$ = 50 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_300_mA_50.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_300_mA_50',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 300 GeV, $M_A$ = 50 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_300_mA_100.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_300_mA_100',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 300 GeV, $M_A$ = 100 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_300_mA_200.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_300_mA_200',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 300 GeV, $M_A$ = 200 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_500_mA_50.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_500_mA_50',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 500 GeV, $M_A$ = 50 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_500_mA_100.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_500_mA_100',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 500 GeV, $M_A$ = 100 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_500_mA_200.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_500_mA_200',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 500 GeV, $M_A$ = 200 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_500_mA_300.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_500_mA_300',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 500 GeV, $M_A$ = 300 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_500_mA_400.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_500_mA_400',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 500 GeV, $M_A$ = 400 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_650_mA_50.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_650_mA_50',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 650 GeV, $M_A$ = 50 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_800_mA_50.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_800_mA_50',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 800 GeV, $M_A$ = 50 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_800_mA_100.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_800_mA_100',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 800 GeV, $M_A$ = 100 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_800_mA_200.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_800_mA_200',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 800 GeV, $M_A$ = 200 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_800_mA_400.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_800_mA_400',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 800 GeV, $M_A$ = 400 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_800_mA_700.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_800_mA_700',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 800 GeV, $M_A$ = 700 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_1000_mA_50.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_1000_mA_50',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 1000 GeV, $M_A$ = 50 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_1000_mA_200.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_1000_mA_200',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 1000 GeV, $M_A$ = 200 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_1000_mA_500.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_1000_mA_500',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 1000 GeV, $M_A$ = 500 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_2000_mA_1000.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_2000_mA_1000',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 2000 GeV, $M_A$ = 1000 GeV)'),
+                ROC(tpl = 'ROCMulti_class_param_mH_3000_mA_2000.yml.tpl',
+                    class_name = 'Plot_Multi_ROC',
+                    def_name = 'MakeMultiROCPlot',
+                    plot_name = 'Parametric_class_MEM_DNN_mH_3000_mA_2000',
+                    title = 'Parametric classification MEM vs DNN ($M_H$ = 3000 GeV, $M_A$ = 2000 GeV)'),
+          ]
+
 
     # Make the output dir #
     OUTPUT_PDF = os.path.join(os.getcwd(),'PDF',opt.model)
@@ -141,33 +295,30 @@ def main():
             logging.error('Could not find %s at %s'%(obj.name,obj.path))
 
         # Start ROC curve #
-        instance_ROC_MEM = Plot_ROC(variable = ['weight_TT/(weight_TT+weight_DY)'],
-                                    weight = 'total_weight',
-                                    title = 'MEM')
-        instance_ROC_MEM = Plot_ROC(variable = ['output_TT/(output_TT+output_DY)'],
-                                    weight = 'total_weight',
-                                    title = 'DNN')
-        instance_binary_ROC_MEM = Plot_ROC(variable = ['Prob_MEM_signal'],
-                                           weight = 'total_weight',
-                                           title = 'MEM')
-        instance_binary_ROC_DNN = Plot_ROC(variable = ['Prob_DNN_signal'],
-                                           weight = 'total_weight',
-                                           title = 'DNN')
-        instance_ROC_Multi_MEM = Plot_Multi_ROC(
-                            classes = ['DY','HToZA','TT'],
-                            labels = ['P(Drell-Yann)',r'P(Signal H$\rightarrow ZA)$',r'P($t\bar{t}$)'],
-                            colors = ['navy','green','darkred'],
-                            weight = 'total_weight',
-                            title = 'MEM')
-        instance_ROC_Multi_DNN = Plot_Multi_ROC(        
-                            classes = ['DY','HToZA','TT'],
-                            labels = ['P(Drell-Yann)',r'P(Signal H$\rightarrow ZA)$',r'P($t\bar{t}$)'],
-                            colors = ['dodgerblue','lawngreen','red'],
-                            weight = 'total_weight',
-                            title = 'DNN')
-
-        list_ROC_MEM = ['Prob_MEM_DY','Prob_MEM_HToZA','Prob_MEM_TT']
-        list_ROC_DNN = ['Prob_DNN_DY','Prob_DNN_HToZA','Prob_DNN_TT']
+        #instance_ROC_Multi_MEM = Plot_Multi_ROC(
+        #                    classes = ['DY','HToZA','TT'],
+        #                    prob_branches = ['Prob_MEM_DY','Prob_MEM_HToZA','Prob_MEM_TT']
+        #                    labels = ['P(Drell-Yann)',r'P(Signal H$\rightarrow ZA)$',r'P($t\bar{t}$)'],
+        #                    colors = ['navy','green','darkred'],
+        #                    weight = 'total_weight',
+        #                    title = 'MEM')
+        #instance_ROC_Multi_DNN = Plot_Multi_ROC(        
+        #                    classes = ['DY','HToZA','TT'],
+        #                    prob_branches = ['Prob_DNN_DY','Prob_DNN_HToZA','Prob_DNN_TT']
+        #                    labels = ['P(Drell-Yann)',r'P(Signal H$\rightarrow ZA)$',r'P($t\bar{t}$)'],
+        #                    colors = ['dodgerblue','lawngreen','red'],
+        #                    weight = 'total_weight',
+        #                    title = 'DNN')
+        # Instantiate all the ROCs #
+        for roc in rocs:
+            logging.debug('ROC template "%s" -> Class "%s" and process function %s '%(roc.tpl, roc.class_name, roc.def_name))
+            YAML = ProcessYAML(roc.tpl) # Contain the ProcessYAML objects
+            YAML.Particularize()
+            for name,config in YAML.config.items():
+                class_ = getattr(Classes, roc.class_name)
+                logging.info('\tInitializing ROC %s'%(name))
+                instance = class_(**config)
+                roc.AddInstance(instance)
 
         # Loop over files #
         for f in files:
@@ -179,60 +330,20 @@ def main():
                 filename = 't#bar{t}'
             elif fullname.startswith('HToZA'):
                 filename = 'Signal'
-
-            ##############  ROC section ################ 
-            if opt.ROC:
-                if os.path.basename(f).startswith('DY'):
-                    logging.info('\tAdded to ROC as DY')
-                    #try:
-                    #    instance_ROC_MEM.AddToROC(f,'tree',0)
-                    #    instance_ROC_DNN.AddToROC(f,'tree',0)
-                    #except Exception as e:
-                    #    logging.warning('Could not compute ROC due to "%s"'%(e))
+            ##############  ROC  section ################ 
+            for roc in rocs:
+                for inst_roc in roc.list_instance:
                     try:
-                        instance_binary_ROC_MEM.AddToROC(f,'tree',0)
-                        instance_binary_ROC_DNN.AddToROC(f,'tree',0)
+                        valid = inst_roc.AddToROC(f)
+                        if valid:
+                            logging.info('\tAdded to ROC %s'%(inst_roc.title))
                     except Exception as e:
-                        logging.warning('Could not compute binary ROC due to "%s"'%(e))
-                    #try:
-                    #    instance_ROC_Multi_MEM.AddToROC(f,'tree',list_ROC_MEM,'DY')
-                    #    instance_ROC_Multi_DNN.AddToROC(f,'tree',list_ROC_DNN,'DY')
-                    #except Exception as e:
-                    #    logging.warning('Could not compute Multi ROC due to "%s"'%(e))
-                elif os.path.basename(f).startswith('TT'):
-                    logging.info('\tAdded to ROC as TT')
-                    #try:
-                    #    instance_ROC_MEM.AddToROC(f,'tree',1)
-                    #    instance_ROC_DNN.AddToROC(f,'tree',1)
-                    #except Exception as e:
-                    #    logging.warning('Could not compute ROC due to "%s"'%(e))
-                    try:
-                        instance_binary_ROC_MEM.AddToROC(f,'tree',0)
-                        instance_binary_ROC_DNN.AddToROC(f,'tree',0)
-                    except Exception as e:
-                        logging.warning('Could not compute binary ROC due to "%s"'%(e))
-                    #try:
-                    #    instance_ROC_Multi_MEM.AddToROC(f,'tree',list_ROC_MEM,'TT')
-                    #    instance_ROC_Multi_DNN.AddToROC(f,'tree',list_ROC_DNN,'TT')
-                    #except Exception as e:
-                    #    logging.warning('Could not compute Multi ROC due to "%s"'%(e))
-                elif os.path.basename(f).startswith('HToZA'):
-                    logging.info('\tAdded to ROC as HToZA')
-                    try:
-                        instance_binary_ROC_MEM.AddToROC(f,'tree',1)
-                        instance_binary_ROC_DNN.AddToROC(f,'tree',1)
-                    except Exception as e:
-                        logging.warning('Could not compute binary ROC due to "%s"'%(e))
-                    #try:
-                    #    instance_ROC_Multi_MEM.AddToROC(f,'tree',list_ROC_MEM,'HToZA')
-                    #    instance_ROC_Multi_DNN.AddToROC(f,'tree',list_ROC_DNN,'HToZA')
-                    #except Exception as e:
-                    #    logging.warning('Could not compute Multi ROC due to "%s"'%(e))
-
+                        logging.warning('Could not add to ROC due to "%s"'%(e))
+            
             ##############  HIST section ################ 
             # Loop over the templates #
             for template in templates: 
-                logging.debug('Template "%s" -> Class "%s"'%(template.tpl, template.class_name))
+                logging.debug('Hist template "%s" -> Class "%s"'%(template.tpl, template.class_name))
                 list_config = [] # Will contain the dictionaries of parameters
                 YAML = ProcessYAML(template.tpl) # Contain the ProcessYAML objects
                 params = {**{'filename':f,'title':filename},**obj.override_params}
@@ -248,35 +359,25 @@ def main():
                         instance.MakeHisto()
                         obj.list_histo.append(instance)
                     except Exception as e:
-                            logging.warning('Could not plot %s due to "%s"'%(name,e))
-        if opt.ROC:
-            #try:
-            #    instance_ROC_MEM.ProcessROC()
-            #    instance_ROC_DNN.ProcessROC()
-            #    instance_binary_ROC_MEM.ProcessROC()
-            #    instance_binary_ROC_DNN.ProcessROC()
-            #    MakeROCPlot([instance_ROC_MEM],os.path.join(OUTPUT_PDF,obj.name+'_ROC_MEM'),'ROC MEM')
-            #    MakeROCPlot([instance_ROC_DNN],os.path.join(OUTPUT_PDF,obj.name+'_ROC_DNN'),'ROC DNN')
-            #    MakeROCPlot([instance_ROC_MEM,instance_ROC_DNN],os.path.join(OUTPUT_PDF,obj.name+'_ROC_MEM_vs_DNN'),'ROC MEM vs DNN')
-            #except Exception as e:
-            #    logging.warning('Could not process ROC due to "%s"'%e)
-            try:
-                instance_binary_ROC_MEM.ProcessROC()
-                instance_binary_ROC_DNN.ProcessROC()
-                MakeROCPlot([instance_binary_ROC_MEM],os.path.join(OUTPUT_PDF,obj.name+'_binary_ROC_MEM'),'ROC MEM')
-                MakeROCPlot([instance_binary_ROC_DNN],os.path.join(OUTPUT_PDF,obj.name+'_binary_ROC_DNN'),'ROC DNN')
-                MakeROCPlot([instance_binary_ROC_MEM,instance_binary_ROC_DNN],os.path.join(OUTPUT_PDF,obj.name+'_binary_ROC_MEM_vs_DNN'),'ROC MEM vs DNN')
-            except Exception as e:
-                logging.warning('Could not process binary ROC due to "%s"'%e)
+                        logging.warning('Could not plot %s due to "%s"'%(name,e))
 
-            #try:
-            #    instance_ROC_Multi_MEM.ProcessROC()
-            #    instance_ROC_Multi_DNN.ProcessROC()
-            #    MakeMultiROCPlot([instance_ROC_Multi_MEM],os.path.join(OUTPUT_PDF,obj.name+'_MULTI_ROC_MEM'),'Classification ROC MEM')
-            #    MakeMultiROCPlot([instance_ROC_Multi_DNN],os.path.join(OUTPUT_PDF,obj.name+'_MULTI_ROC_DNN'),'Classification ROC DNN')
-            #    MakeMultiROCPlot([instance_ROC_Multi_MEM,instance_ROC_Multi_DNN],os.path.join(OUTPUT_PDF,obj.name+'_MULTI_ROC_MEM_vs_DNN'),'Classification ROC MEM vs DNN')
-            #except Exception as e:
-            #    logging.warning('Could not process Multi ROC due to "%s"'%e)
+        
+        # Process ROCs #
+        for roc in rocs:
+            for inst_roc in roc.list_instance:
+                try:
+                    inst_roc.ProcessROC() 
+                    logging.info('\tProcessed ROC %s'%(inst_roc.title))
+                except Exception as e:
+                    logging.warning('Could not process ROC due to "%s"'%(e))
+
+        # Make ROCs graphs #
+        for roc in rocs:
+            try:
+                def_ = getattr(Classes, roc.def_name)
+                def_(roc.list_instance,name=os.path.join(OUTPUT_PDF,roc.plot_name),title=roc.title)
+            except Exception as e:
+                logging.warning('Could not plot ROC due to "%s"'%(e))
 
     #############################################################################################
     # Save histograms #

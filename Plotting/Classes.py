@@ -26,7 +26,7 @@ import tdrstyle
  # PYPLOT STYLE #
 SMALL_SIZE = 16
 MEDIUM_SIZE = 20
-BIGGER_SIZE = 24
+BIGGER_SIZE = 22
 
 plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
 plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
@@ -341,19 +341,37 @@ class Plot_Multi_TH1:
         
 ####################################      Plot_ROC       ########################################
 class Plot_ROC:
-    def __init__(self,variable,weight,title,cut=''):
-        self.variable = variable
-        self.weight = weight
-        self.cut = cut
-        self.title = title
-        self.output = np.empty((0,1))
-        self.target = np.empty((0,1))
+    def __init__(self,tree,variable,weight,title,selector,cut=''):
+        self.tree = tree                                # Name of the tree to be taken from root file
+        self.variable = variable                        # Discriminative variable (typically between 0 and 1)
+        self.weight = weight                            # Weight to be used in the ROC curve (not implemeted here)
+        self.cut = cut                                  # Potential cut before applying the ROC
+        self.title = title                              # Title of the ROC (to be included in legend !)
+        self.selector = selector                        # Dict to give the target (=value) as a function of string inside filename (=key)
+        self.output = np.empty((0,1))                   # Will contain the outputs (aka the variable from files)
+        self.target = np.empty((0,1))                   # Will contin the targets
 
-    def AddToROC(self,filename,tree,target):
-        out = rec2array(root2array(filename,tree,branches=self.variable,selection=self.cut))
+    def AddToROC(self,filename):
+        # Check that correct target and records #
+        valid_file = False
+        for key,value in self.selector.items():
+            if key in os.path.basename(filename): 
+                target = value
+                valid_file = True
+        if not valid_file: return False# If file not to be taken into account
+        # recover output #
+        out = root2array(filename,self.tree,branches=self.variable,selection=self.cut)
+        try:
+            out = rec2array(out) # If not a vector, need to remove dtype
+        except:
+            pass
+        if out.ndim==1: out = out.reshape(-1,1) # vector -> array
+        
+        # Add to container #
         tar = np.ones((out.shape[0],1))*target
         self.output = np.concatenate((self.output,out),axis=0)
         self.target = np.concatenate((self.target,tar),axis=0)
+        return True
 
     def ProcessROC(self):
         self.fpr, self.tpr, threshold = metrics.roc_curve(self.target,self.output)
@@ -380,13 +398,17 @@ def MakeROCPlot(list_obj,name,title):
 
     fig.savefig(name+'.png')
     logging.info('ROC curved saved as %s.png'%name)
+    plt.close(fig)
 
 #################################      Plot_Multi_ROC       #####################################
 class Plot_Multi_ROC:
-    def __init__(self,classes,labels,colors,weight,title,cut=''):
+    def __init__(self,tree,classes,labels,prob_branches,colors,weight,title,selector,cut=''):
+        self.tree = tree                                # Name of the tree
         self.classes = classes                          # eg [0,1,2], just numbering
         self.labels = labels                            # Labels to display on plot
         self.colors= colors                             # Pyplot colors for each element
+        self.selector = selector                        # Depending on string name, gives target
+        self.prob_branches = prob_branches              # Branches containign the probabilities
         self.n_classes = len(classes)                   # number of classes
         self.weight = weight                            # Weight (not used so far)
         self.title = title                              # eg differentiate ROC from MEM and DNN
@@ -398,12 +420,19 @@ class Plot_Multi_ROC:
             # classes in lb -> lb.classes_
         
 
-    def AddToROC(self,filename,tree,prob_branches,target):
+    def AddToROC(self,filename):
         """ 
         Info of the root file, the name of the probability branches and the target (0 or 1 or ...)
         """
+        valid_file = False
+        for key,value in self.selector.items():
+            if key in os.path.basename(filename): 
+                target = value
+                valid_file = True
+        if not valid_file: return False# If file not to be taken into account
+ 
         # Get the output prob #
-        probs = rec2array(root2array(filename,tree,branches=prob_branches,selection=self.cut))
+        probs = rec2array(root2array(filename,self.tree,branches=self.prob_branches,selection=self.cut))
         self.prob_per_class = np.concatenate((self.prob_per_class,probs),axis=0)
 
         # Make the targets labelized #
@@ -411,6 +440,8 @@ class Plot_Multi_ROC:
         
         # eg target = 1 and classes = [0,1,2] => scores = [0,1,0],...
         self.scores = np.concatenate((self.scores,target_arr),axis=0)
+
+        return True
 
     def ProcessROC(self):
         self.tpr = {}
@@ -466,7 +497,7 @@ def MakeMultiROCPlot(list_obj,name,title):
 
     fig.savefig(name+'.png')#,bbox_inches='tight')
     logging.info('ROC curved saved as %s.png'%name)
-
+    plt.close(fig)
 
 
 #####################################   ProcessYAML   ############################################
@@ -478,7 +509,7 @@ class ProcessYAML():
             os.makedirs(self.OUTPUT_YAML)
         logging.debug('Instantiation of template %s'%template)
 
-    def Particularize(self,filename):
+    def Particularize(self,filename=''):
         self.part_template = os.path.join(self.OUTPUT_YAML,self.template.replace('.yml.tpl','_')+filename+'.yml')
         with open(self.template) as tpl_handle:
             tpl = tpl_handle.read()
