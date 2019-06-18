@@ -19,7 +19,6 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
 
 
-import matplotlib.pyplot as plt
 
 # Personal files #
 from NeuralNet import HyperModel
@@ -49,10 +48,10 @@ def get_options():
         help='Use TT MEM weights (must be specified if --scan or --report or --output are used')
     a.add_argument('--HToZA', action='store_true', required=False, default=False,
         help='Use HToZA MEM weights (must be specified if --scan or --report or --output are used')
-    a.add_argument('--class', dest='classes', action='store_true', required=False, default=False,
+    a.add_argument('--class_global', dest='class_global', action='store_true', required=False, default=False,
         help='Turn the tags into a one-hot vector for the classification')
-    a.add_argument('--class_param', dest='classes_param', action='store_true', required=False, default=False,
-        help='Turns on the one-hot classification AND adds the decoupling for the parametrization')
+    a.add_argument('--class_param', dest='class_param', action='store_true', required=False, default=False,
+        help='Turns on the one-hot classification AND adds the decoupling for the parameterization')
     a.add_argument('--binary', action='store_true', required=False, default=False,
         help='Turn the tags into targets (0 or 1) for the binary classification (background vs signal)')
     a.add_argument('-task','--task', action='store', required=False, type=str, default='',
@@ -93,12 +92,11 @@ def get_options():
 
     opt = parser.parse_args()
 
-    if opt.classes_param:
-        opt.classes = True
-        logging.warning('In addition to one-hot classification, will parametrize the inputs')
-    if not opt.DY and not opt.TT and not opt.HToZA and not opt.classes and not opt.binary:
+    if opt.class_param:
+        logging.warning('In addition to one-hot classification, will parameterize the inputs')
+    if not opt.DY and not opt.TT and not opt.HToZA and not opt.class_param and not class_global and not opt.binary:
         if opt.scan!='' or opt.report!='' or opt.submit!='':
-            logging.critical('Either --DY, --TT, --HToZA --class or --binary must be specified')  
+            logging.critical('Either --DY, --TT, --HToZA, --class_param, --class_global or --binary must be specified')  
             sys.exit(1)
     if opt.split!=0 or opt.submit:
         if opt.scan!='' or opt.report!='':
@@ -135,6 +133,7 @@ def main():
     # Private modules containing Pyroot #
     from import_tree import LoopOverTrees
     from produce_output import ProduceOutput
+    from parameterize_classifier import ParametrizeClassifier
     # Needed because PyROOT messes with argparse
 
     logging.info("="*88)
@@ -158,13 +157,21 @@ def main():
         DictSplit(opt.split,opt.submit,opt.resubmit)
         
         logging.info('Splitting jobs done')
+        # Arguments to send #
+        args = ' '
+        if opt.DY:              args += '--DY '
+        if opt.TT:              args += '--TT '
+        if opt.HToZA:           args += '--HToZA '
+        if opt.class_global:  args += '--class_global'
+        if opt.class_param:   args += '--class_param '
+        if opt.binary:          args += '--binary '
 
         if opt.submit!='':
             logging.info('Submitting jobs')
             if opt.resubmit:
-                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug,tt=opt.TT,dy=opt.DY,hza=opt.HToZA,classes=opt.classes,binary=opt.binary)
+                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug,args=args)
             else:
-                submit_on_slurm(name=opt.submit,debug=opt.debug,tt=opt.TT,dy=opt.DY,hza=opt.HToZA,classes=opt.classes,binary=opt.binary)
+                submit_on_slurm(name=opt.submit,debug=opt.debug,args=args)
         sys.exit()
 
     #############################################################################################
@@ -208,7 +215,7 @@ def main():
         if opt.HToZA:
             instance = HyperModel(opt.report,'HToZA')
             instance.HyperReport(parameters.eval_criterion)
-        if opt.classes:
+        if opt.class_param or opt.class_global:
             instance = HyperModel(opt.report,'class')
             instance.HyperReport(parameters.eval_criterion)
         if opt.binary:
@@ -221,11 +228,12 @@ def main():
     # Output of given files from given model #
     #############################################################################################
     list_model = []
-    if opt.DY      : list_model.append('DY') 
-    if opt.TT      : list_model.append('TT') 
-    if opt.HToZA   : list_model.append('HToZA') 
-    if opt.classes : list_model.append('class') 
-    if opt.binary    : list_model.append('binary') 
+    if opt.DY                   : list_model.append('DY') 
+    if opt.TT                   : list_model.append('TT') 
+    if opt.HToZA                : list_model.append('HToZA') 
+    if opt.class_global         : list_model.append('class_global') 
+    if opt.class_param          : list_model.append('class_param') 
+    if opt.binary               : list_model.append('binary') 
 
     if opt.model != '' and len(opt.output) != 0:
         # Create directory #
@@ -235,8 +243,9 @@ def main():
 
         # Check if need to decouple signal #
         is_signal = True if opt.HToZA else False
+        is_class_param = True if opt.class_param else False
         # Instantiate #
-        inst_out = ProduceOutput(model=os.path.join(parameters.main_path,'model',opt.model),list_model=list_model,is_signal=is_signal)
+        inst_out = ProduceOutput(model=os.path.join(parameters.main_path,'model',opt.model),list_model=list_model,is_signal=is_signal,is_class_param=is_class_param)
         # Loop over output keys #
         for key in opt.output:
             # Create subdir #
@@ -330,21 +339,35 @@ def main():
         sys.exit(1)
         
 
-    train_all = pd.concat([train_HToZA,train_DY,train_TT])
-    test_all = pd.concat([test_HToZA,test_DY,test_TT])
+    train_all = pd.concat([train_HToZA,train_DY,train_TT]).reset_index(drop=True)
+    test_all = pd.concat([test_HToZA,test_DY,test_TT]).reset_index(drop=True)
+
     del train_HToZA,train_DY,train_TT # Save space
     del test_HToZA,test_DY,test_TT
 
-    # If HToZA weights, add the masses as inputs and make the repetition for each mass #
-    if opt.HToZA and opt.scan!='': # We only need the training set for the scan
+    # Parametrized case : add the masses as inputs and make the repetition for each mass #
+    if opt.HToZA  and opt.scan!='': # We only need the training set for the scan
+    #if (opt.HToZA or opt.class_param) and opt.scan!='': # We only need the training set for the scan
+        # List of variables to decouple #
+        if opt.HToZA :          
+            list_to_decouple = parameters.outputs
+            decoupled_name = 'weight_HToZA'
+        if opt.class_param :  
+            list_to_decouple = [s for s in parameters.inputs if s.find('HToZA')!=-1] # Only take the HtoZA weights (not background)
+            decoupled_name = '-log10(weight_HToZA)'
         # Modify data #
         logging.info("Starting the training set decoupling")
-        train_all = Decoupler(train_all)
+        train_all = Decoupler(train_all,decoupled_name,list_to_decouple)
         logging.info("\tTraining set decoupled : new size = %d"%train_all.shape[0])
         # Update the list of variables #
+        if opt.class_param :  list_inputs = [s for s in parameters.inputs if s not in list_to_decouple] + [decoupled_name]
         list_inputs += ['mH_MEM','mA_MEM']
         # For testing -> Done in produce_output.py
 
+    if opt.class_param and opt.scan!='':
+        signal_name = '-log10(weight_HToZA)'
+        train_all = ParametrizeClassifier(train_all,name=signal_name)
+        list_inputs = ['-log10(weight_DY)','-log10(weight_TT)',signal_name,'mH_gen','mA_gen']
 
     # Randomize order, we don't want only one type per batch #
     random_train = np.arange(0,train_all.shape[0]) # needed to randomize x,y and w in same fashion
@@ -358,7 +381,7 @@ def main():
         scaler_name = 'scaler_'+parameters.suffix+'.pkl'
         scaler_path = os.path.join(parameters.main_path,scaler_name)
         if not os.path.exists(scaler_path):
-            scaler = preprocessing.StandardScaler().fit(train_all[parameters.inputs])
+            scaler = preprocessing.StandardScaler().fit(train_all[list_inputs])
             with open(scaler_path, 'wb') as handle:
                 pickle.dump(scaler, handle)
             logging.info('Scaler %s has been created'%scaler_name)
@@ -369,17 +392,17 @@ def main():
 
         # Test the scaler #
         try:
-            mean_scale = np.mean(scaler.transform(train_all[parameters.inputs]))
-            var_scale = np.var(scaler.transform(train_all[parameters.inputs]))
+            mean_scale = np.mean(scaler.transform(train_all[list_inputs]))
+            var_scale = np.var(scaler.transform(train_all[list_inputs]))
         except ValueError:
-            logging.critical("Problem with the scaler you imported, has the data changed since it was generated ?")
+            logging.critical("Problem with the scaler '%s' you imported, has the data changed since it was generated ?"%scaler_name)
             sys.exit(1)
         if abs(mean_scale)>0.01 or abs((var_scale-1)/var_scale)>0.01: # Check that scaling is correct to 1%
-            logging.critical("Something is wrong with scaler (mean = %0.6f, var = %0.6f), maybe you loaded an incorrect scaler"%(mean_scale,var_scale))
+            logging.critical("Something is wrong with scaler '%s' (mean = %0.6f, var = %0.6f), maybe you loaded an incorrect scaler"%(scaler_name,mean_scale,var_scale))
             sys.exit()
 
     # Turns tags into one-hot vector #
-    if opt.classes:
+    if opt.class_param or opt.class_global:
         # Instantiate #
         label_encoder = LabelEncoder()
         onehot_encoder = OneHotEncoder(sparse=False)
@@ -432,14 +455,17 @@ def main():
             instance = HyperModel(opt.scan,'TT')
             instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['weight_TT'],task=opt.task)
             instance.HyperDeploy(best='eval_error')
+        # HToZA network #
         if opt.HToZA:
             instance = HyperModel(opt.scan,'HToZA')
             instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['weight_HToZA'],task=opt.task)
             instance.HyperDeploy(best='eval_error')
-        if opt.classes:
+        # Multiclass network #
+        if opt.class_param or opt.class_global:
             instance = HyperModel(opt.scan,'class')
             instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['DY','HToZA','TT'],task=opt.task)
             instance.HyperDeploy(best='eval_error')
+        # Binary class network #
         if opt.binary:
             instance = HyperModel(opt.scan,'binary')
             instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['Target_signal'],task=opt.task)
@@ -454,7 +480,8 @@ def main():
 
         # Instance of output class #
         is_signal = True if opt.HToZA else False
-        inst_out = ProduceOutput(model=os.path.join(parameters.main_path,'model',opt.model),list_model=list_model,is_signal=is_signal)
+        is_class_param = True if opt.class_param else False
+        inst_out = ProduceOutput(model=os.path.join(parameters.main_path,'model',opt.model),list_model=list_model,is_signal=is_signal,is_class_param=is_class_param)
 
         # Use it on test samples #
         if opt.test:

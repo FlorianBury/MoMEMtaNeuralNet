@@ -2,8 +2,10 @@
 
 path="/home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/"
 number=20000
-max=1500
+max=1400
 model="BestModel"
+
+rm likelihood.txt
 
 sbatch submit_likelihood.sh $model $path"HToZATo2L2B_MH-200_MA-100_signal_weights.root"       $number $max   
 sbatch submit_likelihood.sh $model $path"HToZATo2L2B_MH-200_MA-50_signal_weights.root"        $number $max 

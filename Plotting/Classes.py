@@ -418,7 +418,6 @@ class Plot_Multi_ROC:
         self.lb = LabelBinarizer()                      # eg ['A','B','C']-> labels [0,1,0]...
         self.lb.fit(self.classes)                       # Carefull ! Alphabetic order !
             # classes in lb -> lb.classes_
-        
 
     def AddToROC(self,filename):
         """ 

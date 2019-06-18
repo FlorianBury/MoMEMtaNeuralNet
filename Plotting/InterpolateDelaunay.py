@@ -24,12 +24,10 @@ import CMS_lumi
 import tdrstyle
 
 class InterpolationDelaunay:
-    def __init__(self,x,y,z,kind='linear'):
-        #self.inter = interp2d(x,y,-np.log10(z),kind=kind)
+    def __init__(self,x,y,z):
         self.graph = copy.deepcopy(TGraph2D(x.shape[0],x,y,-np.log10(z)))
     def interpolate(self,x,y):
         z = self.graph.Interpolate(x,y)
-        #return np.power(10,-self.inter(x,y))
         return np.power(10,-z)
 
 def main():
@@ -100,7 +98,7 @@ def main():
         y = points.iloc[i*N:(i+1)*N,0].values # mH is x
         z = points.iloc[i*N:(i+1)*N,2].values # weight is x
 
-        inst = InterpolationDelaunay(x,y,z,kind='cubic')
+        inst = InterpolationDelaunay(x,y,z)
         inter_weight[i] = inst.interpolate(opt.MA,opt.MH)
         pbar.update()
     manager.stop()

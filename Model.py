@@ -176,8 +176,8 @@ def ClassificationModel(x_train,y_train,x_val,y_val,params):
     utils.print_summary(model=model) #used to print model
 
     # Callbacks #
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0., patience=50, verbose=1, mode='min')
-    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=1, mode='min', cooldown=1, min_lr=1e-6)
+    early_stopping = EarlyStopping(monitor='val_acc', min_delta=0., patience=15, verbose=1, mode='max')
+    reduceLR = ReduceLROnPlateau(monitor='val_acc', factor=0.5, patience=8, verbose=1, mode='max', cooldown=1, min_lr=1e-6)
     loss_history = LossHistory()
     Callback_list = [loss_history,early_stopping,reduceLR]
 

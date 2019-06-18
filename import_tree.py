@@ -18,7 +18,7 @@ from ROOT import TChain, TFile, TTree
 # Tree2Pandas#
 ###############################################################################
 
-def Tree2Pandas(input_file, variables, weight=None, cut=None, reweight_to_cross_section=False, n=None, tree_name='tree'):
+def Tree2Pandas(input_file, variables, weight=None, cut=None, reweight_to_cross_section=False, n=None, tree_name='tree',start=None):
     """
     Convert a ROOT TTree to a numpy array.
     """
@@ -56,8 +56,17 @@ def Tree2Pandas(input_file, variables, weight=None, cut=None, reweight_to_cross_
 
     # Only part of tree #
     if n:
-        logging.info("Reading only {} from input tree".format(n))
-        df = df[:n]
+        if n == -1:
+            n = N # Get all entries
+        if start:
+            if n < start:
+                logging.critical('Importing tree with start higher than end, will output empty tree')
+            logging.info("Reading from {} to {} in input tree".format(start,n))
+            df = df.iloc[start:n]
+        else:
+            logging.info("Reading only {} from input tree".format(n))
+            df = df.iloc[:n]
+        
 
     return df
 

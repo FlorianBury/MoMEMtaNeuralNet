@@ -8,6 +8,7 @@ import string
 import logging
 import random
 import csv
+import time
 
 import array
 import numpy as np
@@ -277,7 +278,14 @@ class HyperModel:
         # Load the preprocessing layer #
         custom_objects =  {'PreprocessLayer': PreprocessLayer}
         # Restore model #
-        a = Restore(os.path.join(parameters.main_path,'model',self.name+'_'+self.sample+'.zip'),custom_objects = custom_objects)
+        loaded = False
+        while not loaded:
+            try:
+                a = Restore(os.path.join(parameters.main_path,'model',self.name+'_'+self.sample+'.zip'),custom_objects = custom_objects)
+                loaded = True
+            except Exception as e:
+                logging.warning('Could not load model due to "%s", will try again in 3s'%e)
+                time.sleep(3)
 
         # Output of the model #
         outputs = a.model.predict(inputs,batch_size=batch_size,verbose=verbose)

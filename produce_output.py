@@ -9,13 +9,15 @@ from root_numpy import array2root
 from NeuralNet import HyperModel
 from import_tree import Tree2Pandas
 from signal_coupling import Decoupler, Recoupler
+from parameterize_classifier import ParametrizeClassifier
 import parameters
 
 
 class ProduceOutput:
-    def __init__(self,model,list_model,is_signal=False,list_inputs=None):
+    def __init__(self,model,list_model,is_signal=False,is_class_param=False,list_inputs=None):
         self.model = model              # Model of the NeuralNet
         self.is_signal = is_signal
+        self.is_class_param = is_class_param
         self.list_model = list_model
         self.list_inputs = list_inputs
         if self.list_inputs is None:
@@ -30,8 +32,19 @@ class ProduceOutput:
         """
         # If signal, decouple the data #
         if self.is_signal:
-            data = Decoupler(data)
-            list_inputs += ['mH_MEM','mA_MEM'] 
+            decoupled_name = 'weight_HToZA'
+            list_to_decouple = parameters.outputs
+            self.list_inputs += ['mH_MEM','mA_MEM'] 
+            data = Decoupler(data,decoupled_name,list_to_decouple)
+        if self.is_class_param:
+            signal_name = '-log10(weight_HToZA)'
+            data = ParametrizeClassifier(data,name=signal_name) 
+            self.list_inputs = ['-log10(weight_DY)','-log10(weight_TT)',signal_name,'mH_gen','mA_gen']
+            #decoupled_name = '-log10(weight_HToZA)'
+            #list_to_decouple = [s for s in parameters.inputs if s.find('HToZA')!=-1]
+            #data = Decoupler(data,decoupled_name,list_to_decouple)
+            #self.list_inputs = [s for s in parameters.inputs if s not in list_to_decouple] + [decoupled_name] 
+            #self.list_inputs += ['mH_MEM','mA_MEM'] 
 
         inputs = data[self.list_inputs].values
         output = np.empty((inputs.shape[0],0))
@@ -39,8 +52,8 @@ class ProduceOutput:
 
         # Get Model Output #
         for model in self.list_model:
-            if model not in ['DY','TT','HToZA','class','binary']:
-                logging.critical('Wrong model type specified : %s must be either "DY", "TT", "HToZA", "class" or binary')
+            if model not in ['DY','TT','HToZA','class','class_param','binary']:
+                logging.critical('Wrong model type specified : %s must be either "DY", "TT", "HToZA", "class", "class_param", or binary')
                 sys.exit(1)
 
             instance = HyperModel(self.model,model)
@@ -51,7 +64,7 @@ class ProduceOutput:
                 out = instance.HyperRestore(inputs)
                 if model in ['binary']:
                     columns.extend(['Prob_MEM_signal'])
-                if model in ['class']:
+                if model in ['class_param','global']:
                     columns.extend(['Prob_MEM_DY','Prob_MEM_HToZA','Prob_MEM_TT'])
                 
             output = np.c_[output,out]
@@ -63,7 +76,10 @@ class ProduceOutput:
         full_df = pd.concat([data,output_df],axis=1)
         if self.is_signal:
             logging.info("Signal case : Recoupling of the data")
-            full_df = Recoupler(full_df)
+            full_df = Recoupler(full_df,col_to_recouple = ['weight_HToZA','output_HToZA'],N=len(list_to_decouple))
+        #if self.is_class_param:
+        #    logging.info("Parametric classifier case : Recoupling of the data")
+        #    full_df = Recoupler(full_df,col_to_recouple = ['Prob_MEM_DY','Prob_MEM_TT','Prob_MEM_HToZA'],N=len(list_to_decouple))
         # Get the unique tags as a list #
         if output_name is None:
             tag_list = list(full_df['tag'].unique())

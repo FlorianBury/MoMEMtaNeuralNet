@@ -1,16 +1,15 @@
 ##################### MEM ########################
 
-ROC_MEM_mH_800_mA_50:
+ROC_MEM:
   tree: tree
   classes:
     - DY
     - HToZA
     - TT
   prob_branches:
-    - Prob_MEM_DY_mH_800_mA_50/(Prob_MEM_DY_mH_800_mA_50+Prob_MEM_HToZA_mH_800_mA_50+Prob_MEM_TT_mH_800_mA_50)
-    - Prob_MEM_HToZA_mH_800_mA_50/(Prob_MEM_DY_mH_800_mA_50+Prob_MEM_HToZA_mH_800_mA_50+Prob_MEM_TT_mH_800_mA_50)
-    - Prob_MEM_TT_mH_800_mA_50/(Prob_MEM_DY_mH_800_mA_50+Prob_MEM_HToZA_mH_800_mA_50+Prob_MEM_TT_mH_800_mA_50)
-
+    - Prob_MEM_DY/(Prob_MEM_DY+Prob_MEM_HToZA+Prob_MEM_TT)
+    - Prob_MEM_HToZA/(Prob_MEM_DY+Prob_MEM_HToZA+Prob_MEM_TT)
+    - Prob_MEM_TT/(Prob_MEM_DY+Prob_MEM_HToZA+Prob_MEM_TT)
   labels:
     - P(Drell-Yann)
     - P(Signal $H\rightarrow ZA$)
@@ -21,7 +20,7 @@ ROC_MEM_mH_800_mA_50:
     - darkred
   weight : total_weight
   title : MEM
-  cut : ''
+  cut : '(mH_gen==800 && mA_gen==50)'
   selector :
     'TT' : 'TT'
     'DY' : 'DY'
@@ -29,17 +28,16 @@ ROC_MEM_mH_800_mA_50:
 
 ##################### DNN ########################
 
-ROC_DNN_mH_800_mA_50:
+ROC_DNN:
   tree: tree
   classes:
     - DY
     - HToZA
     - TT
   prob_branches:
-    - Prob_DNN_DY_mH_800_mA_50/(Prob_DNN_DY_mH_800_mA_50+Prob_DNN_HToZA_mH_800_mA_50+Prob_DNN_TT_mH_800_mA_50)
-    - Prob_DNN_HToZA_mH_800_mA_50/(Prob_DNN_DY_mH_800_mA_50+Prob_DNN_HToZA_mH_800_mA_50+Prob_DNN_TT_mH_800_mA_50)
-    - Prob_DNN_TT_mH_800_mA_50/(Prob_DNN_DY_mH_800_mA_50+Prob_DNN_HToZA_mH_800_mA_50+Prob_DNN_TT_mH_800_mA_50)
-
+    - Prob_DNN_DY/(Prob_DNN_DY+Prob_DNN_HToZA+Prob_DNN_TT)
+    - Prob_DNN_HToZA/(Prob_DNN_DY+Prob_DNN_HToZA+Prob_DNN_TT)
+    - Prob_DNN_TT/(Prob_DNN_DY+Prob_DNN_HToZA+Prob_DNN_TT)
   labels:
     - P(Drell-Yann)
     - P(Signal $H\rightarrow ZA$)
@@ -50,7 +48,7 @@ ROC_DNN_mH_800_mA_50:
     - red
   weight : total_weight
   title : DNN
-  cut : ''
+  cut : '(mH_gen==800 && mA_gen==50)'
   selector :
     'TT' : 'TT'
     'DY' : 'DY'

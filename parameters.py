@@ -28,10 +28,11 @@ output_ratio = 0.2      # Output set for plotting later
 ######################################  Name   ########################################
 # Model name (only for scans)
 #model = 'NeuralNetModel' 
-#model = 'ClassificationModel'
-model = 'BinaryModel'
+model = 'ClassificationModel'
+#model = 'BinaryModel'
 # scaler and mask names #
-suffix = 'binary' 
+#suffix = 'binary' 
+suffix = 'class_param_test' 
 # scaler_name -> 'scaler_{suffix}.pkl'  If does not exist will be created 
 # mask_name -> 'mask_{suffix}_{sample}.npy'  If does not exist will be created 
 
@@ -44,14 +45,14 @@ eval_criterion = "eval_error" # either val_loss or eval_error
 # /!\ Lists must always contain something (even if 0), otherwise 0 hyperparameters #
 p = { 
     'lr' : [0.0001], 
-    'first_neuron' : [100,200,300,400,500],
+    'first_neuron' : [50,100,200,300,400,500],
     'activation' : [relu],
     'dropout' : [0],
     'hidden_layers' : [2,3,4,5,6,7], # does not take into account the first layer
     'output_activation' : [sigmoid],
-    'l2' : [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8],
+    'l2' : [0,0.1,0.2,0.3,0.4,0.5],
     'optimizer' : [Adam],  
-    'epochs' : [300],   
+    'epochs' : [100],   
     'batch_size' : [512], 
     'loss_function' : [binary_crossentropy] 
 }
@@ -60,11 +61,11 @@ p = {
 #    'first_neuron' : [300],
 #    'activation' : [relu],
 #    'dropout' : [0],
-#    'hidden_layers' : [5], # does not take into account the first layer
+#    'hidden_layers' : [4], # does not take into account the first layer
 #    'output_activation' : [sigmoid],
 #    'l2' : [0],
 #    'optimizer' : [Adam],  
-#    'epochs' : [10],   
+#    'epochs' : [5],   
 #    'batch_size' : [512], 
 #    'loss_function' : [binary_crossentropy] 
 #}
@@ -206,14 +207,14 @@ other_variables = [
                      #'jet2_p4.Pz()',
                      #'jet2_p4.E()',
                     
-                     'll_M',
-                     'jj_M',
-                     'lljj_M',
+                     #'ll_M',
+                     #'jj_M',
+                     #'lljj_M',
 
                      'weight_TT',
                      'weight_DY',
-                     'output_DY',
-                     'output_TT',
+                     #'output_DY',
+                     #'output_TT',
 
                      'weight_HToZA_mH_200_mA_50',
                      'weight_HToZA_mH_200_mA_100',
@@ -239,29 +240,29 @@ other_variables = [
                      'weight_HToZA_mH_2000_mA_1000',
                      'weight_HToZA_mH_3000_mA_2000',
 
-                     'output_HToZA_mH_200_mA_50',
-                     'output_HToZA_mH_200_mA_100',
-                     'output_HToZA_mH_250_mA_50', 
-                     'output_HToZA_mH_250_mA_100',
-                     'output_HToZA_mH_300_mA_50', 
-                     'output_HToZA_mH_300_mA_100',
-                     'output_HToZA_mH_300_mA_200',
-                     'output_HToZA_mH_500_mA_50', 
-                     'output_HToZA_mH_500_mA_100',
-                     'output_HToZA_mH_500_mA_200',
-                     'output_HToZA_mH_500_mA_300',
-                     'output_HToZA_mH_500_mA_400',
-                     'output_HToZA_mH_650_mA_50', 
-                     'output_HToZA_mH_800_mA_50', 
-                     'output_HToZA_mH_800_mA_100',
-                     'output_HToZA_mH_800_mA_200',
-                     'output_HToZA_mH_800_mA_400',
-                     'output_HToZA_mH_800_mA_700',
-                     'output_HToZA_mH_1000_mA_50',
-                     'output_HToZA_mH_1000_mA_200', 
-                     'output_HToZA_mH_1000_mA_500', 
-                     'output_HToZA_mH_2000_mA_1000',
-                     'output_HToZA_mH_3000_mA_2000',
+                     #'output_HToZA_mH_200_mA_50',
+                     #'output_HToZA_mH_200_mA_100',
+                     #'output_HToZA_mH_250_mA_50', 
+                     #'output_HToZA_mH_250_mA_100',
+                     #'output_HToZA_mH_300_mA_50', 
+                     #'output_HToZA_mH_300_mA_100',
+                     #'output_HToZA_mH_300_mA_200',
+                     #'output_HToZA_mH_500_mA_50', 
+                     #'output_HToZA_mH_500_mA_100',
+                     #'output_HToZA_mH_500_mA_200',
+                     #'output_HToZA_mH_500_mA_300',
+                     #'output_HToZA_mH_500_mA_400',
+                     #'output_HToZA_mH_650_mA_50', 
+                     #'output_HToZA_mH_800_mA_50', 
+                     #'output_HToZA_mH_800_mA_100',
+                     #'output_HToZA_mH_800_mA_200',
+                     #'output_HToZA_mH_800_mA_400',
+                     #'output_HToZA_mH_800_mA_700',
+                     #'output_HToZA_mH_1000_mA_50',
+                     #'output_HToZA_mH_1000_mA_200', 
+                     #'output_HToZA_mH_1000_mA_500', 
+                     #'output_HToZA_mH_2000_mA_1000',
+                     #'output_HToZA_mH_3000_mA_2000',
 
                      'weight_DY_time',
                      'weight_DY_err',

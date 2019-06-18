@@ -9,7 +9,7 @@ import copy
 
 import parameters
 
-def Decoupler(data,list_outputs=None):
+def Decoupler(data,decoupled_name,list_to_decouple=None,decimals=False):
     """ 
     Data is a pandas dataFrame
     For each event we have : [Pt,eta,phi]x4 and 23 weights (with mH, mA) as parameters
@@ -21,17 +21,19 @@ def Decoupler(data,list_outputs=None):
     inputs = [Pt,eta,phi]x4
     outputs = 23 set of weights
     """
-    list_out = parameters.outputs if list_outputs is None else copy.copy(list_outputs)
+    list_dec = parameters.outputs if list_to_decouple is None else copy.copy(list_to_decouple)
     # Get the arrays of mH, mA ordered as in the outputs
-    list_rest = [i for i in data.columns if i not in list_out] # All but outputs
-    n_weights = len(list_out)
+    list_rest = [i for i in data.columns if i not in list_dec] # All but outputs
+    n_weights = len(list_dec)
     mHmA = np.empty((0,2))
-    for ol in list_out:
-        arr = np.array([[int(re.findall(r'\d+', ol)[0]),int(re.findall(r'\d+', ol)[1])]])
+    for ol in list_dec:
+        if decimals:
+            arr = np.array([[float(re.findall(r"\d*\.\d+|\d+", ol)[0]),float(re.findall(r"\d*\.\d+|\d+", ol)[1])]])
+        else:
+            arr = np.array([[int(re.findall(r'_\d+', ol)[0].replace('_','')),int(re.findall(r'_\d+', ol)[1].replace('_',''))]])
         mHmA = np.append(mHmA,arr,axis=0)
-
     # Get the numpy arrays #
-    decouple = data[list_out].values
+    decouple = data[list_dec].values
     repeat = data[list_rest].values
 
     # Repeat and decouple #
@@ -41,7 +43,7 @@ def Decoupler(data,list_outputs=None):
 
     # Concatenate and make DF #
     new_arr = np.c_[repeat,masses,decouple]
-    df = pd.DataFrame(new_arr,columns=list_rest+['mH_MEM','mA_MEM','weight_HToZA'])
+    df = pd.DataFrame(new_arr,columns=list_rest+['mH_MEM','mA_MEM',decoupled_name])
 
     return df
 
@@ -65,30 +67,34 @@ def Repeater(arr,n):
         new_arr[i*n:(i+1)*n,:] = new_row
     return new_arr
 
-def Recoupler(data):
+def Recoupler(data,col_to_recouple,N,decimals=False):
     """ 
     Do the opposite of Decoupler.
     For the output we want one event with the different weights and outputs for each mass configuration
     Data is a pandas dataFrame
+    col_to_recouple are the columns to decouple and transpose
+    N is the number of repetitions
     """
     # Parameters #
-    N = len(parameters.outputs) # number of repetitions
     columns = data.columns 
-    col_to_recouple = ['mH_MEM','mA_MEM','weight_HToZA','output_HToZA'] # the colmuns we need to transpose and concatenate in one line
-    col_repeated = [s for s in columns if s not in col_to_recouple] # The ones that are repeated N times, need to keep only one time
+    col_masses = ['mH_MEM','mA_MEM']
+    col_repeated = [s for s in columns if s not in col_to_recouple and s not in col_masses] # The ones that are repeated N times, need to keep only one time
     
-    # Get the basic repeated values @
-    #entry_base = np.unique(data[col_repeated].values.astype('float64'),axis=0)
+    # Get the basic repeated values #
     idx_base = np.arange(0,data.shape[0],N)
     entry_base = data.iloc[idx_base][col_repeated].values # select one entry among the repeated
 
     # generate the new columns #
     mH = data.iloc[0:N]['mH_MEM'].values.tolist()
     mA = data.iloc[0:N]['mA_MEM'].values.tolist() 
-    new_col = ['weight_HToZA_mH_%d_mA_%d'%(H,A) for H,A in zip(mH,mA)] + ['output_HToZA_mH_%d_mA_%d'%(H,A) for H,A in zip(mH,mA)]
-    
+    new_col = []
+    for col in col_to_recouple:
+        if decimals:
+            new_col += [col+'_mH_%0.2f_mA_%0.2f'%(H,A) for H,A in zip(mH,mA)]
+        else:
+            new_col += [col+'_mH_%d_mA_%d'%(H,A) for H,A in zip(mH,mA)]
     # Transpose on one line #
-    data_to_recouple = data[['weight_HToZA','output_HToZA']].values
+    data_to_recouple = data[col_to_recouple].values
     data_recoupled = Transposer(data_to_recouple,N)
 
     # Concatenate and make into DF #

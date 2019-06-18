@@ -16,6 +16,6 @@ def GenerateMask(N,name):
         logging.info('Mask not found at '+path_mask+' -> Has been generated')
     else:                                                        
         mask = np.load(path_mask+'.npy')     
-        logging.info('Mask found at '+path_mask)
+        logging.info('Mask found at '+path_mask+'.npy')
 
     return mask

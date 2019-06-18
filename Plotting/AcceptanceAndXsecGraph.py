@@ -109,8 +109,6 @@ def main():
                 hist.GetXaxis().SetRangeUser(0,opt.max)
                 hist.GetYaxis().SetRangeUser(0,opt.max)
                 hist.SetContour(opt.bins)
-                #hist.SetMaximum(0.3)
-                hist.SetMinimum(0.)
                 hist.Draw('colz')
                 gStyle.SetOptStat(0)
                 c1.SetTopMargin(0.1)
@@ -171,34 +169,14 @@ def main():
         print ('Extrapolation')
         new_graph = TGraph2D(N_plane)
         # Extrapolation #
-        #from scipy.interpolate import interp2d
-        #f = interp2d(points[:,0],points[:,1],points[:,2])
         from scipy.optimize import curve_fit
-        
-        #def func(x,a,b,c,d,e):
-        #    z = a*x[0]**2+b*x[1]**2+c*x[0]+d*x[1]+e
-        #    return z.ravel()
+
         def func(x,a,b,c,x0,y0,e1,e2):
-            #z = (c*x[0]**2+d*x[1]**2+e*x[0]+f*x[1]+d)*np.exp(-x[0]/h-x[1]/i)
             z = (a*(x[0]-x0)**2 + b*(x[1]-y0)**2 + c*(x[0]-x0)*(x[1]-y0))*np.exp(-x[0]/e1-x[1]/e2)
             return z.ravel()
-        #initial_guess = (2.17887017e-09,-3.65140966e-10,-3.19304169e-06,5.29680444e-07,1.40572382e-03,-1.34401338e-04,1,1000,1000) 
-        initial_guess = (-1,-1,1,500,1000,1000,1000) 
+        initial_guess = (-4e-6,-5e-7,9e-6,500,800,400,700) 
         popt, pcov = curve_fit(func, (points[:,0],points[:,1]), points[:,2], p0=initial_guess)
-        #def twoD_Gaussian(x, amplitude, xo, yo, sigma_x, sigma_y, theta, offset):
-        #    xo = float(xo)
-        #    yo = float(yo)    
-        #    a = (np.cos(theta)**2)/(2*sigma_x**2) + (np.sin(theta)**2)/(2*sigma_y**2)
-        #    b = -(np.sin(2*theta))/(4*sigma_x**2) + (np.sin(2*theta))/(4*sigma_y**2)
-        #    c = (np.sin(theta)**2)/(2*sigma_x**2) + (np.cos(theta)**2)/(2*sigma_y**2)
-        #    g = offset + amplitude*np.exp( - (a*((x[0]-xo)**2) + 2*b*(x[0]-xo)*(x[1]-yo) 
-        #                            + c*((x[1]-yo)**2)))
-        #    return g.ravel()
-        #initial_guess = (0.3,400,1000,400,400,3.14/4,0)
-        #bounds = (0,np.inf)
-        #popt, pcov = curve_fit(twoD_Gaussian, (points[:,0],points[:,1]), points[:,2],p0=initial_guess, bounds=bounds)
         print (popt)
-
 
         manager = enlighten.get_manager()
         pbar = manager.counter(total=N_plane, desc='Progress', unit='Point')
@@ -206,49 +184,22 @@ def main():
             pbar.update()
             m_A = mA_plane[i]
             m_H = mH_plane[i]
-            if m_A>=m_H or m_H<=mh :#or m_H-m_A<mZ:
+            if m_A>=m_H :#or m_H<=mh :#or m_H-m_A<mZ:
                 new_graph.SetPoint(i,m_A,m_H,0)
                 continue
-            else:
-                #Z = graph.Interpolate(m_A,m_H)
-                Z = 0
-            if Z == 0:
-                #Z = twoD_Gaussian((m_A,m_H),*popt)
-                Z = func((m_A,m_H),*popt)
-                ## Find closest know point #
-                #max_dist1 = 100000
-                #max_dist2 = 100001
-                #for j in range(points.shape[0]):
-                #    dist = np.sqrt((m_A-points[j,0])**2+(m_H-points[j,1])**2)
-                #    if dist<max_dist1:
-                #        idx1 = j
-                #        max_dist1 = dist
-                #    elif dist<max_dist2:
-                #        idx2 = j
-                #        max_dist2 = dist
-                #Z = max_dist1*graph.Interpolate(points[idx1,0],points[idx1,1])
-                #Z += max_dist2*graph.Interpolate(points[idx2,0],points[idx2,1])
-                #Z /= (max_dist1+max_dist2)
-                #new_graph.SetPoint(i,m_A,m_H,Z)
+            Z = func((m_A,m_H),*popt)
+           # Truncation #
+            if m_H>1000:
+                Z = func((m_A,1000),*popt)
+            if Z<=0.02:
+                Z = 0.02
+            if Z<=0.07 and m_H>400:
+                    Z = 0.07
+                
             new_graph.SetPoint(i,m_A,m_H,Z)
         manager.stop()
         return new_graph
-
-    #############################################################################################
-    # ImproveGraph #
-    #############################################################################################
-    def ImproveGraph(graph):
-        print ('Improving graph')
-        new_graph = TGraph2D(mA_plane.shape[0])
-        manager = enlighten.get_manager()
-        pbar = manager.counter(total=mA_plane.shape[0], desc='Progress', unit='Point')
-        for i in range(mA_plane.shape[0]):
-            new_graph.SetPoint(i,mA_plane[i],mH_plane[i],graph.Interpolate(mA_plane[i],mH_plane[i])) 
-            pbar.update()
-        manager.stop()
-
-        return new_graph
-            
+    
     #############################################################################################
     # Cross section and Branching Ratio graphs #
     #############################################################################################
@@ -313,8 +264,7 @@ def main():
                             workdir = workdir)
         instance.setpdf('NNPDF30_lo_as_0130_nf_4')
 
-        if 0 == 1:
-        #if os.path.exists('xsec_arr.npy') and os.path.exists('BR_HtoZA_arr.npy') and os.path.exists('BR_Atobb_arr.npy'):
+        if os.path.exists('xsec_arr.npy') and os.path.exists('BR_HtoZA_arr.npy') and os.path.exists('BR_Atobb_arr.npy'):
             print ('Recovered npy files')
             xsec_arr = np.load('xsec_arr.npy')
             BR_HtoZA_arr = np.load('BR_HtoZA_arr.npy')
@@ -383,11 +333,6 @@ def main():
             np.save('xsec_arr',np.c_[mA_arr,mH_arr,xsec_arr])
             np.save('BR_HtoZA_arr',np.c_[mA_arr,mH_arr,BR_HtoZA_arr])
             np.save('BR_Atobb_arr',np.c_[mA_arr,mH_arr,BR_Atobb_arr])
-
-        # Improve graphs #
-        graph_Xsec = ImproveGraph(graph_Xsec)
-        graph_BR_HtoZA = ImproveGraph(graph_BR_HtoZA)
-        graph_BR_Atobb = ImproveGraph(graph_BR_Atobb)
 
         # Save graph #
 
