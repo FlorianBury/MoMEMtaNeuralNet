@@ -20,10 +20,22 @@ from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT, TGraph2D, gPad, TObject, gSt
 import CMS_lumi
 import tdrstyle
 
-
 gROOT.SetBatch(True)
 gStyle.SetOptStat(0)
 ROOT.gErrorIgnoreLevel = 2000#[ROOT.kPrint, ROOT.kInfo]#, kWarning, kError, kBreak, kSysError, kFatal;
+
+import matplotlib.pyplot as plt
+# PYPLOT STYLE # 
+SMALL_SIZE = 16 
+MEDIUM_SIZE = 20 
+BIGGER_SIZE = 22 
+plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels  
+plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels 
+plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels 
+plt.rc('legend', fontsize=SMALL_SIZE)    # legend fontsize  
+plt.rc('figure', titlesize=BIGGER_SIZE) # fontsize of the figure title 
 
 class LikelihoodMap():
     def __init__(self,name,xmin,ymin,xmax,ymax,N,normalize=False):
@@ -67,9 +79,9 @@ class LikelihoodMap():
         # Unphysical phase-space points #
         condition1 = np.greater(mH,mA) 
         condition2 = np.greater(mH,mh) 
-        condition3 = np.greater(np.subtract(mH,mA),mZ)
-        #upper = np.logical_and(condition1,condition2)
-        upper = np.logical_and(np.logical_and(condition1,condition2),condition3)
+        #condition3 = np.greater(np.subtract(mH,mA),mZ)
+        upper = np.logical_and(condition1,condition2)
+        #upper = np.logical_and(np.logical_and(condition1,condition2),condition3)
         # Ensure that mH > mh
         # Ensure that mH > mA
         # Ensure that mH-mA > mZ 
@@ -78,10 +90,10 @@ class LikelihoodMap():
         self.N = self.mA.shape[0]
 
         # Normalisation with xsec visible #
-        self.norm = np.ones(self.mA.shape[0])
+        self.norm = np.ones(self.N)
         if self.normalize:
             logging.info('Normalization enabled')
-            for i in range(0,self.mH.shape[0]):
+            for i in range(0,self.N):
                  self.norm[i] *= self.acc.Interpolate(self.mA[i],self.mH[i])
                  #self.norm[i] *= self.xsec.Interpolate(self.mA[i],self.mH[i])
                  self.norm[i] *= self.BR_HtoZA.Interpolate(self.mA[i],self.mH[i])
@@ -114,7 +126,6 @@ class LikelihoodMap():
 
         # Normalize #
         if self.normalize:
-            save_Z = copy.deepcopy(self.Z)
             self.Z += self.nevents*self.norm
             title += ' [Normalized]'
             self.legend_title += ' [Normalized]'
@@ -126,7 +137,16 @@ class LikelihoodMap():
         self.Z[invalid_entries] = 0 # removes non physical points 
 
         # Generate graph #
-        graph = copy.deepcopy(TGraph2D(self.N,self.mA,self.mH,self.Z))
+        graph = TGraph2D(self.N)
+        print ('Generating TGraph2D')
+        manager = enlighten.get_manager()
+        pbar = manager.counter(total=self.N, desc='Progress', unit='Point')
+        for i in range(self.N):
+            graph.SetPoint(i,self.mA[i],self.mH[i],self.Z[i])
+            pbar.update()
+        manager.stop()
+
+        #graph = copy.deepcopy(TGraph2D(self.N,self.mA,self.mH,self.Z))
         graph.SetTitle('Log-Likelihood : %s;M_{A} [GeV]; M_{H} [GeV]; -log(L)'%(title))
         graph.SetMaximum(max_Z)
         graph.SetMinimum(min_Z)
@@ -179,6 +199,58 @@ class LikelihoodMap():
         if not isinstance(self.acc,ROOT.TGraph2D):
             self.normalize = False
             logging.warning ('Acceptance is %s and not TGraph2D -> normalization off'%type(self.acc))
+
+def MakeProfile(graph,mH,mA,N,path,step=10,slices=10):
+    # Get the profile along mA #
+    x = np.linspace(mA*0.8,mA*1.2,N)
+    mH_slice = np.linspace(mH-round(slices/2)*step,mH+round(slices/2)*step,slices if slices%2==1 else slices+1)
+    out_x = np.zeros((N,mH_slice.shape[0])) # columns = mH values
+
+    # Interpolate at fixed mH #
+    for j in range(mH_slice.shape[0]): # Loop across mH values
+        for i in range(N): # Loop over axis
+            out_x[i,j] = graph.Interpolate(x[i],mH_slice[j])
+            if out_x[i,j] == 0:
+                out_x[i,j] = out_x[i-1,j]
+
+    # Get the slices along mH #
+    y = np.linspace(mH*0.8,mH*1.2,N)
+    mA_slice = np.linspace(mA-round(slices/2)*step,mA+round(slices/2)*step,slices if slices%2==1 else slices+1)
+    out_y = np.zeros((N,mA_slice.shape[0])) # columns = mA values
+
+    # Interpolate at fixed mA #
+    for j in range(mA_slice.shape[0]): # Loop across mA values
+        for i in range(N): # Loop over axis
+            out_y[i,j] = graph.Interpolate(mA_slice[j],y[i])
+            if out_y[i,j] == 0:
+                out_y[i,j] = out_y[i-1,j]
+
+    # Plot #
+    fig = plt.figure(figsize=(16,7))
+    ax1 = fig.add_subplot(121) 
+    ax2 = fig.add_subplot(122) 
+
+    for j in range(mH_slice.shape[0]): # Loop across mH values
+        ax1.plot(x,out_x[:,j],label='$M_{H}$ = %d GeV'%mH_slice[j])
+    ax1.legend(loc='lower right')
+    ax1.set_xlabel('$M_{A}$')
+    ax1.set_ylabel('-log(L)')
+    ax1.set_title('Profile likelihood in $M_{A}$')
+
+    for j in range(mA_slice.shape[0]): # Loop across mA values
+        ax2.plot(y,out_y[:,j],label='$M_{A}$ = %d GeV'%mA_slice[j])
+    ax2.legend(loc='lower right')
+    ax2.set_xlabel('$M_{H}$')
+    ax2.set_ylabel('-log(L)')
+    ax2.set_title('Profile likelihood in $M_{H}$')
+
+    fig.suptitle('Profile Likelihood for events with $M_{H}$ = %d GeV and $M_{A}$ = %d GeV'%(mH,mA))
+
+    name = os.path.join(path,'profile_likelihood_mH_%d_mA_%d.png'%(mH,mA))
+    fig.savefig(name)
+    print ('Figure saved as %s'%name)
+
+
             
 
 def main():
@@ -214,6 +286,8 @@ def main():
                   help='Suffix to be added to output name (likelihood_suffix.pdf/.root), default to empty string')
     parser.add_argument('--PDF', action='store_true', required=False, default=False,
             help='Produce PDF from the root file')
+    parser.add_argument('--profile', action='store_true', required=False, default=False,
+            help='Whether to make the profile likelihood starting from the TGraph2D')
     parser.add_argument('--zoom', action='store_true', required=False, default=False,
             help='Zoom the TGraph2D according to given boundaries')
     parser.add_argument('--norm', action='store_true', required=False, default=False,
@@ -229,9 +303,8 @@ def main():
     else:
         logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s - %(levelname)s - %(message)s')
-
     #############################################################################################
-    # Make PDF #
+    # Get objects in TFile #
     #############################################################################################
     def getall(d, basepath="/"):
         "Generator function to recurse into a ROOT file/dir and yield (path, obj) pairs"
@@ -243,18 +316,37 @@ def main():
             else:
                 yield basepath+kname, d.Get(kname)
 
-    def findMinMaxInRange(hist,xmin,xmax,ymin,ymax):
-        zmin = 1000000
-        zmax = 0
-        for x in range(hist.GetXaxis().FindBin(xmin),hist.GetXaxis().FindBin(xmax)+1):
-            for y in range(hist.GetYaxis().FindBin(ymin),hist.GetYaxis().FindBin(ymax)):
-                content = hist.GetBin(x,y)
-                if content > zmax: zmax = content
-                if content < zmin: zmin = content
-                #print (x,y,num,hist.GetXaxis().GetBinLowEdge(num),hist.GetYaxis().GetBinLowEdge(num))
-        print (zmin,zmax)
-        return zmin,zmax
+    #############################################################################################
+    # Profile Likelihood #
+    #############################################################################################
+    if opt.profile:
+        # Path to graph #
+        path_root = os.path.abspath(os.path.join('PDF',opt.model,'likelihood_'+opt.suffix+'.root')) 
+        path_out = os.path.abspath(os.path.join('PDF',opt.model))
+        # Load TGraph2D #
+        f = TFile(path_root)
+        graphs = [(key,obj) for (key,obj) in getall(f)]
+        for  key,obj in graphs:
+            if key.find('HToZA')==-1:
+                continue
+            mH_value = int(re.findall(r'\d+', key)[2])
+            mA_value = int(re.findall(r'\d+', key)[3])
+            
+            if mH_value != int(opt.mH) or mA_value != int(opt.mA):
+                continue
 
+            MakeProfile(graph = obj,
+                      mH = mH_value,
+                      mA = mA_value,
+                      N = 10000,
+                      path = path_out,
+                      step = 5,
+                      slices=1)
+        sys.exit(0)
+
+    #############################################################################################
+    # Make PDF #
+    #############################################################################################
     def ZoomHist(graph,bins,xmin,xmax,ymin,ymax):
         x = np.linspace(xmin,xmax,bins)
         y = np.linspace(ymin,ymax,bins)
@@ -370,13 +462,14 @@ def main():
     # Instantiate the map #
     likelihood = LikelihoodMap(name = opt.model,
                                xmin = opt.xmin,
-                               ymin = opt.xmax,
+                               ymin = opt.ymin,
                                xmax = opt.xmax,
                                ymax = opt.ymax,
                                N    = 100,
                                normalize=opt.norm)
 
     # Loop over events #
+    print ('Adding events')
     manager = enlighten.get_manager()
     pbar = manager.counter(total=opt.number, desc='Progress', unit='Event')
     for i in range(events.shape[0]):
