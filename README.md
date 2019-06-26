@@ -1,36 +1,40 @@
-# Project Title
+# MoMEMtaNeuralNet
 
-One Paragraph of project description goes here
+Software to fit the Matrix Element Method using Deep Neural Networks
+These scripts are used to make hyperparameter scans with Talos and learning on Keras
+All scripts are **python3**
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
+This software is intended to work on Ingrid/Manneback 
+Modules required : 
 
 ### Prerequisites
 
-What things you need to install the software and how to install them
+Modules you will need to load
+```
+module load root/6.12.04-sl7_gcc73 boost/1.66.0_sl7_gcc73 gcc/gcc-7.3.0-sl7_amd64 python/python36_sl7_gcc73  cmake/cmake-3.9.6 lhapdf/6.1.6-sl7_gcc73 gcc/gcc-7.3.0-sl7_amd64 slurm/slurm_utils 
 
 ```
-Give examples
-```
 
-### Installing
+### Installing required python packages 
 
-A step by step series of examples that tell you how to get a development env running
-
-Say what the step will be
+Below are the required packages that can be installed with pip.
+If you do not have sysadmin rights, do not forget to use ``` pipi install --user ...  ```
 
 ```
-Give the example
-```
+[Tensorflow](https://www.tensorflow.org/install/pip) (neural networks learning)
+[Keras](https://pypi.org/project/Keras/) (wraper around Tensorflow)
+[Talos](https://pypi.org/project/talos/) (hyperparameter scans)
+[Root_numpy](https://pypi.org/project/root-numpy/) (From ROOT trees to numpy arrays)
+[Seaborn](https://pypi.org/project/seaborn/) (Data Visualization)
+[Numpy](https://pypi.org/project/numpy/) (Data manipulation)
+[Pandas](https://pypi.org/project/pandas/) (Useful to manipulate numpy arrays altogether)
+[Astetik](https://pypi.org/project/astetik/) (Simplified templates of seborn required by Talos)
+[Enlighten](https://pypi.org/project/enlighten/) (Practical process bar)
+[Scipy](https://pypi.org/project/scipy/) (Data processing)
 
-And repeat
-
-```
-until finished
-```
-
-End with an example of getting some data out of the system or using it for a little demo
+``` 
 
 ## Running the tests
 
