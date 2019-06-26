@@ -347,20 +347,14 @@ def main():
 
     # Parametrized case : add the masses as inputs and make the repetition for each mass #
     if opt.HToZA  and opt.scan!='': # We only need the training set for the scan
-    #if (opt.HToZA or opt.class_param) and opt.scan!='': # We only need the training set for the scan
         # List of variables to decouple #
-        if opt.HToZA :          
-            list_to_decouple = parameters.outputs
-            decoupled_name = 'weight_HToZA'
-        if opt.class_param :  
-            list_to_decouple = [s for s in parameters.inputs if s.find('HToZA')!=-1] # Only take the HtoZA weights (not background)
-            decoupled_name = '-log10(weight_HToZA)'
+        list_to_decouple = parameters.outputs
+        decoupled_name = 'weight_HToZA'
         # Modify data #
         logging.info("Starting the training set decoupling")
         train_all = Decoupler(train_all,decoupled_name,list_to_decouple)
         logging.info("\tTraining set decoupled : new size = %d"%train_all.shape[0])
         # Update the list of variables #
-        if opt.class_param :  list_inputs = [s for s in parameters.inputs if s not in list_to_decouple] + [decoupled_name]
         list_inputs += ['mH_MEM','mA_MEM']
         # For testing -> Done in produce_output.py
 

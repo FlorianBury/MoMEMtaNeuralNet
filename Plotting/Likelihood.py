@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import argparse
+import math
 import glob
 import logging
 import copy
@@ -25,10 +26,11 @@ gStyle.SetOptStat(0)
 ROOT.gErrorIgnoreLevel = 2000#[ROOT.kPrint, ROOT.kInfo]#, kWarning, kError, kBreak, kSysError, kFatal;
 
 import matplotlib.pyplot as plt
+from matplotlib.pyplot import cm
 # PYPLOT STYLE # 
-SMALL_SIZE = 16 
-MEDIUM_SIZE = 20 
-BIGGER_SIZE = 22 
+SMALL_SIZE = 24 
+MEDIUM_SIZE = 28 
+BIGGER_SIZE = 32 
 plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
 plt.rc('axes', titlesize=SMALL_SIZE)     # fontsize of the axes title
 plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels  
@@ -79,9 +81,9 @@ class LikelihoodMap():
         # Unphysical phase-space points #
         condition1 = np.greater(mH,mA) 
         condition2 = np.greater(mH,mh) 
-        #condition3 = np.greater(np.subtract(mH,mA),mZ)
-        upper = np.logical_and(condition1,condition2)
-        #upper = np.logical_and(np.logical_and(condition1,condition2),condition3)
+        condition3 = np.greater(np.subtract(mH,mA),mZ)
+        #upper = np.logical_and(condition1,condition2)
+        upper = np.logical_and(np.logical_and(condition1,condition2),condition3)
         # Ensure that mH > mh
         # Ensure that mH > mA
         # Ensure that mH-mA > mZ 
@@ -200,51 +202,154 @@ class LikelihoodMap():
             self.normalize = False
             logging.warning ('Acceptance is %s and not TGraph2D -> normalization off'%type(self.acc))
 
+#################################################################################################
+# FindSigma #
+#################################################################################################
+
+def FindSigma(x,y,n_events,frac):
+    from scipy.optimize import curve_fit
+    def f(x,a,b,c):
+        return a*x**2+b*x+c
+    # Find minimum index #
+    idxmin = np.argmin(y)
+    # Select part of the data for the fit in the middle #
+    N = x.shape[0]
+    selection = np.arange(max(idxmin-round(N*frac),0),min(idxmin+round(N*frac),N))
+
+    x = x[selection]
+    y = y[selection]
+    # Fit with the polnym #
+    popt, pcov = curve_fit(f, x, y)
+    print (popt)
+    # Get coefficients #
+    a = popt[0]
+    b = popt[1]
+    c = popt[2]
+    # Find minimum #
+    xmin = -b/(2*a)
+    ymin = f(xmin,*popt)
+    print ('Xmin = ',xmin)
+    print ('Ymin = ',ymin)
+    # Find x1, x2 such that f(x) = N/2 + xmin #
+    discriminant  = 4*a*n_events/2 
+    x1 = (-b-math.sqrt(discriminant))/(2*a)
+    x2 = (-b+math.sqrt(discriminant))/(2*a)
+    print ('Resolution = ',abs(x1-x2))
+    return abs(x1-x2),x,f(x,*popt)
+
+#################################################################################################
+# MakeProfile #
+#################################################################################################
+
 def MakeProfile(graph,mH,mA,N,path,step=10,slices=10):
+    """
+    Make the profile in both axes (mH and mA as variables) with several values ont the other axis
+    graph       = TGraph2D to be used for the profile
+    mH          = masses of H
+    mA          = masses of A
+    step        = step as increment in the parameters
+    slices      = number of different values in each plot
+    """
     # Get the profile along mA #
-    x = np.linspace(mA*0.8,mA*1.2,N)
+    x = np.linspace(mA*0.85,mA*1.15,N)
     mH_slice = np.linspace(mH-round(slices/2)*step,mH+round(slices/2)*step,slices if slices%2==1 else slices+1)
     out_x = np.zeros((N,mH_slice.shape[0])) # columns = mH values
 
+    print ('Computing the curves for mA')
     # Interpolate at fixed mH #
     for j in range(mH_slice.shape[0]): # Loop across mH values
         for i in range(N): # Loop over axis
             out_x[i,j] = graph.Interpolate(x[i],mH_slice[j])
-            if out_x[i,j] == 0:
+            if out_x[i,j] == 0: # avoid artifacts
                 out_x[i,j] = out_x[i-1,j]
 
     # Get the slices along mH #
-    y = np.linspace(mH*0.8,mH*1.2,N)
+    y = np.linspace(mH*0.9,mH*1.1,N)
     mA_slice = np.linspace(mA-round(slices/2)*step,mA+round(slices/2)*step,slices if slices%2==1 else slices+1)
     out_y = np.zeros((N,mA_slice.shape[0])) # columns = mA values
 
+    print ('Computing the curves for mH')
     # Interpolate at fixed mA #
     for j in range(mA_slice.shape[0]): # Loop across mA values
         for i in range(N): # Loop over axis
             out_y[i,j] = graph.Interpolate(mA_slice[j],y[i])
-            if out_y[i,j] == 0:
+            if out_y[i,j] == 0:   # avoid artifacts
                 out_y[i,j] = out_y[i-1,j]
 
+    # Get envelope #
+    print ('Getting the envelopes')
+    envelope_mA = np.zeros(N)
+    envelope_mH = np.zeros(N)
+    for i in range(N):
+        envelope_mA[i] = np.amin(out_x[i,:])
+        envelope_mH[i] = np.amin(out_y[i,:])
+
     # Plot #
-    fig = plt.figure(figsize=(16,7))
+    fig = plt.figure(figsize=(25,12))
+    plt.subplots_adjust(left=0.08, bottom=0.1, right=0.95, top=0.85, wspace=0.18, hspace=None)
     ax1 = fig.add_subplot(121) 
     ax2 = fig.add_subplot(122) 
 
+    color = iter(cm.seismic(np.linspace(0,1,mA_slice.shape[0])))
+    print ('Plotting mA')
+    # Loop over curves # 
     for j in range(mH_slice.shape[0]): # Loop across mH values
-        ax1.plot(x,out_x[:,j],label='$M_{H}$ = %d GeV'%mH_slice[j])
-    ax1.legend(loc='lower right')
+        # Find resolution at 1sigma #
+        print ((' Slice mH = %d GeV '%(mH_slice[j])).center(50,'-'))
+        c=next(color)
+        try:
+            res,x_fit,y_fit = FindSigma(x,out_x[:,j],1000,frac=0.20)
+            ax1.plot(x_fit,y_fit,color=c,linestyle='--')
+        except Exception as e:
+            print ('[ERROR] : %s'%e)
+            res = 0
+        # Plot
+        if mH_slice[j] == mH:
+            c = 'darkgreen'
+        ax1.plot(x,out_x[:,j],label='$M_{H}$ = %d GeV (Resolution = %0.2f GeV)'%(mH_slice[j],res),color=c)
+    # Plot and resolution of envelope #
+    try:
+        res_envelope_mA, x_fit_envelope_mA, y_fit_envelope_mA, = FindSigma(x,envelope_mA,1000,frac=0.20) 
+        ax1.plot(x,envelope_mA,label='Envelope (Resolution = %0.2f GeV)'%(res_envelope_mA),color='k')
+        ax1.plot(x_fit_envelope_mA,y_fit_envelope_mA,color='k',linestyle='--')
+    except Exception as e:
+        print ('[ERROR] : %s'%e)
+
+    ax1.legend(loc='upper right',prop={'size': 14})
     ax1.set_xlabel('$M_{A}$')
     ax1.set_ylabel('-log(L)')
     ax1.set_title('Profile likelihood in $M_{A}$')
 
+    color = iter(cm.seismic(np.linspace(0,1,mA_slice.shape[0])))
+    print ('Plotting mH')
     for j in range(mA_slice.shape[0]): # Loop across mA values
-        ax2.plot(y,out_y[:,j],label='$M_{A}$ = %d GeV'%mA_slice[j])
-    ax2.legend(loc='lower right')
+        c=next(color)
+        # Find resolution at 1sigma #
+        print ((' Slice mA = %d GeV '%(mA_slice[j])).center(50,'-'))
+        try:
+            res,x_fit,y_fit = FindSigma(y,out_y[:,j],1000,frac=0.2)
+            ax2.plot(x_fit,y_fit,color=c,linestyle='--')
+        except Exception as e:
+            print ('[ERROR] : %s'%e)
+            res = 0
+        # Plot #
+        if mA_slice[j] == mA:
+            c = 'darkgreen'
+        ax2.plot(y,out_y[:,j],label='$M_{A}$ = %d GeV (Resolution = %0.2f GeV)'%(mA_slice[j],res),color=c)
+    # Plot and resolution of envelope #
+    try:
+        res_envelope_mH, x_fit_envelope_mH, y_fit_envelope_mH, = FindSigma(y,envelope_mH,1000,frac=0.2) 
+        ax2.plot(y,envelope_mH,label='Envelope (Resolution = %0.2f GeV)'%(res_envelope_mH),color='k')
+        ax2.plot(x_fit_envelope_mH,y_fit_envelope_mH,color='k',linestyle='--')
+    except Exception as e:
+        print ('[ERROR] : %s'%e)
+ 
+    ax2.legend(loc='upper right',prop={'size': 14})
     ax2.set_xlabel('$M_{H}$')
     ax2.set_ylabel('-log(L)')
     ax2.set_title('Profile likelihood in $M_{H}$')
 
-    fig.suptitle('Profile Likelihood for events with $M_{H}$ = %d GeV and $M_{A}$ = %d GeV'%(mH,mA))
+    fig.suptitle('Profile likelihood for events with $M_{H}$ = %d GeV and $M_{A}$ = %d GeV'%(mH,mA))
 
     name = os.path.join(path,'profile_likelihood_mH_%d_mA_%d.png'%(mH,mA))
     fig.savefig(name)
@@ -262,9 +367,9 @@ def main():
                   help='NN model to be used')
     parser.add_argument('-f','--file', action='store', required=False, type=str, default='',
                   help='File (full path) to be used')
-    parser.add_argument('--mA',action='store', required=False, type=str, default='',
+    parser.add_argument('--mA',action='store', required=False, type=int, default=0,
                   help='Print as PDf only some of the mass config')
-    parser.add_argument('--mH',action='store', required=False, type=str, default='',
+    parser.add_argument('--mH',action='store', required=False, type=int, default=0,
                   help='Print as PDf only some of the mass config')
     parser.add_argument('-n','--number', action='store', required=False, type=int, default=0,
                   help='Number of events to build the likelihood map')
@@ -332,7 +437,7 @@ def main():
             mH_value = int(re.findall(r'\d+', key)[2])
             mA_value = int(re.findall(r'\d+', key)[3])
             
-            if mH_value != int(opt.mH) or mA_value != int(opt.mA):
+            if mH_value != opt.mH or mA_value != opt.mA:
                 continue
 
             MakeProfile(graph = obj,
@@ -341,7 +446,7 @@ def main():
                       N = 10000,
                       path = path_out,
                       step = 5,
-                      slices=1)
+                      slices=10)
         sys.exit(0)
 
     #############################################################################################
@@ -380,10 +485,8 @@ def main():
         graphs = [(key,obj) for (key,obj) in getall(f)]
         graphs = sorted(graphs, key=lambda tup: tup[0]) # Sort according to name
         for  i,(key,obj) in enumerate(graphs):
-            if key.find(opt.mA)==-1 or key.find(opt.mH)==-1:
-                continue
-            logging.info('Processing %s'%key)
-
+            mH_value = 0
+            mA_value = 0
             if key.find('DY')!=-1:
                 title = 'DY'
             elif key.find('TT')!=-1:
@@ -393,6 +496,9 @@ def main():
                 mA_value = int(re.findall(r'\d+', key)[3])
                 title = 'HToZATo2L2B_mH_%d_mA_%d'%(mH_value,mA_value)
 
+            if (mH_value != opt.mH or mA_value != opt.mA) and opt.mA != 0 and opt.mH != 0:
+                continue
+            logging.info('Processing %s'%key)
             try:
                 if opt.zoom:
                     new_graph = ZoomHist(obj,opt.bins,opt.xmin,opt.xmax,opt.ymin,opt.ymax) 
@@ -415,7 +521,7 @@ def main():
                     hist.SetContour(1000)
                     hist.GetXaxis().SetRangeUser(opt.xmin,opt.xmax)
                     hist.GetYaxis().SetRangeUser(opt.ymin,opt.ymax)
-                    hist.SetMinimum(opt.zmin)
+                    hist.SetMinimum(max(opt.zmin,hist.GetMinimum()))
                     amax = hist.GetMaximum() if opt.zmax is None else opt.zmax 
                     hist.SetMaximum(amax)
                     hist.Draw('colz') 
@@ -465,7 +571,7 @@ def main():
                                ymin = opt.ymin,
                                xmax = opt.xmax,
                                ymax = opt.ymax,
-                               N    = 100,
+                               N    = 200,
                                normalize=opt.norm)
 
     # Loop over events #

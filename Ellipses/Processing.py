@@ -158,12 +158,12 @@ class ProcessDNN:
         # Background weights #
         start_time = time.time()
         weight_DY = model_DY.HyperRestore(inputs,batch_size=512,verbose=1)
-        print("--- %0.5f seconds ---" % ((time.time() - start_time)*1000))
+        print("--- %0.5f  ms  ---" % ((time.time() - start_time)*1000))
         print ('...... DY weights done')
         self._memoryUsage()
         start_time = time.time()
         weight_TT = model_TT.HyperRestore(inputs,batch_size=512,verbose=1)
-        print("--- %0.5f seconds ---" % ((time.time() - start_time)*1000))
+        print("--- %0.5f  ms  ---" % ((time.time() - start_time)*1000))
         print ('...... TT weights done')
         self.weight_names = ['weight_DY','weight_TT']
         self._memoryUsage()
@@ -179,7 +179,7 @@ class ProcessDNN:
         print ('...... Processing signal inputs')
         start_time = time.time()
         weight_HToZA = model_HToZA.HyperRestore(inputs,batch_size=512,verbose=1)
-        print("--- %0.5f seconds ---" % ((time.time() - start_time)*1000))
+        print("--- %0.5f  ms  ---" % ((time.time() - start_time)*1000))
         self._memoryUsage()
         print ('...... Recoupling signal inputs')
         weight_HToZA = Transposer(weight_HToZA,masses.shape[0])
@@ -211,7 +211,7 @@ class ProcessDNN:
         # Get probs #
         start_time = time.time()
         probs = model_class.HyperRestore(self.data[weight_names].values,batch_size=512,verbose=1)
-        print("--- %0.5f seconds ---" % ((time.time() - start_time)*1000))
+        print("--- %0.5f  ms  ---" % ((time.time() - start_time)*1000))
         print ('...... Classification probabilities done')
         self._memoryUsage()
         # Save in DF #
@@ -240,7 +240,7 @@ class ProcessDNN:
             inputs = np.c_[weight_values,masses_repeated]
             start_time = time.time()
             probs = model_class.HyperRestore(inputs,batch_size=512,verbose=1)
-            print("--- %0.5f seconds ---" % ((time.time() - start_time)*1000))
+            print("--- %0.5f  ms  ---" % ((time.time() - start_time)*1000))
             probs_names = ['Prob_param_%s_mH_%0.2f_mA_%0.2f'%(t,mH,mA) for t in ['DY','HToZA','TT']]
             probs = pd.DataFrame(probs,columns=probs_names)
             df_list.append(probs)
