@@ -40,11 +40,6 @@ class ProduceOutput:
             signal_name = '-log10(weight_HToZA)'
             data = ParametrizeClassifier(data,name=signal_name) 
             self.list_inputs = ['-log10(weight_DY)','-log10(weight_TT)',signal_name,'mH_gen','mA_gen']
-            #decoupled_name = '-log10(weight_HToZA)'
-            #list_to_decouple = [s for s in parameters.inputs if s.find('HToZA')!=-1]
-            #data = Decoupler(data,decoupled_name,list_to_decouple)
-            #self.list_inputs = [s for s in parameters.inputs if s not in list_to_decouple] + [decoupled_name] 
-            #self.list_inputs += ['mH_MEM','mA_MEM'] 
 
         inputs = data[self.list_inputs].values
         output = np.empty((inputs.shape[0],0))
@@ -77,9 +72,6 @@ class ProduceOutput:
         if self.is_signal:
             logging.info("Signal case : Recoupling of the data")
             full_df = Recoupler(full_df,col_to_recouple = ['weight_HToZA','output_HToZA'],N=len(list_to_decouple))
-        #if self.is_class_param:
-        #    logging.info("Parametric classifier case : Recoupling of the data")
-        #    full_df = Recoupler(full_df,col_to_recouple = ['Prob_MEM_DY','Prob_MEM_TT','Prob_MEM_HToZA'],N=len(list_to_decouple))
         # Get the unique tags as a list #
         if output_name is None:
             tag_list = list(full_df['tag'].unique())

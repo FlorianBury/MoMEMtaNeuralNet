@@ -12,7 +12,7 @@ import parameters
 def Decoupler(data,decoupled_name,list_to_decouple=None,decimals=False):
     """ 
     Data is a pandas dataFrame
-    For each event we have : [Pt,eta,phi]x4 and 23 weights (with mH, mA) as parameters
+    Example -> For each event we have : [Pt,eta,phi]x4 and 23 weights (with mH, mA) as parameters
     We want to have as : (inputs) [Pt,eta,phi]x4 + mH + mA -> (output) weight_mA_mH
                                   [Pt,eta,phi]x4 + mH' + mA' -> (output) weight_mA'_m'H 
                                   [Pt,eta,phi]x4 + mH" + mA" -> (output) weight_mA"_mH" 

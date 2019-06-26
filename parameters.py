@@ -1,12 +1,10 @@
 # Defines the parameters that users might need to change
 # Must be included manually in each script
 
-# /!\ Three types of files need to be filled with users parameters 
+# /!\ Two types of files need to be filled with users parameters 
 #           - parameters.py (mort important one)
 #           - sampleList.py (on what samples to run)
-#           - submit_on_slurm.py (for time and partition)
 #           (optionnaly NeuralNet.py for early_stopping etc)
-# TODO : all parmameters on parameters.py and samples in sampleList.py
 
 from keras.losses import binary_crossentropy, mean_squared_error   
 from keras.optimizers import RMSprop, Adam, Nadam, SGD            
@@ -25,7 +23,13 @@ validation_ratio = 0.1  # Validation set sent to autom8
 output_ratio = 0.2      # Output set for plotting later
 # Will only be taken into account for the masks generation, ignored after
 
-######################################  Name   ########################################
+############################### Slurm parameters ######################################
+partition = 'Def'  # Def, cp3 or cp3-gpu
+QOS = 'normal' # cp3 or normal
+time = '0-12:00:00' # days-hh:mm:ss
+mem = '10000' # ram in MB
+
+######################################  Names  ########################################
 # Model name (only for scans)
 #model = 'NeuralNetModel' 
 model = 'ClassificationModel'
@@ -41,8 +45,8 @@ suffix = 'class_param_test'
 eval_criterion = "eval_error" # either val_loss or eval_error
     
 #################################  Scan dictionary   ##################################
-# Classification #
 # /!\ Lists must always contain something (even if 0), otherwise 0 hyperparameters #
+# Classification #
 p = { 
     'lr' : [0.0001], 
     'first_neuron' : [50,100,200,300,400,500],
@@ -83,7 +87,7 @@ p = {
 #    'batch_size' : [512], 
 #    'loss_function' : [mean_squared_error] 
 #}
-repetition = 1
+repetition = 1 # How many times each hyperparameter has to be used 
 
 ###################################  Variables   ######################################
 inputs = [

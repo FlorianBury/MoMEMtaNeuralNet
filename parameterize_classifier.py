@@ -3,7 +3,6 @@ import sys
 import re
 import logging
 import random
-import enlighten
 import copy
 
 import pandas as pd
@@ -42,6 +41,7 @@ def ParametrizeClassifier(data,name):
     # Background case #
     new_back_data = []
     logging.info('\tParameterizing the background')
+        # repetition at each mass point
     for i in range(masses.shape[0]):
         df = copy.deepcopy(data_back)
         df['mH_gen'] = masses[i,0]
@@ -54,27 +54,6 @@ def ParametrizeClassifier(data,name):
     # Concatenate #
     data = pd.concat((new_sig_data,new_back_data),axis=0).reset_index(drop=True)
 
-    # Generate inputs #
-    #manager = enlighten.get_manager()
-    #pbar = manager.counter(total=data.shape[0], desc='Progress', unit='Event')
-    #   else:       # Background : must assign random mH, mA and get weight by Delaunay
-    #        # Make Graph2D for Delaunay #
-    #        ws = np.asarray(data.loc[i,list_signal].values,dtype=np.float64).reshape(-1,1)
-    #        g = TGraph2D(masses.shape[0])
-    #        for j in range(masses.shape[0]):
-    #            g.SetPoint(j,masses[j,1],masses[j,0],ws[j])
-    #        # Generate Random point #
-    #        w = 0
-    #        while w == 0:
-    #            rand_mA = random.uniform(50,1000) 
-    #            rand_mH = random.uniform(rand_mA+90,1000)
-    #            w = g.Interpolate(rand_mA,rand_mH)
-    #        data.loc[i,'mH_gen'] = rand_mH
-    #        data.loc[i,'mA_gen'] = rand_mA
-    #        data.loc[i,'-log10(weight_HToZA)'] = w 
-    #        del g
-    #    pbar.update() 
-    #manager.stop()
     return data
 
 

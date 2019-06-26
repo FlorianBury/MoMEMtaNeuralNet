@@ -18,11 +18,11 @@ import parameters
 def submit_on_slurm(name,args,debug=False):
     config = Configuration()
 
-    config.sbatch_partition = 'Def'
-    config.sbatch_qos = 'normal'
-    config.sbatch_workdir = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/'
-    config.sbatch_time = '0-12:00:00'
-    config.sbatch_mem = '10000'
+    config.sbatch_partition = parameters.partition
+    config.sbatch_qos = partition.QOS
+    config.sbatch_workdir = parameter.main_path
+    config.sbatch_time = parameters.time
+    config.sbatch_mem = parameters.mem
     config.sbatch_additionalOptions = []
     config.inputSandboxContent = []
     config.useJobArray = True
