@@ -222,18 +222,12 @@ def find_rows(a, b):
     Returns numpy arrays of the matches as [idx in a,idx in b]
     """
     import numpy as np
-    print (a)
-    print (a.shape)
-    print (b.shape)
     dt = np.dtype((np.void, a.dtype.itemsize * a.shape[1]))
 
     a_view = np.ascontiguousarray(a).view(dt).ravel()
     b_view = np.ascontiguousarray(b).view(dt).ravel()
 
     sort_b = np.argsort(b_view)
-    for i in range(sort_b.shape[0]):
-        print (sort_b[i])
-    print (sort_b.shape)
     where_in_b = np.searchsorted(b_view, a_view,
                                  sorter=sort_b)
     where_in_b = np.take(sort_b, where_in_b)
@@ -242,7 +236,7 @@ def find_rows(a, b):
     which_in_a = np.nonzero(which_in_a)[0]
     return np.column_stack((which_in_a, where_in_b))
 
-def AppendTree(rootfile1,rootfile2,branches,event_filter=None):
+def AppendTree(rootfile1,rootfile2,branches,event_filter=None,rename=None):
     """
     Append the branches of rootfile2 to rootfile1
     If event_filter=None : All the common branches must be identical (make sure events are the same)
@@ -275,6 +269,10 @@ def AppendTree(rootfile1,rootfile2,branches,event_filter=None):
             # [:,0] indexes in first array, [:,1] indexes in second array
         data2 = data2[branches].iloc[indexes].reset_index(drop=True)
 
+    # Renaming columns #
+    if rename is not None:
+        data2.columns = rename
+
     # Concatenate them #
     all_df = pd.concat((data1,data2),axis=1)
     all_data  = all_df.to_records(index=False,column_dtypes='float64')
@@ -290,17 +288,23 @@ def AppendTree(rootfile1,rootfile2,branches,event_filter=None):
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser('Several useful tools in the context of MoMEMtaNeuralNet')
+
     countArgs = parser.add_argument_group('Count tree events in multiple root files')
     countArgs.add_argument('--path', action='store', required=False, help='Path for the count')
     countArgs.add_argument('--input', action='append', nargs='+', required=False, help='List of strings that must be contained in the filename')
     countArgs.add_argument('--cut', action='store', default='', type=str, required=False, help='Cuts to be applied')
+
     zipArgs = parser.add_argument_group('Concatenate zip files (also modifying names of files inside the archive')
     zipArgs.add_argument('--zip', action='append', nargs=2, required=False, help='path to input .zip + path to output .zip')
+
     CountVar = parser.add_argument_group('Counts the sum of variables in all files')
     CountVar.add_argument('--variable', action='store', required=False, type=str, help='Partial name of the branches to include in the count (--path must have been provided)')
     CountVar.add_argument('--list', action='store', required=False, type=str, help='Lists all the branches of a given file')
-    zipArgs.add_argument('--append', action='append', nargs='+', required=False, help='Name of first root file + Name of second root file + list of branches to be taken from second and appended to first')
-    zipArgs.add_argument('--append_filter', action='append', nargs='+', required=False, help='Lits of branches that must be used in the filter to append files')
+
+    appendArgs = parser.add_argument_group('')
+    appendArgs.add_argument('--append', action='append', nargs='+', required=False, help='Name of first root file + Name of second root file + list of branches to be taken from second and appended to first')
+    appendArgs.add_argument('--append_filter', action='append', nargs='+', required=False, help='List of branches that must be used in the filter to append files')
+    appendArgs.add_argument('--append_rename', action='append', nargs='+', required=False, help='List of names that should replace the appended column names (must have the same number of entries)')
 
     args = parser.parse_args()
     if args.path is not None:
@@ -338,7 +342,17 @@ if __name__=='__main__':
                     print ('..... %s'%fe)
             else:
                 filter_events = None
+            if args.append_rename is not None:
+                list_names = args.append_rename[0]
+                print ('Branches renaming : ')
+                for ln in list_names:
+                    print ('..... %s'%ln)
+                if len(branches) != len(list_names):
+                    print ('Number of names not consistent with appended branches')
+                    sys.exit(1)
+            else:
+                list_names = None
 
-            AppendTree(file1,file2,branches,event_filter=filter_events)
+            AppendTree(file1,file2,branches,event_filter=filter_events,rename=list_names)
 
 
