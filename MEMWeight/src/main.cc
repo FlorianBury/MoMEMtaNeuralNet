@@ -89,14 +89,15 @@ int main(int argc, char** argv) {
     /*
      * Load events from input file, retrieve reconstructed particles and MET
      */
-    TChain chain("tree");
-    //string INPUT_DIR = "/nfs/scratch/fynu/asaggio/CMSSW_8_0_30/src/cp3_llbb/ZATools/factories_ZA/fourVectors_withMETphi_for_Florian/slurm/output/";
-    string INPUT_DIR = "/home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/";
+    TChain chain("t");
+    //string INPUT_DIR = "/nfs/scratch/fynu/asaggio/CMSSW_8_0_30/src/cp3_llbb/ZATools/factories_ZA/skimmed_for_Florian_2019_backgrounds/slurm/output/";
+    string INPUT_DIR = "/home/ucl/cp3/fbury/scratch/HToZA_Analysis/backgrounds/";
+    //string INPUT_DIR = "/home/ucl/cp3/fbury/scratch/MoMEMta_output/signal_weights_valid/";
     string file = INPUT_DIR+FLAGS_input;
     LOG(info)<<"Directory : "+INPUT_DIR;
     LOG(info)<<"Using file : "+FLAGS_input; 
     bool USE_RECOMPUTE = false;
-    bool USE_JEC = false;
+    bool USE_JEC = true;
     if (USE_RECOMPUTE)
         LOG(warning)<<"Weights recomputation is enabled";
     if (USE_JEC)
@@ -106,90 +107,90 @@ int main(int argc, char** argv) {
     TTreeReader myReader(&chain);
 
     // TODO : Initial Files -> LorentzVectorE, output LorentzeVector
-    TTreeReaderValue<LorentzVector> lep_plus_p4E(myReader, "lep1_p4");
-    TTreeReaderValue<LorentzVector> lep_minus_p4E(myReader, "lep2_p4");
-    TTreeReaderValue<LorentzVector> jet1_p4E(myReader, "jet1_p4");
-    TTreeReaderValue<LorentzVector> jet2_p4E(myReader, "jet2_p4");
+    TTreeReaderValue<LorentzVectorE> lep_plus_p4E(myReader, "lep1_p4");
+    TTreeReaderValue<LorentzVectorE> lep_minus_p4E(myReader, "lep2_p4");
+    TTreeReaderValue<LorentzVectorE> jet1_p4E(myReader, "jet1_p4");
+    TTreeReaderValue<LorentzVectorE> jet2_p4E(myReader, "jet2_p4");
     // TODO : either float or doubles
-    TTreeReaderValue<double> t_w(myReader, "total_weight");
-    TTreeReaderValue<double> e_w(myReader,  "event_weight");
-    TTreeReaderValue<double> jjm(myReader, "jj_M");
-    TTreeReaderValue<double> lljjm(myReader, "lljj_M");
-    TTreeReaderValue<double> llm(myReader, "ll_M");
-    TTreeReaderValue<double> m_pt(myReader, "met_pt");
-    TTreeReaderValue<double> m_phi(myReader, "met_phi");
-    TTreeReaderValue<double> l1c(myReader, "lep1_charge");
-    TTreeReaderValue<double> l2c(myReader, "lep2_charge");
+    TTreeReaderValue<float> t_w(myReader, "total_weight");
+    //TTreeReaderValue<float> e_w(myReader,  "event_weight");
+    TTreeReaderValue<float> jjm(myReader, "jj_M");
+    TTreeReaderValue<float> lljjm(myReader, "lljj_M");
+    TTreeReaderValue<float> llm(myReader, "ll_M");
+    TTreeReaderValue<float> m_pt(myReader, "met_pt");
+    TTreeReaderValue<float> m_phi(myReader, "met_phi");
+    TTreeReaderValue<float> l1c(myReader, "lep1_charge");
+    TTreeReaderValue<float> l2c(myReader, "lep2_charge");
 
-    TTreeReaderValue<double> w_200_50(myReader, "weight_HToZA_mH_200_mA_50");
-    TTreeReaderValue<double> w_200_50_e(myReader, "weight_HToZA_mH_200_mA_50_err");
-    TTreeReaderValue<double> w_200_50_t(myReader, "weight_HToZA_mH_200_mA_50_time");
-    TTreeReaderValue<double> w_200_100(myReader, "weight_HToZA_mH_200_mA_100");
-    TTreeReaderValue<double> w_200_100_e(myReader, "weight_HToZA_mH_200_mA_100_err");
-    TTreeReaderValue<double> w_200_100_t(myReader, "weight_HToZA_mH_200_mA_100_time");
-    TTreeReaderValue<double> w_250_50(myReader, "weight_HToZA_mH_250_mA_50");
-    TTreeReaderValue<double> w_250_50_e(myReader, "weight_HToZA_mH_250_mA_50_err");
-    TTreeReaderValue<double> w_250_50_t(myReader, "weight_HToZA_mH_250_mA_50_time");
-    TTreeReaderValue<double> w_250_100(myReader, "weight_HToZA_mH_250_mA_100");
-    TTreeReaderValue<double> w_250_100_e(myReader, "weight_HToZA_mH_250_mA_100_err");
-    TTreeReaderValue<double> w_250_100_t(myReader, "weight_HToZA_mH_250_mA_100_time");
-    TTreeReaderValue<double> w_300_50(myReader, "weight_HToZA_mH_300_mA_50");
-    TTreeReaderValue<double> w_300_50_e(myReader, "weight_HToZA_mH_300_mA_50_err");
-    TTreeReaderValue<double> w_300_50_t(myReader, "weight_HToZA_mH_300_mA_50_time");
-    TTreeReaderValue<double> w_300_100(myReader, "weight_HToZA_mH_300_mA_100");
-    TTreeReaderValue<double> w_300_100_e(myReader, "weight_HToZA_mH_300_mA_100_err");
-    TTreeReaderValue<double> w_300_100_t(myReader, "weight_HToZA_mH_300_mA_100_time");
-    TTreeReaderValue<double> w_300_200(myReader, "weight_HToZA_mH_300_mA_200");
-    TTreeReaderValue<double> w_300_200_e(myReader, "weight_HToZA_mH_300_mA_200_err");
-    TTreeReaderValue<double> w_300_200_t(myReader, "weight_HToZA_mH_300_mA_200_time");
-    TTreeReaderValue<double> w_500_50(myReader, "weight_HToZA_mH_500_mA_50");
-    TTreeReaderValue<double> w_500_50_e(myReader, "weight_HToZA_mH_500_mA_50_err");
-    TTreeReaderValue<double> w_500_50_t(myReader, "weight_HToZA_mH_500_mA_50_time");
-    TTreeReaderValue<double> w_500_100(myReader, "weight_HToZA_mH_500_mA_100");
-    TTreeReaderValue<double> w_500_100_e(myReader, "weight_HToZA_mH_500_mA_100_err");
-    TTreeReaderValue<double> w_500_100_t(myReader, "weight_HToZA_mH_500_mA_100_time");
-    TTreeReaderValue<double> w_500_200(myReader, "weight_HToZA_mH_500_mA_200");
-    TTreeReaderValue<double> w_500_200_e(myReader, "weight_HToZA_mH_500_mA_200_err");
-    TTreeReaderValue<double> w_500_200_t(myReader, "weight_HToZA_mH_500_mA_200_time");
-    TTreeReaderValue<double> w_500_300(myReader, "weight_HToZA_mH_500_mA_300");
-    TTreeReaderValue<double> w_500_300_e(myReader, "weight_HToZA_mH_500_mA_300_err");
-    TTreeReaderValue<double> w_500_300_t(myReader, "weight_HToZA_mH_500_mA_300_time");
-    TTreeReaderValue<double> w_500_400(myReader, "weight_HToZA_mH_500_mA_400");
-    TTreeReaderValue<double> w_500_400_e(myReader, "weight_HToZA_mH_500_mA_400_err");
-    TTreeReaderValue<double> w_500_400_t(myReader, "weight_HToZA_mH_500_mA_400_time");
-    TTreeReaderValue<double> w_650_50(myReader, "weight_HToZA_mH_650_mA_50");
-    TTreeReaderValue<double> w_650_50_e(myReader, "weight_HToZA_mH_650_mA_50_err");
-    TTreeReaderValue<double> w_650_50_t(myReader, "weight_HToZA_mH_650_mA_50_time");
-    TTreeReaderValue<double> w_800_50(myReader, "weight_HToZA_mH_800_mA_50");
-    TTreeReaderValue<double> w_800_50_e(myReader, "weight_HToZA_mH_800_mA_50_err");
-    TTreeReaderValue<double> w_800_50_t(myReader, "weight_HToZA_mH_800_mA_50_time");
-    TTreeReaderValue<double> w_800_100(myReader, "weight_HToZA_mH_800_mA_100");
-    TTreeReaderValue<double> w_800_100_e(myReader, "weight_HToZA_mH_800_mA_100_err");
-    TTreeReaderValue<double> w_800_100_t(myReader, "weight_HToZA_mH_800_mA_100_time");
-    TTreeReaderValue<double> w_800_200(myReader, "weight_HToZA_mH_800_mA_200");
-    TTreeReaderValue<double> w_800_200_e(myReader, "weight_HToZA_mH_800_mA_200_err");
-    TTreeReaderValue<double> w_800_200_t(myReader, "weight_HToZA_mH_800_mA_200_time");
-    TTreeReaderValue<double> w_800_400(myReader, "weight_HToZA_mH_800_mA_400");
-    TTreeReaderValue<double> w_800_400_e(myReader, "weight_HToZA_mH_800_mA_400_err");
-    TTreeReaderValue<double> w_800_400_t(myReader, "weight_HToZA_mH_800_mA_400_time");
-    TTreeReaderValue<double> w_800_700(myReader, "weight_HToZA_mH_800_mA_700");
-    TTreeReaderValue<double> w_800_700_e(myReader, "weight_HToZA_mH_800_mA_700_err");
-    TTreeReaderValue<double> w_800_700_t(myReader, "weight_HToZA_mH_800_mA_700_time");
-    TTreeReaderValue<double> w_1000_50(myReader, "weight_HToZA_mH_1000_mA_50");
-    TTreeReaderValue<double> w_1000_50_e(myReader, "weight_HToZA_mH_1000_mA_50_err");
-    TTreeReaderValue<double> w_1000_50_t(myReader, "weight_HToZA_mH_1000_mA_50_time");
-    TTreeReaderValue<double> w_1000_200(myReader, "weight_HToZA_mH_1000_mA_200");
-    TTreeReaderValue<double> w_1000_200_e(myReader, "weight_HToZA_mH_1000_mA_200_err");
-    TTreeReaderValue<double> w_1000_200_t(myReader, "weight_HToZA_mH_1000_mA_200_time");
-    TTreeReaderValue<double> w_1000_500(myReader, "weight_HToZA_mH_1000_mA_500");
-    TTreeReaderValue<double> w_1000_500_e(myReader, "weight_HToZA_mH_1000_mA_500_err");
-    TTreeReaderValue<double> w_1000_500_t(myReader, "weight_HToZA_mH_1000_mA_500_time");
-    TTreeReaderValue<double> w_2000_1000(myReader, "weight_HToZA_mH_2000_mA_1000");
-    TTreeReaderValue<double> w_2000_1000_e(myReader, "weight_HToZA_mH_2000_mA_1000_err");
-    TTreeReaderValue<double> w_2000_1000_t(myReader, "weight_HToZA_mH_2000_mA_1000_time");
-    TTreeReaderValue<double> w_3000_2000(myReader, "weight_HToZA_mH_3000_mA_2000");
-    TTreeReaderValue<double> w_3000_2000_e(myReader, "weight_HToZA_mH_3000_mA_2000_err");
-    TTreeReaderValue<double> w_3000_2000_t(myReader, "weight_HToZA_mH_3000_mA_2000_time");
+    //TTreeReaderValue<double> w_200_50(myReader, "weight_HToZA_mH_200_mA_50");
+    //TTreeReaderValue<double> w_200_50_e(myReader, "weight_HToZA_mH_200_mA_50_err");
+    //TTreeReaderValue<double> w_200_50_t(myReader, "weight_HToZA_mH_200_mA_50_time");
+    //TTreeReaderValue<double> w_200_100(myReader, "weight_HToZA_mH_200_mA_100");
+    //TTreeReaderValue<double> w_200_100_e(myReader, "weight_HToZA_mH_200_mA_100_err");
+    //TTreeReaderValue<double> w_200_100_t(myReader, "weight_HToZA_mH_200_mA_100_time");
+    //TTreeReaderValue<double> w_250_50(myReader, "weight_HToZA_mH_250_mA_50");
+    //TTreeReaderValue<double> w_250_50_e(myReader, "weight_HToZA_mH_250_mA_50_err");
+    //TTreeReaderValue<double> w_250_50_t(myReader, "weight_HToZA_mH_250_mA_50_time");
+    //TTreeReaderValue<double> w_250_100(myReader, "weight_HToZA_mH_250_mA_100");
+    //TTreeReaderValue<double> w_250_100_e(myReader, "weight_HToZA_mH_250_mA_100_err");
+    //TTreeReaderValue<double> w_250_100_t(myReader, "weight_HToZA_mH_250_mA_100_time");
+    //TTreeReaderValue<double> w_300_50(myReader, "weight_HToZA_mH_300_mA_50");
+    //TTreeReaderValue<double> w_300_50_e(myReader, "weight_HToZA_mH_300_mA_50_err");
+    //TTreeReaderValue<double> w_300_50_t(myReader, "weight_HToZA_mH_300_mA_50_time");
+    //TTreeReaderValue<double> w_300_100(myReader, "weight_HToZA_mH_300_mA_100");
+    //TTreeReaderValue<double> w_300_100_e(myReader, "weight_HToZA_mH_300_mA_100_err");
+    //TTreeReaderValue<double> w_300_100_t(myReader, "weight_HToZA_mH_300_mA_100_time");
+    //TTreeReaderValue<double> w_300_200(myReader, "weight_HToZA_mH_300_mA_200");
+    //TTreeReaderValue<double> w_300_200_e(myReader, "weight_HToZA_mH_300_mA_200_err");
+    //TTreeReaderValue<double> w_300_200_t(myReader, "weight_HToZA_mH_300_mA_200_time");
+    //TTreeReaderValue<double> w_500_50(myReader, "weight_HToZA_mH_500_mA_50");
+    //TTreeReaderValue<double> w_500_50_e(myReader, "weight_HToZA_mH_500_mA_50_err");
+    //TTreeReaderValue<double> w_500_50_t(myReader, "weight_HToZA_mH_500_mA_50_time");
+    //TTreeReaderValue<double> w_500_100(myReader, "weight_HToZA_mH_500_mA_100");
+    //TTreeReaderValue<double> w_500_100_e(myReader, "weight_HToZA_mH_500_mA_100_err");
+    //TTreeReaderValue<double> w_500_100_t(myReader, "weight_HToZA_mH_500_mA_100_time");
+    //TTreeReaderValue<double> w_500_200(myReader, "weight_HToZA_mH_500_mA_200");
+    //TTreeReaderValue<double> w_500_200_e(myReader, "weight_HToZA_mH_500_mA_200_err");
+    //TTreeReaderValue<double> w_500_200_t(myReader, "weight_HToZA_mH_500_mA_200_time");
+    //TTreeReaderValue<double> w_500_300(myReader, "weight_HToZA_mH_500_mA_300");
+    //TTreeReaderValue<double> w_500_300_e(myReader, "weight_HToZA_mH_500_mA_300_err");
+    //TTreeReaderValue<double> w_500_300_t(myReader, "weight_HToZA_mH_500_mA_300_time");
+    //TTreeReaderValue<double> w_500_400(myReader, "weight_HToZA_mH_500_mA_400");
+    //TTreeReaderValue<double> w_500_400_e(myReader, "weight_HToZA_mH_500_mA_400_err");
+    //TTreeReaderValue<double> w_500_400_t(myReader, "weight_HToZA_mH_500_mA_400_time");
+    //TTreeReaderValue<double> w_650_50(myReader, "weight_HToZA_mH_650_mA_50");
+    //TTreeReaderValue<double> w_650_50_e(myReader, "weight_HToZA_mH_650_mA_50_err");
+    //TTreeReaderValue<double> w_650_50_t(myReader, "weight_HToZA_mH_650_mA_50_time");
+    //TTreeReaderValue<double> w_800_50(myReader, "weight_HToZA_mH_800_mA_50");
+    //TTreeReaderValue<double> w_800_50_e(myReader, "weight_HToZA_mH_800_mA_50_err");
+    //TTreeReaderValue<double> w_800_50_t(myReader, "weight_HToZA_mH_800_mA_50_time");
+    //TTreeReaderValue<double> w_800_100(myReader, "weight_HToZA_mH_800_mA_100");
+    //TTreeReaderValue<double> w_800_100_e(myReader, "weight_HToZA_mH_800_mA_100_err");
+    //TTreeReaderValue<double> w_800_100_t(myReader, "weight_HToZA_mH_800_mA_100_time");
+    //TTreeReaderValue<double> w_800_200(myReader, "weight_HToZA_mH_800_mA_200");
+    //TTreeReaderValue<double> w_800_200_e(myReader, "weight_HToZA_mH_800_mA_200_err");
+    //TTreeReaderValue<double> w_800_200_t(myReader, "weight_HToZA_mH_800_mA_200_time");
+    //TTreeReaderValue<double> w_800_400(myReader, "weight_HToZA_mH_800_mA_400");
+    //TTreeReaderValue<double> w_800_400_e(myReader, "weight_HToZA_mH_800_mA_400_err");
+    //TTreeReaderValue<double> w_800_400_t(myReader, "weight_HToZA_mH_800_mA_400_time");
+    //TTreeReaderValue<double> w_800_700(myReader, "weight_HToZA_mH_800_mA_700");
+    //TTreeReaderValue<double> w_800_700_e(myReader, "weight_HToZA_mH_800_mA_700_err");
+    //TTreeReaderValue<double> w_800_700_t(myReader, "weight_HToZA_mH_800_mA_700_time");
+    //TTreeReaderValue<double> w_1000_50(myReader, "weight_HToZA_mH_1000_mA_50");
+    //TTreeReaderValue<double> w_1000_50_e(myReader, "weight_HToZA_mH_1000_mA_50_err");
+    //TTreeReaderValue<double> w_1000_50_t(myReader, "weight_HToZA_mH_1000_mA_50_time");
+    //TTreeReaderValue<double> w_1000_200(myReader, "weight_HToZA_mH_1000_mA_200");
+    //TTreeReaderValue<double> w_1000_200_e(myReader, "weight_HToZA_mH_1000_mA_200_err");
+    //TTreeReaderValue<double> w_1000_200_t(myReader, "weight_HToZA_mH_1000_mA_200_time");
+    //TTreeReaderValue<double> w_1000_500(myReader, "weight_HToZA_mH_1000_mA_500");
+    //TTreeReaderValue<double> w_1000_500_e(myReader, "weight_HToZA_mH_1000_mA_500_err");
+    //TTreeReaderValue<double> w_1000_500_t(myReader, "weight_HToZA_mH_1000_mA_500_time");
+    //TTreeReaderValue<double> w_2000_1000(myReader, "weight_HToZA_mH_2000_mA_1000");
+    //TTreeReaderValue<double> w_2000_1000_e(myReader, "weight_HToZA_mH_2000_mA_1000_err");
+    //TTreeReaderValue<double> w_2000_1000_t(myReader, "weight_HToZA_mH_2000_mA_1000_time");
+    //TTreeReaderValue<double> w_3000_2000(myReader, "weight_HToZA_mH_3000_mA_2000");
+    //TTreeReaderValue<double> w_3000_2000_e(myReader, "weight_HToZA_mH_3000_mA_2000_err");
+    //TTreeReaderValue<double> w_3000_2000_t(myReader, "weight_HToZA_mH_3000_mA_2000_time");
 
     /*
      * Define output TTree, which will be a clone of the input tree,
@@ -198,7 +199,7 @@ int main(int argc, char** argv) {
     TFile *output = TFile::Open(FLAGS_output.c_str(), "recreate");
     TTree* out_tree = new TTree("tree", "tree");
     LorentzVector lep1_p4,lep2_p4,jet1_p4,jet2_p4;
-    double total_weight,event_weight,jj_M,lljj_M,ll_M,met_pt,met_phi,lep1_charge,lep2_charge;
+    float total_weight,event_weight,jj_M,lljj_M,ll_M,met_pt,met_phi,lep1_charge,lep2_charge;
     out_tree->Branch("lep1_p4", &lep1_p4);
     out_tree->Branch("lep2_p4", &lep2_p4);
     out_tree->Branch("jet1_p4", &jet1_p4);
@@ -212,100 +213,100 @@ int main(int argc, char** argv) {
     out_tree->Branch("met_phi", &met_phi);
     out_tree->Branch("lep1_charge", &lep1_charge);
     out_tree->Branch("lep2_charge", &lep2_charge);
-;
-    double weight_HToZA_mH_200_mA_50, weight_HToZA_mH_200_mA_50_err, weight_HToZA_mH_200_mA_50_time;
-    double weight_HToZA_mH_200_mA_100, weight_HToZA_mH_200_mA_100_err, weight_HToZA_mH_200_mA_100_time;
-    double weight_HToZA_mH_250_mA_50, weight_HToZA_mH_250_mA_50_err, weight_HToZA_mH_250_mA_50_time;
-    double weight_HToZA_mH_250_mA_100, weight_HToZA_mH_250_mA_100_err, weight_HToZA_mH_250_mA_100_time;
-    double weight_HToZA_mH_300_mA_50, weight_HToZA_mH_300_mA_50_err, weight_HToZA_mH_300_mA_50_time;
-    double weight_HToZA_mH_300_mA_100, weight_HToZA_mH_300_mA_100_err, weight_HToZA_mH_300_mA_100_time;
-    double weight_HToZA_mH_300_mA_200, weight_HToZA_mH_300_mA_200_err, weight_HToZA_mH_300_mA_200_time;
-    double weight_HToZA_mH_500_mA_50, weight_HToZA_mH_500_mA_50_err, weight_HToZA_mH_500_mA_50_time;
-    double weight_HToZA_mH_500_mA_100, weight_HToZA_mH_500_mA_100_err, weight_HToZA_mH_500_mA_100_time;
-    double weight_HToZA_mH_500_mA_200, weight_HToZA_mH_500_mA_200_err, weight_HToZA_mH_500_mA_200_time;
-    double weight_HToZA_mH_500_mA_300, weight_HToZA_mH_500_mA_300_err, weight_HToZA_mH_500_mA_300_time;
-    double weight_HToZA_mH_500_mA_400, weight_HToZA_mH_500_mA_400_err, weight_HToZA_mH_500_mA_400_time;
-    double weight_HToZA_mH_650_mA_50, weight_HToZA_mH_650_mA_50_err, weight_HToZA_mH_650_mA_50_time;
-    double weight_HToZA_mH_800_mA_50, weight_HToZA_mH_800_mA_50_err, weight_HToZA_mH_800_mA_50_time;
-    double weight_HToZA_mH_800_mA_100, weight_HToZA_mH_800_mA_100_err, weight_HToZA_mH_800_mA_100_time;
-    double weight_HToZA_mH_800_mA_200, weight_HToZA_mH_800_mA_200_err, weight_HToZA_mH_800_mA_200_time;
-    double weight_HToZA_mH_800_mA_400, weight_HToZA_mH_800_mA_400_err, weight_HToZA_mH_800_mA_400_time;
-    double weight_HToZA_mH_800_mA_700, weight_HToZA_mH_800_mA_700_err, weight_HToZA_mH_800_mA_700_time;
-    double weight_HToZA_mH_1000_mA_50, weight_HToZA_mH_1000_mA_50_err, weight_HToZA_mH_1000_mA_50_time;
-    double weight_HToZA_mH_1000_mA_200, weight_HToZA_mH_1000_mA_200_err, weight_HToZA_mH_1000_mA_200_time;
-    double weight_HToZA_mH_1000_mA_500, weight_HToZA_mH_1000_mA_500_err, weight_HToZA_mH_1000_mA_500_time;
-    double weight_HToZA_mH_2000_mA_1000, weight_HToZA_mH_2000_mA_1000_err, weight_HToZA_mH_2000_mA_1000_time;
-    double weight_HToZA_mH_3000_mA_2000, weight_HToZA_mH_3000_mA_2000_err, weight_HToZA_mH_3000_mA_2000_time;
 
-    out_tree->Branch("weight_HToZA_mH_200_mA_50",&weight_HToZA_mH_200_mA_50);
-    out_tree->Branch("weight_HToZA_mH_200_mA_50_err",&weight_HToZA_mH_200_mA_50_err);
-    out_tree->Branch("weight_HToZA_mH_200_mA_50_time",&weight_HToZA_mH_200_mA_50_time);
-    out_tree->Branch("weight_HToZA_mH_200_mA_100",&weight_HToZA_mH_200_mA_100);
-    out_tree->Branch("weight_HToZA_mH_200_mA_100_err",&weight_HToZA_mH_200_mA_100_err);
-    out_tree->Branch("weight_HToZA_mH_200_mA_100_time",&weight_HToZA_mH_200_mA_100_time);
-    out_tree->Branch("weight_HToZA_mH_250_mA_50",&weight_HToZA_mH_250_mA_50);
-    out_tree->Branch("weight_HToZA_mH_250_mA_50_err",&weight_HToZA_mH_250_mA_50_err);
-    out_tree->Branch("weight_HToZA_mH_250_mA_50_time",&weight_HToZA_mH_250_mA_50_time);
-    out_tree->Branch("weight_HToZA_mH_250_mA_100",&weight_HToZA_mH_250_mA_100);
-    out_tree->Branch("weight_HToZA_mH_250_mA_100_err",&weight_HToZA_mH_250_mA_100_err);
-    out_tree->Branch("weight_HToZA_mH_250_mA_100_time",&weight_HToZA_mH_250_mA_100_time);
-    out_tree->Branch("weight_HToZA_mH_300_mA_50",&weight_HToZA_mH_300_mA_50);
-    out_tree->Branch("weight_HToZA_mH_300_mA_50_err",&weight_HToZA_mH_300_mA_50_err);
-    out_tree->Branch("weight_HToZA_mH_300_mA_50_time",&weight_HToZA_mH_300_mA_50_time);
-    out_tree->Branch("weight_HToZA_mH_300_mA_100",&weight_HToZA_mH_300_mA_100);
-    out_tree->Branch("weight_HToZA_mH_300_mA_100_err",&weight_HToZA_mH_300_mA_100_err);
-    out_tree->Branch("weight_HToZA_mH_300_mA_100_time",&weight_HToZA_mH_300_mA_100_time);
-    out_tree->Branch("weight_HToZA_mH_300_mA_200",&weight_HToZA_mH_300_mA_200);
-    out_tree->Branch("weight_HToZA_mH_300_mA_200_err",&weight_HToZA_mH_300_mA_200_err);
-    out_tree->Branch("weight_HToZA_mH_300_mA_200_time",&weight_HToZA_mH_300_mA_200_time);
-    out_tree->Branch("weight_HToZA_mH_500_mA_50",&weight_HToZA_mH_500_mA_50);
-    out_tree->Branch("weight_HToZA_mH_500_mA_50_err",&weight_HToZA_mH_500_mA_50_err);
-    out_tree->Branch("weight_HToZA_mH_500_mA_50_time",&weight_HToZA_mH_500_mA_50_time);
-    out_tree->Branch("weight_HToZA_mH_500_mA_100",&weight_HToZA_mH_500_mA_100);
-    out_tree->Branch("weight_HToZA_mH_500_mA_100_err",&weight_HToZA_mH_500_mA_100_err);
-    out_tree->Branch("weight_HToZA_mH_500_mA_100_time",&weight_HToZA_mH_500_mA_100_time);
-    out_tree->Branch("weight_HToZA_mH_500_mA_200",&weight_HToZA_mH_500_mA_200);
-    out_tree->Branch("weight_HToZA_mH_500_mA_200_err",&weight_HToZA_mH_500_mA_200_err);
-    out_tree->Branch("weight_HToZA_mH_500_mA_200_time",&weight_HToZA_mH_500_mA_200_time);
-    out_tree->Branch("weight_HToZA_mH_500_mA_300",&weight_HToZA_mH_500_mA_300);
-    out_tree->Branch("weight_HToZA_mH_500_mA_300_err",&weight_HToZA_mH_500_mA_300_err);
-    out_tree->Branch("weight_HToZA_mH_500_mA_300_time",&weight_HToZA_mH_500_mA_300_time);
-    out_tree->Branch("weight_HToZA_mH_500_mA_400",&weight_HToZA_mH_500_mA_400);
-    out_tree->Branch("weight_HToZA_mH_500_mA_400_err",&weight_HToZA_mH_500_mA_400_err);
-    out_tree->Branch("weight_HToZA_mH_500_mA_400_time",&weight_HToZA_mH_500_mA_400_time);
-    out_tree->Branch("weight_HToZA_mH_650_mA_50",&weight_HToZA_mH_650_mA_50);
-    out_tree->Branch("weight_HToZA_mH_650_mA_50_err",&weight_HToZA_mH_650_mA_50_err);
-    out_tree->Branch("weight_HToZA_mH_650_mA_50_time",&weight_HToZA_mH_650_mA_50_time);
-    out_tree->Branch("weight_HToZA_mH_800_mA_50",&weight_HToZA_mH_800_mA_50);
-    out_tree->Branch("weight_HToZA_mH_800_mA_50_err",&weight_HToZA_mH_800_mA_50_err);
-    out_tree->Branch("weight_HToZA_mH_800_mA_50_time",&weight_HToZA_mH_800_mA_50_time);
-    out_tree->Branch("weight_HToZA_mH_800_mA_100",&weight_HToZA_mH_800_mA_100);
-    out_tree->Branch("weight_HToZA_mH_800_mA_100_err",&weight_HToZA_mH_800_mA_100_err);
-    out_tree->Branch("weight_HToZA_mH_800_mA_100_time",&weight_HToZA_mH_800_mA_100_time);
-    out_tree->Branch("weight_HToZA_mH_800_mA_200",&weight_HToZA_mH_800_mA_200);
-    out_tree->Branch("weight_HToZA_mH_800_mA_200_err",&weight_HToZA_mH_800_mA_200_err);
-    out_tree->Branch("weight_HToZA_mH_800_mA_200_time",&weight_HToZA_mH_800_mA_200_time);
-    out_tree->Branch("weight_HToZA_mH_800_mA_400",&weight_HToZA_mH_800_mA_400);
-    out_tree->Branch("weight_HToZA_mH_800_mA_400_err",&weight_HToZA_mH_800_mA_400_err);
-    out_tree->Branch("weight_HToZA_mH_800_mA_400_time",&weight_HToZA_mH_800_mA_400_time);
-    out_tree->Branch("weight_HToZA_mH_800_mA_700",&weight_HToZA_mH_800_mA_700);
-    out_tree->Branch("weight_HToZA_mH_800_mA_700_err",&weight_HToZA_mH_800_mA_700_err);
-    out_tree->Branch("weight_HToZA_mH_800_mA_700_time",&weight_HToZA_mH_800_mA_700_time);
-    out_tree->Branch("weight_HToZA_mH_1000_mA_50",&weight_HToZA_mH_1000_mA_50);
-    out_tree->Branch("weight_HToZA_mH_1000_mA_50_err",&weight_HToZA_mH_1000_mA_50_err);
-    out_tree->Branch("weight_HToZA_mH_1000_mA_50_time",&weight_HToZA_mH_1000_mA_50_time);
-    out_tree->Branch("weight_HToZA_mH_1000_mA_200",&weight_HToZA_mH_1000_mA_200);
-    out_tree->Branch("weight_HToZA_mH_1000_mA_200_err",&weight_HToZA_mH_1000_mA_200_err);
-    out_tree->Branch("weight_HToZA_mH_1000_mA_200_time",&weight_HToZA_mH_1000_mA_200_time);
-    out_tree->Branch("weight_HToZA_mH_1000_mA_500",&weight_HToZA_mH_1000_mA_500);
-    out_tree->Branch("weight_HToZA_mH_1000_mA_500_err",&weight_HToZA_mH_1000_mA_500_err);
-    out_tree->Branch("weight_HToZA_mH_1000_mA_500_time",&weight_HToZA_mH_1000_mA_500_time);
-    out_tree->Branch("weight_HToZA_mH_2000_mA_1000",&weight_HToZA_mH_2000_mA_1000);
-    out_tree->Branch("weight_HToZA_mH_2000_mA_1000_err",&weight_HToZA_mH_2000_mA_1000_err);
-    out_tree->Branch("weight_HToZA_mH_2000_mA_1000_time",&weight_HToZA_mH_2000_mA_1000_time);
-    out_tree->Branch("weight_HToZA_mH_3000_mA_2000",&weight_HToZA_mH_3000_mA_2000);
-    out_tree->Branch("weight_HToZA_mH_3000_mA_2000_err",&weight_HToZA_mH_3000_mA_2000_err);
-    out_tree->Branch("weight_HToZA_mH_3000_mA_2000_time",&weight_HToZA_mH_3000_mA_2000_time);
+    //double weight_HToZA_mH_200_mA_50, weight_HToZA_mH_200_mA_50_err, weight_HToZA_mH_200_mA_50_time;
+    //double weight_HToZA_mH_200_mA_100, weight_HToZA_mH_200_mA_100_err, weight_HToZA_mH_200_mA_100_time;
+    //double weight_HToZA_mH_250_mA_50, weight_HToZA_mH_250_mA_50_err, weight_HToZA_mH_250_mA_50_time;
+    //double weight_HToZA_mH_250_mA_100, weight_HToZA_mH_250_mA_100_err, weight_HToZA_mH_250_mA_100_time;
+    //double weight_HToZA_mH_300_mA_50, weight_HToZA_mH_300_mA_50_err, weight_HToZA_mH_300_mA_50_time;
+    //double weight_HToZA_mH_300_mA_100, weight_HToZA_mH_300_mA_100_err, weight_HToZA_mH_300_mA_100_time;
+    //double weight_HToZA_mH_300_mA_200, weight_HToZA_mH_300_mA_200_err, weight_HToZA_mH_300_mA_200_time;
+    //double weight_HToZA_mH_500_mA_50, weight_HToZA_mH_500_mA_50_err, weight_HToZA_mH_500_mA_50_time;
+    //double weight_HToZA_mH_500_mA_100, weight_HToZA_mH_500_mA_100_err, weight_HToZA_mH_500_mA_100_time;
+    //double weight_HToZA_mH_500_mA_200, weight_HToZA_mH_500_mA_200_err, weight_HToZA_mH_500_mA_200_time;
+    //double weight_HToZA_mH_500_mA_300, weight_HToZA_mH_500_mA_300_err, weight_HToZA_mH_500_mA_300_time;
+    //double weight_HToZA_mH_500_mA_400, weight_HToZA_mH_500_mA_400_err, weight_HToZA_mH_500_mA_400_time;
+    //double weight_HToZA_mH_650_mA_50, weight_HToZA_mH_650_mA_50_err, weight_HToZA_mH_650_mA_50_time;
+    //double weight_HToZA_mH_800_mA_50, weight_HToZA_mH_800_mA_50_err, weight_HToZA_mH_800_mA_50_time;
+    //double weight_HToZA_mH_800_mA_100, weight_HToZA_mH_800_mA_100_err, weight_HToZA_mH_800_mA_100_time;
+    //double weight_HToZA_mH_800_mA_200, weight_HToZA_mH_800_mA_200_err, weight_HToZA_mH_800_mA_200_time;
+    //double weight_HToZA_mH_800_mA_400, weight_HToZA_mH_800_mA_400_err, weight_HToZA_mH_800_mA_400_time;
+    //double weight_HToZA_mH_800_mA_700, weight_HToZA_mH_800_mA_700_err, weight_HToZA_mH_800_mA_700_time;
+    //double weight_HToZA_mH_1000_mA_50, weight_HToZA_mH_1000_mA_50_err, weight_HToZA_mH_1000_mA_50_time;
+    //double weight_HToZA_mH_1000_mA_200, weight_HToZA_mH_1000_mA_200_err, weight_HToZA_mH_1000_mA_200_time;
+    //double weight_HToZA_mH_1000_mA_500, weight_HToZA_mH_1000_mA_500_err, weight_HToZA_mH_1000_mA_500_time;
+    //double weight_HToZA_mH_2000_mA_1000, weight_HToZA_mH_2000_mA_1000_err, weight_HToZA_mH_2000_mA_1000_time;
+    //double weight_HToZA_mH_3000_mA_2000, weight_HToZA_mH_3000_mA_2000_err, weight_HToZA_mH_3000_mA_2000_time;
+
+    //out_tree->Branch("weight_HToZA_mH_200_mA_50",&weight_HToZA_mH_200_mA_50);
+    //out_tree->Branch("weight_HToZA_mH_200_mA_50_err",&weight_HToZA_mH_200_mA_50_err);
+    //out_tree->Branch("weight_HToZA_mH_200_mA_50_time",&weight_HToZA_mH_200_mA_50_time);
+    //out_tree->Branch("weight_HToZA_mH_200_mA_100",&weight_HToZA_mH_200_mA_100);
+    //out_tree->Branch("weight_HToZA_mH_200_mA_100_err",&weight_HToZA_mH_200_mA_100_err);
+    //out_tree->Branch("weight_HToZA_mH_200_mA_100_time",&weight_HToZA_mH_200_mA_100_time);
+    //out_tree->Branch("weight_HToZA_mH_250_mA_50",&weight_HToZA_mH_250_mA_50);
+    //out_tree->Branch("weight_HToZA_mH_250_mA_50_err",&weight_HToZA_mH_250_mA_50_err);
+    //out_tree->Branch("weight_HToZA_mH_250_mA_50_time",&weight_HToZA_mH_250_mA_50_time);
+    //out_tree->Branch("weight_HToZA_mH_250_mA_100",&weight_HToZA_mH_250_mA_100);
+    //out_tree->Branch("weight_HToZA_mH_250_mA_100_err",&weight_HToZA_mH_250_mA_100_err);
+    //out_tree->Branch("weight_HToZA_mH_250_mA_100_time",&weight_HToZA_mH_250_mA_100_time);
+    //out_tree->Branch("weight_HToZA_mH_300_mA_50",&weight_HToZA_mH_300_mA_50);
+    //out_tree->Branch("weight_HToZA_mH_300_mA_50_err",&weight_HToZA_mH_300_mA_50_err);
+    //out_tree->Branch("weight_HToZA_mH_300_mA_50_time",&weight_HToZA_mH_300_mA_50_time);
+    //out_tree->Branch("weight_HToZA_mH_300_mA_100",&weight_HToZA_mH_300_mA_100);
+    //out_tree->Branch("weight_HToZA_mH_300_mA_100_err",&weight_HToZA_mH_300_mA_100_err);
+    //out_tree->Branch("weight_HToZA_mH_300_mA_100_time",&weight_HToZA_mH_300_mA_100_time);
+    //out_tree->Branch("weight_HToZA_mH_300_mA_200",&weight_HToZA_mH_300_mA_200);
+    //out_tree->Branch("weight_HToZA_mH_300_mA_200_err",&weight_HToZA_mH_300_mA_200_err);
+    //out_tree->Branch("weight_HToZA_mH_300_mA_200_time",&weight_HToZA_mH_300_mA_200_time);
+    //out_tree->Branch("weight_HToZA_mH_500_mA_50",&weight_HToZA_mH_500_mA_50);
+    //out_tree->Branch("weight_HToZA_mH_500_mA_50_err",&weight_HToZA_mH_500_mA_50_err);
+    //out_tree->Branch("weight_HToZA_mH_500_mA_50_time",&weight_HToZA_mH_500_mA_50_time);
+    //out_tree->Branch("weight_HToZA_mH_500_mA_100",&weight_HToZA_mH_500_mA_100);
+    //out_tree->Branch("weight_HToZA_mH_500_mA_100_err",&weight_HToZA_mH_500_mA_100_err);
+    //out_tree->Branch("weight_HToZA_mH_500_mA_100_time",&weight_HToZA_mH_500_mA_100_time);
+    //out_tree->Branch("weight_HToZA_mH_500_mA_200",&weight_HToZA_mH_500_mA_200);
+    //out_tree->Branch("weight_HToZA_mH_500_mA_200_err",&weight_HToZA_mH_500_mA_200_err);
+    //out_tree->Branch("weight_HToZA_mH_500_mA_200_time",&weight_HToZA_mH_500_mA_200_time);
+    //out_tree->Branch("weight_HToZA_mH_500_mA_300",&weight_HToZA_mH_500_mA_300);
+    //out_tree->Branch("weight_HToZA_mH_500_mA_300_err",&weight_HToZA_mH_500_mA_300_err);
+    //out_tree->Branch("weight_HToZA_mH_500_mA_300_time",&weight_HToZA_mH_500_mA_300_time);
+    //out_tree->Branch("weight_HToZA_mH_500_mA_400",&weight_HToZA_mH_500_mA_400);
+    //out_tree->Branch("weight_HToZA_mH_500_mA_400_err",&weight_HToZA_mH_500_mA_400_err);
+    //out_tree->Branch("weight_HToZA_mH_500_mA_400_time",&weight_HToZA_mH_500_mA_400_time);
+    //out_tree->Branch("weight_HToZA_mH_650_mA_50",&weight_HToZA_mH_650_mA_50);
+    //out_tree->Branch("weight_HToZA_mH_650_mA_50_err",&weight_HToZA_mH_650_mA_50_err);
+    //out_tree->Branch("weight_HToZA_mH_650_mA_50_time",&weight_HToZA_mH_650_mA_50_time);
+    //out_tree->Branch("weight_HToZA_mH_800_mA_50",&weight_HToZA_mH_800_mA_50);
+    //out_tree->Branch("weight_HToZA_mH_800_mA_50_err",&weight_HToZA_mH_800_mA_50_err);
+    //out_tree->Branch("weight_HToZA_mH_800_mA_50_time",&weight_HToZA_mH_800_mA_50_time);
+    //out_tree->Branch("weight_HToZA_mH_800_mA_100",&weight_HToZA_mH_800_mA_100);
+    //out_tree->Branch("weight_HToZA_mH_800_mA_100_err",&weight_HToZA_mH_800_mA_100_err);
+    //out_tree->Branch("weight_HToZA_mH_800_mA_100_time",&weight_HToZA_mH_800_mA_100_time);
+    //out_tree->Branch("weight_HToZA_mH_800_mA_200",&weight_HToZA_mH_800_mA_200);
+    //out_tree->Branch("weight_HToZA_mH_800_mA_200_err",&weight_HToZA_mH_800_mA_200_err);
+    //out_tree->Branch("weight_HToZA_mH_800_mA_200_time",&weight_HToZA_mH_800_mA_200_time);
+    //out_tree->Branch("weight_HToZA_mH_800_mA_400",&weight_HToZA_mH_800_mA_400);
+    //out_tree->Branch("weight_HToZA_mH_800_mA_400_err",&weight_HToZA_mH_800_mA_400_err);
+    //out_tree->Branch("weight_HToZA_mH_800_mA_400_time",&weight_HToZA_mH_800_mA_400_time);
+    //out_tree->Branch("weight_HToZA_mH_800_mA_700",&weight_HToZA_mH_800_mA_700);
+    //out_tree->Branch("weight_HToZA_mH_800_mA_700_err",&weight_HToZA_mH_800_mA_700_err);
+    //out_tree->Branch("weight_HToZA_mH_800_mA_700_time",&weight_HToZA_mH_800_mA_700_time);
+    //out_tree->Branch("weight_HToZA_mH_1000_mA_50",&weight_HToZA_mH_1000_mA_50);
+    //out_tree->Branch("weight_HToZA_mH_1000_mA_50_err",&weight_HToZA_mH_1000_mA_50_err);
+    //out_tree->Branch("weight_HToZA_mH_1000_mA_50_time",&weight_HToZA_mH_1000_mA_50_time);
+    //out_tree->Branch("weight_HToZA_mH_1000_mA_200",&weight_HToZA_mH_1000_mA_200);
+    //out_tree->Branch("weight_HToZA_mH_1000_mA_200_err",&weight_HToZA_mH_1000_mA_200_err);
+    //out_tree->Branch("weight_HToZA_mH_1000_mA_200_time",&weight_HToZA_mH_1000_mA_200_time);
+    //out_tree->Branch("weight_HToZA_mH_1000_mA_500",&weight_HToZA_mH_1000_mA_500);
+    //out_tree->Branch("weight_HToZA_mH_1000_mA_500_err",&weight_HToZA_mH_1000_mA_500_err);
+    //out_tree->Branch("weight_HToZA_mH_1000_mA_500_time",&weight_HToZA_mH_1000_mA_500_time);
+    //out_tree->Branch("weight_HToZA_mH_2000_mA_1000",&weight_HToZA_mH_2000_mA_1000);
+    //out_tree->Branch("weight_HToZA_mH_2000_mA_1000_err",&weight_HToZA_mH_2000_mA_1000_err);
+    //out_tree->Branch("weight_HToZA_mH_2000_mA_1000_time",&weight_HToZA_mH_2000_mA_1000_time);
+    //out_tree->Branch("weight_HToZA_mH_3000_mA_2000",&weight_HToZA_mH_3000_mA_2000);
+    //out_tree->Branch("weight_HToZA_mH_3000_mA_2000_err",&weight_HToZA_mH_3000_mA_2000_err);
+    //out_tree->Branch("weight_HToZA_mH_3000_mA_2000_time",&weight_HToZA_mH_3000_mA_2000_time);
 
     double weight_TT, weight_TT_err,weight_DY, weight_DY_err, weight_DY_time, weight_TT_time;
     out_tree->Branch("weight_TT", &weight_TT);
@@ -314,6 +315,19 @@ int main(int argc, char** argv) {
     out_tree->Branch("weight_DY_err", &weight_DY_err);
     out_tree->Branch("weight_DY_time", &weight_DY_time);
     out_tree->Branch("weight_TT_time", &weight_TT_time);
+
+    bool is_JEC;
+    if (USE_JEC==true){
+        //double weight_TT_JEC, weight_TT_JEC_err,weight_DY_JEC, weight_DY_JEC_err, weight_DY_JEC_time, weight_TT_JEC_time; 
+        //out_tree->Branch("weight_TT_JEC", &weight_TT_JEC);
+        //out_tree->Branch("weight_TT_JEC_err", &weight_TT_JEC_err);
+        //out_tree->Branch("weight_DY_JEC", &weight_JEC_DY);
+        //out_tree->Branch("weight_DY_JEC_err", &weight_DY_JEC_err);
+        //out_tree->Branch("weight_DY_JEC_time", &weight_DY_JEC_time);
+        //out_tree->Branch("weight_TT_JEC_time", &weight_TT_JEC_time);
+        out_tree->Branch("is_JEC", &is_JEC);
+    }
+
 
     /* Generate map for the HToZA config */
     std::map<std::pair<double,double>,double> weight;
@@ -343,32 +357,32 @@ int main(int argc, char** argv) {
     //weight[std::make_pair(1000,500)] = 0;  err[std::make_pair(1000,500)] = 0;  time[std::make_pair(1000,500)] = 0;
     //weight[std::make_pair(2000,1000)] = 0; err[std::make_pair(2000,1000)] = 0; time[std::make_pair(2000,1000)] = 0;
     //weight[std::make_pair(3000,2000)] = 0; err[std::make_pair(3000,2000)] = 0; time[std::make_pair(3000,2000)] = 0;
-    for (auto const& x : weight){
-        std::string name;
-        name.append("weight_HToZA_mH_");
-        name.append(std::to_string(int(x.first.first)));
-        name.append("_mA_");
-        name.append(std::to_string(int(x.first.second)));
-        out_tree->Branch(name.c_str(), &(weight[x.first]));
-    } 
-    for (auto const& x : err){
-        std::string name;
-        name.append("weight_HToZA_mH_");
-        name.append(std::to_string(int(x.first.first)));
-        name.append("_mA_");
-        name.append(std::to_string(int(x.first.second)));
-        name.append("_err");
-        out_tree->Branch(name.c_str(), &(err[x.first]));
-    } 
-    for (auto const& x : time){
-        std::string name;
-        name.append("weight_HToZA_mH_");
-        name.append(std::to_string(int(x.first.first)));
-        name.append("_mA_");
-        name.append(std::to_string(int(x.first.second)));
-        name.append("_time");
-        out_tree->Branch(name.c_str(), &(time[x.first]));
-    }  
+    //for (auto const& x : weight){
+    //    std::string name;
+    //    name.append("weight_HToZA_mH_");
+    //    name.append(std::to_string(int(x.first.first)));
+    //    name.append("_mA_");
+    //    name.append(std::to_string(int(x.first.second)));
+    //    out_tree->Branch(name.c_str(), &(weight[x.first]));
+    //} 
+    //for (auto const& x : err){
+    //    std::string name;
+    //    name.append("weight_HToZA_mH_");
+    //    name.append(std::to_string(int(x.first.first)));
+    //    name.append("_mA_");
+    //    name.append(std::to_string(int(x.first.second)));
+    //    name.append("_err");
+    //    out_tree->Branch(name.c_str(), &(err[x.first]));
+    //} 
+    //for (auto const& x : time){
+    //    std::string name;
+    //    name.append("weight_HToZA_mH_");
+    //    name.append(std::to_string(int(x.first.first)));
+    //    name.append("_mA_");
+    //    name.append(std::to_string(int(x.first.second)));
+    //    name.append("_time");
+    //    out_tree->Branch(name.c_str(), &(time[x.first]));
+    //}  
 
 
 
@@ -384,7 +398,7 @@ int main(int argc, char** argv) {
     // Instantiate MoMEMta using a **frozen** configuration
     //MoMEMta TTbar_weight(configuration_TTbar.freeze());
     //MoMEMta DY_weight(configuration_DY.freeze());
-    
+
     // To and From parameters
     size_t to = 0;
     if (FLAGS_to > 0)
@@ -409,7 +423,13 @@ int main(int argc, char** argv) {
     /*
      * Loop over all input events
      */
+    bool JEC_apply = false; // wether to redo the event with the JEC
+    bool last_entry = false; // to get the last entry done again with JEC
+
     while (myReader.Next()) {
+        if (USE_JEC && JEC_apply && !last_entry)
+            myReader.SetEntry(myReader.GetCurrentEntry()-1); // redo the same event with JEC
+
         LOG(info) << "=====================================================================";
         LOG(info) << "Processing entry " << myReader.GetCurrentEntry() << " up to " << to;
         selected++;
@@ -438,19 +458,28 @@ int main(int argc, char** argv) {
 
         // JEC to bjets #
         if (USE_JEC==true){
-            LOG(info)<<"JEC has been applied";
-            auto temp1 = LorentzVectorE {jet1_p4.Pt(),jet1_p4.Eta(),jet1_p4.Phi(),jet1_p4.M()};
-            auto temp2 = LorentzVectorE {jet2_p4.Pt(),jet2_p4.Eta(),jet2_p4.Phi(),jet2_p4.M()};
-            auto previous_Pt_1 = jet1_p4.Pt();
-            auto previous_Pt_2 = jet2_p4.Pt();
-            temp1.SetPt(jet1_p4.Pt()*1.1);
-            temp2.SetPt(jet2_p4.Pt()*1.1);
-            jet1_p4 = LorentzVector { temp1.Px(), temp1.Py(), temp1.Pz(), temp1.E() };
-            jet2_p4 = LorentzVector { temp2.Px(), temp2.Py(), temp2.Pz(), temp2.E() };
-            LOG(info)<<"Jet1 Pt : "<<previous_Pt_1<<" -> "<<jet1_p4.Pt();
-            LOG(info)<<"Jet2 Pt : "<<previous_Pt_2<<" -> "<<jet2_p4.Pt();
+            if (JEC_apply){
+                LOG(info)<<"JEC has been applied";
+                auto temp1 = LorentzVectorE {jet1_p4.Pt(),jet1_p4.Eta(),jet1_p4.Phi(),jet1_p4.M()};
+                auto temp2 = LorentzVectorE {jet2_p4.Pt(),jet2_p4.Eta(),jet2_p4.Phi(),jet2_p4.M()};
+                auto previous_Pt_1 = jet1_p4.Pt();
+                auto previous_Pt_2 = jet2_p4.Pt();
+                temp1.SetPt(jet1_p4.Pt()*1.1);
+                temp2.SetPt(jet2_p4.Pt()*1.1);
+                jet1_p4 = LorentzVector { temp1.Px(), temp1.Py(), temp1.Pz(), temp1.E() };
+                jet2_p4 = LorentzVector { temp2.Px(), temp2.Py(), temp2.Pz(), temp2.E() };
+                LOG(info)<<"Jet1 Pt : "<<previous_Pt_1<<" -> "<<jet1_p4.Pt();
+                LOG(info)<<"Jet2 Pt : "<<previous_Pt_2<<" -> "<<jet2_p4.Pt();
+                JEC_apply = false; // Will not repeat the event
+            }   
+            else{
+                LOG(info)<<"JEC has not been applied";
+                LOG(info)<<"Jet1 Pt : "<<jet1_p4.Pt();
+                LOG(info)<<"Jet2 Pt : "<<jet2_p4.Pt();
+                JEC_apply = true; // Will repeat the event and apply the JEC
+            }
         }
-    
+
         // Due to numerical instability, the mass can sometimes be negative. If it's the case, change the energy in order to be mass-positive
         normalizeInput(lep_plus.p4);
         normalizeInput(lep_minus.p4);
@@ -463,7 +492,6 @@ int main(int argc, char** argv) {
             swap(lep_plus, lep_minus);
 
         // Compute the weights!
-        LOG(info) << "Event " << myReader.GetCurrentEntry();
 
         // TT weights
         bool failed_TT = false;
@@ -485,14 +513,14 @@ int main(int argc, char** argv) {
             lua_parameters.set("random", rand_num);
             lua_parameters.set("n_start_TT", n_start_TT);
             lua_parameters.set("max_eval", n_start_TT*20);
-            
+
             ConfigurationReader configuration_TTbar(FLAGS_confs_dir + "TTbar_FullyLeptonic.lua",lua_parameters);
 
             // Instantiate MoMEMta using a **frozen** configuration
             MoMEMta TTbar_weight(configuration_TTbar.freeze());
 
 
-           // Retrieve the weight and uncertainty for TT
+            // Retrieve the weight and uncertainty for TT
             auto start_time_TT = system_clock::now();
             std::vector<std::pair<double, double>> TTbar_weights = TTbar_weight.computeWeights({lep_minus, lep_plus, bjet1, bjet2},met_p4);
             auto end_time_TT = system_clock::now();
@@ -517,7 +545,7 @@ int main(int argc, char** argv) {
         // DY weights 
         LOG(info) << "---------------------------------------------------------------------";
         LOG(info)<<"Starting DY weight computation";
-    
+
         bool failed_DY = false;
         int n_start_DY = 20000;
         weight_DY_time = 0;
@@ -535,7 +563,7 @@ int main(int argc, char** argv) {
             lua_parameters.set("random", rand_num);
             lua_parameters.set("n_start_DY", n_start_DY);
             lua_parameters.set("max_eval", n_start_DY*20);
-            
+
             ConfigurationReader configuration_DY(FLAGS_confs_dir + "dy_to_ll_simple.lua",lua_parameters);
 
             // Instantiate MoMEMta using a **frozen** configuration
@@ -558,21 +586,21 @@ int main(int argc, char** argv) {
                 failed_DY = true;
                 n_start_DY += 400000;
             }
- 
-       }
+
+        }
         while (failed_DY);
 
         // HToZA weights 
         LOG(info) << "---------------------------------------------------------------------";
         LOG(info)<<"Starting HToZA weight computation";
-    
+
         for (auto & x : weight){
             break;
             auto mH = x.first.first;
             auto mA = x.first.second;
             auto key = x.first;
             LOG(info) << "\tMH = "<<std::to_string(mH)<<" MA = "<<std::to_string(mA);
-              
+
             bool failed_HToZA = false;
             int n_start_HToZA = 10000;
             do {
@@ -591,8 +619,8 @@ int main(int argc, char** argv) {
                 lua_parameters.set("max_eval", n_start_HToZA*20);
                 lua_parameters.set("mH", mH);
                 lua_parameters.set("mA", mA);
-                
-                
+
+
                 ConfigurationReader configuration_HToZA(FLAGS_confs_dir + "htoza_llbb.lua",lua_parameters);
 
                 // Instantiate MoMEMta using a **frozen** configuration
@@ -615,14 +643,14 @@ int main(int argc, char** argv) {
                     failed_HToZA = true;
                     n_start_HToZA += 50000;
                 }
-     
-           }
+
+            }
             while (failed_HToZA);
-    }
+        }
 
         // Other values in branches
         total_weight = *t_w;
-        event_weight = *e_w;
+        //event_weight = *e_w;
         jj_M = *jjm;
         lljj_M = *lljjm;
         ll_M = *llm;
@@ -631,75 +659,88 @@ int main(int argc, char** argv) {
         lep1_charge = *l1c;
         lep2_charge = *l2c;
 
-        weight_HToZA_mH_200_mA_50         = *w_200_50 ;
-        weight_HToZA_mH_200_mA_50_err     = *w_200_50_e;
-        weight_HToZA_mH_200_mA_50_time    = *w_200_50_t;
-        weight_HToZA_mH_200_mA_100        = *w_200_100;
-        weight_HToZA_mH_200_mA_100_err    = *w_200_100_e;
-        weight_HToZA_mH_200_mA_100_time   = *w_200_100_t;
-        weight_HToZA_mH_250_mA_50         = *w_250_50;
-        weight_HToZA_mH_250_mA_50_err     = *w_250_50_e;
-        weight_HToZA_mH_250_mA_50_time    = *w_250_50_t;
-        weight_HToZA_mH_250_mA_100        = *w_250_100;
-        weight_HToZA_mH_250_mA_100_err    = *w_250_100_e;
-        weight_HToZA_mH_250_mA_100_time   = *w_250_100_t;
-        weight_HToZA_mH_300_mA_50         = *w_300_50;
-        weight_HToZA_mH_300_mA_50_err     = *w_300_50_e;
-        weight_HToZA_mH_300_mA_50_time    = *w_300_50_t;
-        weight_HToZA_mH_300_mA_100        = *w_300_100;
-        weight_HToZA_mH_300_mA_100_err    = *w_300_100_e;
-        weight_HToZA_mH_300_mA_100_time   = *w_300_100_t;
-        weight_HToZA_mH_300_mA_200        = *w_300_200;
-        weight_HToZA_mH_300_mA_200_err    = *w_300_200_e;
-        weight_HToZA_mH_300_mA_200_time   = *w_300_200_t;
-        weight_HToZA_mH_500_mA_50         = *w_500_50;
-        weight_HToZA_mH_500_mA_50_err     = *w_500_50_e;
-        weight_HToZA_mH_500_mA_50_time    = *w_500_50_t;
-        weight_HToZA_mH_500_mA_100        = *w_500_100;
-        weight_HToZA_mH_500_mA_100_err    = *w_500_100_e;
-        weight_HToZA_mH_500_mA_100_time   = *w_500_100_t;
-        weight_HToZA_mH_500_mA_200        = *w_500_200;
-        weight_HToZA_mH_500_mA_200_err    = *w_500_200_e;
-        weight_HToZA_mH_500_mA_200_time   = *w_500_200_t;
-        weight_HToZA_mH_500_mA_300        = *w_500_300;
-        weight_HToZA_mH_500_mA_300_err    = *w_500_300_e;
-        weight_HToZA_mH_500_mA_300_time   = *w_500_300_t;
-        weight_HToZA_mH_500_mA_400        = *w_500_400;
-        weight_HToZA_mH_500_mA_400_err    = *w_500_400_e;
-        weight_HToZA_mH_500_mA_400_time   = *w_500_400_t;
-        weight_HToZA_mH_650_mA_50         = *w_650_50;
-        weight_HToZA_mH_650_mA_50_err     = *w_650_50_e;
-        weight_HToZA_mH_650_mA_50_time    = *w_650_50_t;
-        weight_HToZA_mH_800_mA_50         = *w_800_50;
-        weight_HToZA_mH_800_mA_50_err     = *w_800_50_e;
-        weight_HToZA_mH_800_mA_50_time    = *w_800_50_t;
-        weight_HToZA_mH_800_mA_100        = *w_800_100;
-        weight_HToZA_mH_800_mA_100_err    = *w_800_100_e;
-        weight_HToZA_mH_800_mA_100_time   = *w_800_100_t;
-        weight_HToZA_mH_800_mA_200        = *w_800_200;
-        weight_HToZA_mH_800_mA_200_err    = *w_800_200_e;
-        weight_HToZA_mH_800_mA_200_time   = *w_800_200_t;
-        weight_HToZA_mH_800_mA_400        = *w_800_400;
-        weight_HToZA_mH_800_mA_400_err    = *w_800_400_e;
-        weight_HToZA_mH_800_mA_400_time   = *w_800_400_t;
-        weight_HToZA_mH_800_mA_700        = *w_800_700;
-        weight_HToZA_mH_800_mA_700_err    = *w_800_700_e;
-        weight_HToZA_mH_800_mA_700_time   = *w_800_700_t;
-        weight_HToZA_mH_1000_mA_50        = *w_1000_50;
-        weight_HToZA_mH_1000_mA_50_err    = *w_1000_50_e;
-        weight_HToZA_mH_1000_mA_50_time   = *w_1000_50_t;
-        weight_HToZA_mH_1000_mA_200       = *w_1000_200;
-        weight_HToZA_mH_1000_mA_200_err   = *w_1000_200_e;
-        weight_HToZA_mH_1000_mA_200_time  = *w_1000_200_t;
-        weight_HToZA_mH_1000_mA_500       = *w_1000_500;
-        weight_HToZA_mH_1000_mA_500_err   = *w_1000_500_e;
-        weight_HToZA_mH_1000_mA_500_time  = *w_1000_500_t;
-        weight_HToZA_mH_2000_mA_1000      = *w_2000_1000;
-        weight_HToZA_mH_2000_mA_1000_err  = *w_2000_1000_e;
-        weight_HToZA_mH_2000_mA_1000_time = *w_2000_1000_t;
-        weight_HToZA_mH_3000_mA_2000      = *w_3000_2000;
-        weight_HToZA_mH_3000_mA_2000_err  = *w_3000_2000_e;
-        weight_HToZA_mH_3000_mA_2000_time = *w_3000_2000_t;
+        //weight_HToZA_mH_200_mA_50         = *w_200_50 ;
+        //weight_HToZA_mH_200_mA_50_err     = *w_200_50_e;
+        //weight_HToZA_mH_200_mA_50_time    = *w_200_50_t;
+        //weight_HToZA_mH_200_mA_100        = *w_200_100;
+        //weight_HToZA_mH_200_mA_100_err    = *w_200_100_e;
+        //weight_HToZA_mH_200_mA_100_time   = *w_200_100_t;
+        //weight_HToZA_mH_250_mA_50         = *w_250_50;
+        //weight_HToZA_mH_250_mA_50_err     = *w_250_50_e;
+        //weight_HToZA_mH_250_mA_50_time    = *w_250_50_t;
+        //weight_HToZA_mH_250_mA_100        = *w_250_100;
+        //weight_HToZA_mH_250_mA_100_err    = *w_250_100_e;
+        //weight_HToZA_mH_250_mA_100_time   = *w_250_100_t;
+        //weight_HToZA_mH_300_mA_50         = *w_300_50;
+        //weight_HToZA_mH_300_mA_50_err     = *w_300_50_e;
+        //weight_HToZA_mH_300_mA_50_time    = *w_300_50_t;
+        //weight_HToZA_mH_300_mA_100        = *w_300_100;
+        //weight_HToZA_mH_300_mA_100_err    = *w_300_100_e;
+        //weight_HToZA_mH_300_mA_100_time   = *w_300_100_t;
+        //weight_HToZA_mH_300_mA_200        = *w_300_200;
+        //weight_HToZA_mH_300_mA_200_err    = *w_300_200_e;
+        //weight_HToZA_mH_300_mA_200_time   = *w_300_200_t;
+        //weight_HToZA_mH_500_mA_50         = *w_500_50;
+        //weight_HToZA_mH_500_mA_50_err     = *w_500_50_e;
+        //weight_HToZA_mH_500_mA_50_time    = *w_500_50_t;
+        //weight_HToZA_mH_500_mA_100        = *w_500_100;
+        //weight_HToZA_mH_500_mA_100_err    = *w_500_100_e;
+        //weight_HToZA_mH_500_mA_100_time   = *w_500_100_t;
+        //weight_HToZA_mH_500_mA_200        = *w_500_200;
+        //weight_HToZA_mH_500_mA_200_err    = *w_500_200_e;
+        //weight_HToZA_mH_500_mA_200_time   = *w_500_200_t;
+        //weight_HToZA_mH_500_mA_300        = *w_500_300;
+        //weight_HToZA_mH_500_mA_300_err    = *w_500_300_e;
+        //weight_HToZA_mH_500_mA_300_time   = *w_500_300_t;
+        //weight_HToZA_mH_500_mA_400        = *w_500_400;
+        //weight_HToZA_mH_500_mA_400_err    = *w_500_400_e;
+        //weight_HToZA_mH_500_mA_400_time   = *w_500_400_t;
+        //weight_HToZA_mH_650_mA_50         = *w_650_50;
+        //weight_HToZA_mH_650_mA_50_err     = *w_650_50_e;
+        //weight_HToZA_mH_650_mA_50_time    = *w_650_50_t;
+        //weight_HToZA_mH_800_mA_50         = *w_800_50;
+        //weight_HToZA_mH_800_mA_50_err     = *w_800_50_e;
+        //weight_HToZA_mH_800_mA_50_time    = *w_800_50_t;
+        //weight_HToZA_mH_800_mA_100        = *w_800_100;
+        //weight_HToZA_mH_800_mA_100_err    = *w_800_100_e;
+        //weight_HToZA_mH_800_mA_100_time   = *w_800_100_t;
+        //weight_HToZA_mH_800_mA_200        = *w_800_200;
+        //weight_HToZA_mH_800_mA_200_err    = *w_800_200_e;
+        //weight_HToZA_mH_800_mA_200_time   = *w_800_200_t;
+        //weight_HToZA_mH_800_mA_400        = *w_800_400;
+        //weight_HToZA_mH_800_mA_400_err    = *w_800_400_e;
+        //weight_HToZA_mH_800_mA_400_time   = *w_800_400_t;
+        //weight_HToZA_mH_800_mA_700        = *w_800_700;
+        //weight_HToZA_mH_800_mA_700_err    = *w_800_700_e;
+        //weight_HToZA_mH_800_mA_700_time   = *w_800_700_t;
+        //weight_HToZA_mH_1000_mA_50        = *w_1000_50;
+        //weight_HToZA_mH_1000_mA_50_err    = *w_1000_50_e;
+        //weight_HToZA_mH_1000_mA_50_time   = *w_1000_50_t;
+        //weight_HToZA_mH_1000_mA_200       = *w_1000_200;
+        //weight_HToZA_mH_1000_mA_200_err   = *w_1000_200_e;
+        //weight_HToZA_mH_1000_mA_200_time  = *w_1000_200_t;
+        //weight_HToZA_mH_1000_mA_500       = *w_1000_500;
+        //weight_HToZA_mH_1000_mA_500_err   = *w_1000_500_e;
+        //weight_HToZA_mH_1000_mA_500_time  = *w_1000_500_t;
+        //weight_HToZA_mH_2000_mA_1000      = *w_2000_1000;
+        //weight_HToZA_mH_2000_mA_1000_err  = *w_2000_1000_e;
+        //weight_HToZA_mH_2000_mA_1000_time = *w_2000_1000_t;
+        //weight_HToZA_mH_3000_mA_2000      = *w_3000_2000;
+        //weight_HToZA_mH_3000_mA_2000_err  = *w_3000_2000_e;
+        //weight_HToZA_mH_3000_mA_2000_time = *w_3000_2000_t;
+
+
+        if (USE_JEC){
+            if (JEC_apply){
+                is_JEC = false; 
+                if (myReader.GetCurrentEntry() == to-1){
+                    myReader.SetEntry(myReader.GetCurrentEntry()-1);
+                    last_entry = true;
+                }
+            }
+            else
+                is_JEC = true;
+        }
 
         LOG(debug) << "Filling tree...";
         out_tree->Fill();
@@ -722,7 +763,7 @@ int main(int argc, char** argv) {
     input.Close();
 
     output->Close();
-        
+
     delete output;
 
     return 0;

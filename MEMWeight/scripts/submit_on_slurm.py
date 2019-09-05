@@ -22,10 +22,10 @@ args = parser.parse_args()
 
 config = Configuration()
 
-config.sbatch_partition = 'Def'
-config.sbatch_qos = 'normal'
+config.sbatch_partition = 'cp3'
+config.sbatch_qos = 'cp3'
 #config.sbatch_workdir = '.'
-config.sbatch_time = '0-04:00:00'
+config.sbatch_time = '0-12:00:00'
 #config.sbatch_mem = '2048'
 #config.sbatch_additionalOptions = []
 config.inputSandboxContent = []#['confs/*']
@@ -111,9 +111,8 @@ for dataset in order:
         slurm_config.inputParams.append([job[0], job[1],args.input, job_output])
 
     # Submit job!
-
     print("Submitting job...")
-    submitWorker = SubmitWorker(slurm_config, submit=True, yes=True, debug=False, quiet=False)
+    submitWorker = SubmitWorker(slurm_config, submit=True, yes=True, debug=True, quiet=True)
     submitWorker()
     print("Done")
 

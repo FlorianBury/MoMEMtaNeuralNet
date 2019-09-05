@@ -294,6 +294,7 @@ class Plot_Multi_TH1:
 
         # Plot the histograms on over the other #
         c1 = TCanvas("c1", "c1", 600, 600)
+        c1.SetLeftMargin(0.16)
 
         legend = TLegend(self.legend_pos[0],self.legend_pos[1],self.legend_pos[2],self.legend_pos[3])
         legend.SetHeader("Legend","C")
@@ -309,6 +310,8 @@ class Plot_Multi_TH1:
             obj.SetLineColor(col)
             obj.SetLineWidth(3)
             obj.SetMaximum(maxY)
+            obj.SetTitleOffset(1.8,'x')
+            obj.SetTitleOffset(2,'y')
             obj.Draw("same")
             
         legend.Draw()
@@ -323,13 +326,15 @@ class Plot_Multi_TH1:
             self.stack_hist.Add(obj)
 
         c2 = TCanvas("c2", "c2", 600, 600)
+        c2.SetLeftMargin(0.16)
 
         legend.Clear()
         legend.SetHeader("Legend","C")
         for leg,obj in zip(self.list_legend,self.list_obj):
             legend.AddEntry(obj,leg,"f")
             obj.SetMaximum(self.stack_hist.GetMaximum()*1.1)
-            obj.SetTitleOffset(1.6,'xyz')
+            obj.SetTitleOffset(1.8,'x')
+            obj.SetTitleOffset(2,'y')
             obj.Draw()
 
         self.stack_hist.Draw("same")
@@ -384,7 +389,7 @@ def MakeROCPlot(list_obj,name,title):
 
     # Loop over plot objects #
     for i,obj in enumerate(list_obj):
-        ax.plot(obj.tpr, obj.fpr, label = '%s AUC = %0.5f' % (obj.title,obj.roc_auc))
+        ax.plot(obj.tpr, obj.fpr, label = '%s (AUC = %0.5f)' % (obj.title,obj.roc_auc))
         ax.grid(True)
         #plt.title('ROC : %s'%obj.title)
     plt.legend(loc = 'upper left')

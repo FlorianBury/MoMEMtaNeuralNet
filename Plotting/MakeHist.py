@@ -56,16 +56,16 @@ def main():
                     #      override_params = {}),
                     #Plots(name = 'valid_weights_class_param',
                     #      override_params = {}),
-                    Plots(name = 'valid_weights_class_global',
-                          override_params = {}),
+                    #Plots(name = 'valid_weights_class_global',
+                    #      override_params = {}),
                     #Plots(name = 'valid_weights_binary',
                     #      override_params = {}),
                     #Plots(name = 'invalid_DY_weights',
                     #      override_params = {}),
                     #Plots(name = 'invalid_TT_weights',
                     #      override_params = {}),
-                    #Plots(name = 'JEC_weights',
-                    #      override_params = {}),
+                    Plots(name = 'JEC_weights',
+                          override_params = {}),
                     #Plots(name = 'interpolation_weights',
                     #      override_params = {}),
                     #Plots(name = 'classification_weights',
@@ -94,6 +94,8 @@ def main():
                     #         class_name = 'Plot_TH1'),
                     #Template(tpl = 'TH1_binary.yml.tpl',
                     #         class_name = 'Plot_TH1'),
+                    Template(tpl = 'TH1_JEC.yml.tpl',
+                             class_name = 'Plot_TH1'),
 
                     #########       TH1 Ratio       ###########
                     #Template(tpl = 'TH1Ratio_background.yml.tpl',
@@ -118,6 +120,8 @@ def main():
                     #         class_name = 'Plot_Multi_TH1'),
                     #Template(tpl = 'TH1Multi_class_param.yml.tpl',
                     #         class_name = 'Plot_Multi_TH1'),
+                    Template(tpl = 'TH1Multi_JEC.yml.tpl',
+                             class_name = 'Plot_Multi_TH1'),
 
                     ############       TH2       ##############
                     #Template(tpl = 'TH2_background.yml.tpl',
@@ -153,12 +157,18 @@ def main():
                 #    def_name = 'MakeROCPlot',
                 #    plot_name = 'Binary_MEM_DNN',
                 #    title = 'Binary classification MEM vs DNN')
+                ########### JEC discriminant  ###########
+                ROC(tpl = 'ROC_JEC.yml.tpl',
+                    class_name = 'Plot_ROC',
+                    def_name = 'MakeROCPlot',
+                    plot_name = 'JEC_discriminant',
+                    title = 'Discriminant applied on JEC events')
                 ########### Global Classification ###########
-                ROC(tpl = 'ROCMulti_class_global.yml.tpl',
-                    class_name = 'Plot_Multi_ROC',
-                    def_name = 'MakeMultiROCPlot',
-                    plot_name = 'Global_class_MEM_DNN',
-                    title = 'Global classification MEM vs DNN'),
+                #ROC(tpl = 'ROCMulti_class_global.yml.tpl',
+                #    class_name = 'Plot_Multi_ROC',
+                #    def_name = 'MakeMultiROCPlot',
+                #    plot_name = 'Global_class_MEM_DNN',
+                #    title = 'Global classification MEM vs DNN'),
                 ########### Param Classification ###########
                 #ROC(tpl = 'ROCMulti_class_param_all_masses.tpl',
                 #    class_name = 'Plot_Multi_ROC',
@@ -320,6 +330,8 @@ def main():
                 filename = 't#bar{t}'
             elif fullname.startswith('HToZA'):
                 filename = 'Signal'
+            else:
+                filename = fullname
             ##############  ROC  section ################ 
             for roc in rocs:
                 for inst_roc in roc.list_instance:

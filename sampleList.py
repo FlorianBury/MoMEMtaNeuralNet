@@ -202,12 +202,12 @@ samples_dict['invalid_TT'] = [
                                                          
 #################### JEC weights #########################
 samples_dict['JEC'] = [
-                            'JEC/TTTo2L2Nu_JEC.root',
-                            'JEC/DYJetsToLL_M_JEC.root',
+                            'JEC/DYJetsToLL_M-10to50_JEC.root',
                             'JEC/DYToLL_0J_JEC.root',
                             'JEC/DYToLL_1J_JEC.root',
                             'JEC/DYToLL_2J_JEC.root',
                             'JEC/TT_Other_JEC.root',
+                            'JEC/TTTo2L2Nu_JEC.root',
 ]
 ############### interpolation weights ####################
 samples_dict['interpolation'] = [

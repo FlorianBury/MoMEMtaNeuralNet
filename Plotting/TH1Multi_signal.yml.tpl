@@ -2,7 +2,7 @@
 ###################### list_legend #########################
 
 ###################### list_color ##########################
-##################### HToZA MEM weights ########################
+##################### HToZA MEM weight (with mass hypothesiss ########################
 
 Stack_MEM_weight_HToZA_mH_200_mA_50:
   filename: 
@@ -12,7 +12,7 @@ Stack_MEM_weight_HToZA_mH_200_mA_50:
   bins: 100
   xmin: 12
   xmax: 45
-  title: '{} sample : MEM weight M_{{H}} = 200 GeV, M_{{A}} = 50 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 200 GeV, M_{{A}} = 50 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   legend_pos:
@@ -108,7 +108,7 @@ Stack_MEM_weight_HToZA_mH_200_mA_100:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 200 GeV, M_{{A}} = 100 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 200 GeV, M_{{A}} = 100 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -201,7 +201,7 @@ Stack_MEM_weight_HToZA_mH_250_mA_50:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 250 GeV, M_{{A}} = 50 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 250 GeV, M_{{A}} = 50 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -294,7 +294,7 @@ Stack_MEM_weight_HToZA_mH_250_mA_100:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 250 GeV, M_{{A}} = 100 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 250 GeV, M_{{A}} = 100 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -387,7 +387,7 @@ Stack_MEM_weight_HToZA_mH_300_mA_50:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 300 GeV, M_{{A}} = 50 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 300 GeV, M_{{A}} = 50 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -480,7 +480,7 @@ Stack_MEM_weight_HToZA_mH_300_mA_100:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 300 GeV, M_{{A}} = 100 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 300 GeV, M_{{A}} = 100 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -573,7 +573,7 @@ Stack_MEM_weight_HToZA_mH_300_mA_200:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 300 GeV, M_{{A}} = 200 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 300 GeV, M_{{A}} = 200 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -666,7 +666,7 @@ Stack_MEM_weight_HToZA_mH_500_mA_50:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 500 GeV, M_{{A}} = 50 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 500 GeV, M_{{A}} = 50 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -759,7 +759,7 @@ Stack_MEM_weight_HToZA_mH_500_mA_100:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 500 GeV, M_{{A}} = 100 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 500 GeV, M_{{A}} = 100 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -852,7 +852,7 @@ Stack_MEM_weight_HToZA_mH_500_mA_200:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 500 GeV, M_{{A}} = 200 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 500 GeV, M_{{A}} = 200 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -945,7 +945,7 @@ Stack_MEM_weight_HToZA_mH_500_mA_300:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 500 GeV, M_{{A}} = 300 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 500 GeV, M_{{A}} = 300 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -1038,7 +1038,7 @@ Stack_MEM_weight_HToZA_mH_500_mA_400:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 500 GeV, M_{{A}} = 400 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 500 GeV, M_{{A}} = 400 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -1130,7 +1130,7 @@ Stack_MEM_weight_HToZA_mH_650_mA_50:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 650 GeV, M_{{A}} = 50 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 650 GeV, M_{{A}} = 50 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -1222,7 +1222,7 @@ Stack_MEM_weight_HToZA_mH_800_mA_50:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 800 GeV, M_{{A}} = 50 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 800 GeV, M_{{A}} = 50 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -1315,7 +1315,7 @@ Stack_MEM_weight_HToZA_mH_800_mA_100:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 800 GeV, M_{{A}} = 100 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 800 GeV, M_{{A}} = 100 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -1408,7 +1408,7 @@ Stack_MEM_weight_HToZA_mH_800_mA_200:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 800 GeV, M_{{A}} = 200 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 800 GeV, M_{{A}} = 200 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -1501,7 +1501,7 @@ Stack_MEM_weight_HToZA_mH_800_mA_400:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 800 GeV, M_{{A}} = 400 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 800 GeV, M_{{A}} = 400 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -1594,7 +1594,7 @@ Stack_MEM_weight_HToZA_mH_800_mA_700:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 800 GeV, M_{{A}} = 700 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 800 GeV, M_{{A}} = 700 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -1687,7 +1687,7 @@ Stack_MEM_weight_HToZA_mH_1000_mA_50:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 1000 GeV, M_{{A}} = 50 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 1000 GeV, M_{{A}} = 50 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -1780,7 +1780,7 @@ Stack_MEM_weight_HToZA_mH_1000_mA_200:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 1000 GeV, M_{{A}} = 200 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 1000 GeV, M_{{A}} = 200 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -1873,7 +1873,7 @@ Stack_MEM_weight_HToZA_mH_1000_mA_500:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 1000 GeV, M_{{A}} = 500 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 1000 GeV, M_{{A}} = 500 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -1966,7 +1966,7 @@ Stack_MEM_weight_HToZA_mH_2000_mA_1000:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 2000 GeV, M_{{A}} = 1000 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 2000 GeV, M_{{A}} = 1000 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:
@@ -2059,7 +2059,7 @@ Stack_MEM_weight_HToZA_mH_3000_mA_2000:
     - 0.3
     - 0.9
     - 0.85
-  title: '{} sample : MEM weight M_{{H}} = 3000 GeV, M_{{A}} = 2000 GeV'
+  title: '{} sample : MEM weight (with mass hypothesis M_{{H}} = 3000 GeV, M_{{A}} = 2000 GeV)'
   xlabel: -log_{10}(weight)
   ylabel: Events
   list_variable:

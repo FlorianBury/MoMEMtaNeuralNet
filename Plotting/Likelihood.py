@@ -131,6 +131,10 @@ class LikelihoodMap():
             self.Z += self.nevents*self.norm
             title += ' [Normalized]'
             self.legend_title += ' [Normalized]'
+
+        # Divide by total entries #
+        self.Z /= self.nevents # Divide by N
+        self.Z *= 2 # Because -2 log L
         
         # check for invalids (nan of inf) might be coming from log10 #
         invalid_entries = np.logical_or(np.isinf(self.Z),np.isnan(self.Z))
@@ -149,7 +153,7 @@ class LikelihoodMap():
         manager.stop()
 
         #graph = copy.deepcopy(TGraph2D(self.N,self.mA,self.mH,self.Z))
-        graph.SetTitle('Log-Likelihood : %s;M_{A} [GeV]; M_{H} [GeV]; -log(L)'%(title))
+        graph.SetTitle('Log-Likelihood : %s;M_{A} [GeV]; M_{H} [GeV]; -2log(L)'%(title))
         graph.SetMaximum(max_Z)
         graph.SetMinimum(min_Z)
         graph.SetNpx(1000)
