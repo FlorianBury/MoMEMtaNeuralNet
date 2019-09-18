@@ -153,7 +153,7 @@ class LikelihoodMap():
         manager.stop()
 
         #graph = copy.deepcopy(TGraph2D(self.N,self.mA,self.mH,self.Z))
-        graph.SetTitle('Log-Likelihood : %s;M_{A} [GeV]; M_{H} [GeV]; -2log(L)'%(title))
+        graph.SetTitle('Log-Likelihood : %s;M_{A} [GeV]; M_{H} [GeV]; -2log L'%(title))
         graph.SetMaximum(max_Z)
         graph.SetMinimum(min_Z)
         graph.SetNpx(1000)
@@ -210,7 +210,7 @@ class LikelihoodMap():
 # FindSigma #
 #################################################################################################
 
-def FindSigma(x,y,n_events,frac):
+def FindSigma(x,y,frac):
     from scipy.optimize import curve_fit
     def f(x,a,b,c):
         return a*x**2+b*x+c
@@ -234,8 +234,9 @@ def FindSigma(x,y,n_events,frac):
     ymin = f(xmin,*popt)
     print ('Xmin = ',xmin)
     print ('Ymin = ',ymin)
-    # Find x1, x2 such that f(x) = N/2 + xmin #
-    discriminant  = 4*a*n_events/2 
+    # Find x1, x2 such that f(x) = 1 #
+    #discriminant  = b**2-4*a*1000/2
+    discriminant  = 4*a*1
     x1 = (-b-math.sqrt(discriminant))/(2*a)
     x2 = (-b+math.sqrt(discriminant))/(2*a)
     print ('Resolution = ',abs(x1-x2))
@@ -251,6 +252,8 @@ def MakeProfile(graph,mH,mA,N,path,step=10,slices=10):
     graph       = TGraph2D to be used for the profile
     mH          = masses of H
     mA          = masses of A
+    N           = number of points for interpolation
+    path        = output path as string
     step        = step as increment in the parameters
     slices      = number of different values in each plot
     """
@@ -266,9 +269,10 @@ def MakeProfile(graph,mH,mA,N,path,step=10,slices=10):
             out_x[i,j] = graph.Interpolate(x[i],mH_slice[j])
             if out_x[i,j] == 0: # avoid artifacts
                 out_x[i,j] = out_x[i-1,j]
+    out_x[:,:] -= np.amin(out_x[:,:]) # shift at 0
 
     # Get the slices along mH #
-    y = np.linspace(mH*0.9,mH*1.1,N)
+    y = np.linspace(mH*0.90,mH*1.10,N)
     mA_slice = np.linspace(mA-round(slices/2)*step,mA+round(slices/2)*step,slices if slices%2==1 else slices+1)
     out_y = np.zeros((N,mA_slice.shape[0])) # columns = mA values
 
@@ -279,6 +283,7 @@ def MakeProfile(graph,mH,mA,N,path,step=10,slices=10):
             out_y[i,j] = graph.Interpolate(mA_slice[j],y[i])
             if out_y[i,j] == 0:   # avoid artifacts
                 out_y[i,j] = out_y[i-1,j]
+    out_y[:,:] -= np.amin(out_y[:,:]) # shift at 0
 
     # Get envelope #
     print ('Getting the envelopes')
@@ -302,7 +307,7 @@ def MakeProfile(graph,mH,mA,N,path,step=10,slices=10):
         print ((' Slice mH = %d GeV '%(mH_slice[j])).center(50,'-'))
         c=next(color)
         try:
-            res,x_fit,y_fit = FindSigma(x,out_x[:,j],1000,frac=0.20)
+            res,x_fit,y_fit = FindSigma(x,out_x[:,j],frac=0.25)
             ax1.plot(x_fit,y_fit,color=c,linestyle='--')
         except Exception as e:
             print ('[ERROR] : %s'%e)
@@ -313,15 +318,16 @@ def MakeProfile(graph,mH,mA,N,path,step=10,slices=10):
         ax1.plot(x,out_x[:,j],label='$M_{H}$ = %d GeV (Resolution = %0.2f GeV)'%(mH_slice[j],res),color=c)
     # Plot and resolution of envelope #
     try:
-        res_envelope_mA, x_fit_envelope_mA, y_fit_envelope_mA, = FindSigma(x,envelope_mA,1000,frac=0.20) 
+        res_envelope_mA, x_fit_envelope_mA, y_fit_envelope_mA, = FindSigma(x,envelope_mA,frac=0.25) 
         ax1.plot(x,envelope_mA,label='Envelope (Resolution = %0.2f GeV)'%(res_envelope_mA),color='k')
         ax1.plot(x_fit_envelope_mA,y_fit_envelope_mA,color='k',linestyle='--')
     except Exception as e:
         print ('[ERROR] : %s'%e)
 
     ax1.legend(loc='upper right',prop={'size': 14})
+    ax1.set_ylim(0)
     ax1.set_xlabel('$M_{A}$')
-    ax1.set_ylabel('-log(L)')
+    ax1.set_ylabel('-2log L')
     ax1.set_title('Profile likelihood in $M_{A}$')
 
     color = iter(cm.seismic(np.linspace(0,1,mA_slice.shape[0])))
@@ -331,7 +337,7 @@ def MakeProfile(graph,mH,mA,N,path,step=10,slices=10):
         # Find resolution at 1sigma #
         print ((' Slice mA = %d GeV '%(mA_slice[j])).center(50,'-'))
         try:
-            res,x_fit,y_fit = FindSigma(y,out_y[:,j],1000,frac=0.2)
+            res,x_fit,y_fit = FindSigma(y,out_y[:,j],frac=0.30)
             ax2.plot(x_fit,y_fit,color=c,linestyle='--')
         except Exception as e:
             print ('[ERROR] : %s'%e)
@@ -342,15 +348,16 @@ def MakeProfile(graph,mH,mA,N,path,step=10,slices=10):
         ax2.plot(y,out_y[:,j],label='$M_{A}$ = %d GeV (Resolution = %0.2f GeV)'%(mA_slice[j],res),color=c)
     # Plot and resolution of envelope #
     try:
-        res_envelope_mH, x_fit_envelope_mH, y_fit_envelope_mH, = FindSigma(y,envelope_mH,1000,frac=0.2) 
+        res_envelope_mH, x_fit_envelope_mH, y_fit_envelope_mH, = FindSigma(y,envelope_mH,frac=0.30) 
         ax2.plot(y,envelope_mH,label='Envelope (Resolution = %0.2f GeV)'%(res_envelope_mH),color='k')
         ax2.plot(x_fit_envelope_mH,y_fit_envelope_mH,color='k',linestyle='--')
     except Exception as e:
         print ('[ERROR] : %s'%e)
  
     ax2.legend(loc='upper right',prop={'size': 14})
+    ax2.set_ylim(0)
     ax2.set_xlabel('$M_{H}$')
-    ax2.set_ylabel('-log(L)')
+    ax2.set_ylabel('-2log L')
     ax2.set_title('Profile likelihood in $M_{H}$')
 
     fig.suptitle('Profile likelihood for events with $M_{H}$ = %d GeV and $M_{A}$ = %d GeV'%(mH,mA))
@@ -377,17 +384,17 @@ def main():
                   help='Print as PDf only some of the mass config')
     parser.add_argument('-n','--number', action='store', required=False, type=int, default=0,
                   help='Number of events to build the likelihood map')
-    parser.add_argument('--xmax', action='store', required=False, type=int, default=1500,
+    parser.add_argument('--xmax', action='store', required=False, type=float, default=1500,
                   help='Maximum values for mA in the graph')
-    parser.add_argument('--ymax', action='store', required=False, type=int, default=1500,
+    parser.add_argument('--ymax', action='store', required=False, type=float, default=1500,
                   help='Maximum values for mH in the graph')
-    parser.add_argument('--xmin', action='store', required=False, type=int, default=0,
+    parser.add_argument('--xmin', action='store', required=False, type=float, default=0,
                   help='Minimum values for mA in the graph')
-    parser.add_argument('--ymin', action='store', required=False, type=int, default=0,
+    parser.add_argument('--ymin', action='store', required=False, type=float, default=0,
                   help='Minimum values for mH in the graph')
-    parser.add_argument('--zmin', action='store', required=False, type=int, default=0,
+    parser.add_argument('--zmin', action='store', required=False, type=float, default=0,
                   help='Minimum values for z axis in the graph')
-    parser.add_argument('--zmax', action='store', required=False, type=int, default=None,
+    parser.add_argument('--zmax', action='store', required=False, type=float, default=None,
                   help='Maximum values for z axis in the graph')
     parser.add_argument('--bins', action='store', required=False, type=int, default=100,
                   help='Bins in both the graph axes')
@@ -575,7 +582,7 @@ def main():
                                ymin = opt.ymin,
                                xmax = opt.xmax,
                                ymax = opt.ymax,
-                               N    = 200,
+                               N    = 300,
                                normalize=opt.norm)
 
     # Loop over events #

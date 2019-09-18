@@ -97,7 +97,8 @@ int main(int argc, char** argv) {
     LOG(info)<<"Directory : "+INPUT_DIR;
     LOG(info)<<"Using file : "+FLAGS_input; 
     bool USE_RECOMPUTE = false;
-    bool USE_JEC = true;
+    bool USE_JEC = false;
+
     if (USE_RECOMPUTE)
         LOG(warning)<<"Weights recomputation is enabled";
     if (USE_JEC)
