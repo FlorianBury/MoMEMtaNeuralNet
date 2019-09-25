@@ -81,29 +81,29 @@ samples_dict['HToZA'] = [
                             #'classification_weights_valid/HToZATo2L2B_MH-800_MA-700_all_weights.root',
 
                             ######################  Classification with both weight and output  ################
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-1000_MA-200_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-1000_MA-500_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-1000_MA-50_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-2000_MA-1000_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-200_MA-100_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-200_MA-50_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-250_MA-100_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-250_MA-50_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-3000_MA-2000_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-300_MA-100_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-300_MA-200_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-300_MA-50_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-100_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-200_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-300_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-400_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-50_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-650_MA-50_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-100_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-200_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-400_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-50_all_weights.root',
-                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-700_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-1000_MA-200_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-1000_MA-500_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-1000_MA-50_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-2000_MA-1000_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-200_MA-100_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-200_MA-50_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-250_MA-100_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-250_MA-50_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-3000_MA-2000_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-300_MA-100_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-300_MA-200_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-300_MA-50_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-100_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-200_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-300_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-400_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-50_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-650_MA-50_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-100_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-200_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-400_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-50_all_weights.root',
+                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-700_all_weights.root',
 
 
 
@@ -123,8 +123,14 @@ samples_dict['TT'] = [
                             #'classification_weights_valid/TTTo2L2Nu_all_weights.root',
 
                             ######################  Classification with both weight and output  ################
-                            'signal_regression_for_classification_weights/TT_Other_all_weights.root',
-                            'signal_regression_for_classification_weights/TTTo2L2Nu_all_weights.root',
+                            #'signal_regression_for_classification_weights/TT_Other_all_weights.root',
+                            #'signal_regression_for_classification_weights/TTTo2L2Nu_all_weights.root',
+                            
+                            ############################## Matrix Element ######################################
+                            #'ME_TTBar/TT_Other_ME.root',
+                            #'ME_TTBar/TTTo2L2Nu_ME.root',
+                            'ME_TTBar/TTTo2L2Nu_ME_test.root',
+                            
                       ]
 
 # Drell-Yann #
@@ -148,10 +154,17 @@ samples_dict['DY'] = [
                             #'classification_weights_valid/DYToLL_2J_all_weights.root',
 
                             ######################  Classification with both weight and output  ################
-                            'signal_regression_for_classification_weights/DYJetsToLL_M_all_weights.root',
-                            'signal_regression_for_classification_weights/DYToLL_0J_all_weights.root',
-                            'signal_regression_for_classification_weights/DYToLL_1J_all_weights.root',
-                            'signal_regression_for_classification_weights/DYToLL_2J_all_weights.root',
+                            #'signal_regression_for_classification_weights/DYJetsToLL_M_all_weights.root',
+                            #'signal_regression_for_classification_weights/DYToLL_0J_all_weights.root',
+                            #'signal_regression_for_classification_weights/DYToLL_1J_all_weights.root',
+                            #'signal_regression_for_classification_weights/DYToLL_2J_all_weights.root',
+
+                            ############################## Matrix Element ######################################
+                            #'ME_TTBar/DYJetsToLL_M-10to50_ME.root',
+                            #'ME_TTBar/DYToLL_0J_ME.root',
+                            #'ME_TTBar/DYToLL_1J_ME.root',
+                            #'ME_TTBar/DYToLL_2J_ME.root',
+                            'ME_TTBar/DYToLL_0J_ME_test.root',
                       ]
 
 

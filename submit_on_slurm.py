@@ -19,8 +19,8 @@ def submit_on_slurm(name,args,debug=False):
     config = Configuration()
 
     config.sbatch_partition = parameters.partition
-    config.sbatch_qos = partition.QOS
-    config.sbatch_workdir = parameter.main_path
+    config.sbatch_qos = parameters.QOS
+    config.sbatch_workdir = parameters.main_path
     config.sbatch_time = parameters.time
     config.sbatch_mem = parameters.mem
     config.sbatch_additionalOptions = []

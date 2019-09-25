@@ -70,8 +70,10 @@ def NeuralNetModel(x_train,y_train,x_val,y_val,params):
     y_val = y_val.astype(np.float64) # because type issues
     w_train = y_train[:,-1]
     w_val = y_val[:,-1]
-    y_train = -np.log10(y_train[:,:-1])
-    y_val = -np.log10(y_val[:,:-1])
+    #y_train = -np.log10(y_train[:,:-1])
+    #y_val = -np.log10(y_val[:,:-1])
+    y_train = y_train[:,:-1]
+    y_val = y_val[:,:-1]
     
     # Design network #
     with open(os.path.join(parameters.main_path,'scaler_'+parameters.suffix+'.pkl'), 'rb') as handle: # Import scaler that was created before

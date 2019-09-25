@@ -93,6 +93,7 @@ def LoopOverTrees(input_dir, variables, weight, tag=None, cut=None, reweight_to_
 
     # Loop over the files #
     first_file = True
+    all_df = pd.DataFrame() 
     for name in list_sample:
         filename = name.replace(input_dir,'')
         logging.debug("\tAccessing file : %s"%filename)

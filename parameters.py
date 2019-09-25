@@ -24,19 +24,20 @@ output_ratio = 0.2      # Output set for plotting later
 # Will only be taken into account for the masks generation, ignored after
 
 ############################### Slurm parameters ######################################
-partition = 'Def'  # Def, cp3 or cp3-gpu
+partition = 'cp3-gpu'  # Def, cp3 or cp3-gpu
 QOS = 'normal' # cp3 or normal
-time = '0-12:00:00' # days-hh:mm:ss
-mem = '10000' # ram in MB
+time = '1-00:00:00' # days-hh:mm:ss
+mem = '50000' # ram in MB
 
 ######################################  Names  ########################################
 # Model name (only for scans)
-#model = 'NeuralNetModel' 
-model = 'ClassificationModel'
+model = 'NeuralNetModel' 
+#model = 'ClassificationModel'
 #model = 'BinaryModel'
 # scaler and mask names #
 #suffix = 'binary' 
-suffix = 'class_param_test' 
+#suffix = 'class_param_test' 
+suffix = 'ME' 
 # scaler_name -> 'scaler_{suffix}.pkl'  If does not exist will be created 
 # mask_name -> 'mask_{suffix}_{sample}.npy'  If does not exist will be created 
 
@@ -49,15 +50,15 @@ eval_criterion = "eval_error" # either val_loss or eval_error
 # Classification #
 p = { 
     'lr' : [0.0001], 
-    'first_neuron' : [50,100,200,300,400,500],
+    'first_neuron' : [100],
     'activation' : [relu],
     'dropout' : [0],
-    'hidden_layers' : [2,3,4,5,6,7], # does not take into account the first layer
-    'output_activation' : [sigmoid],
-    'l2' : [0,0.1,0.2,0.3,0.4,0.5],
+    'hidden_layers' : [3], # does not take into account the first layer
+    'output_activation' : [selu],
+    'l2' : [0],
     'optimizer' : [Adam],  
     'epochs' : [100],   
-    'batch_size' : [512], 
+    'batch_size' : [5000], 
     'loss_function' : [binary_crossentropy] 
 }
 #p = { 
@@ -92,19 +93,19 @@ repetition = 1 # How many times each hyperparameter has to be used
 ###################################  Variables   ######################################
 inputs = [
          #######   Regression ##########
-         'lep1_p4.Pt()',
-         'lep1_p4.Eta()',
-         'lep2_p4.Pt()',
-         'lep2_p4.Eta()',
-         'lep2_p4.Phi()-lep1_p4.Phi()',
-         'jet1_p4.Pt()',
-         'jet1_p4.Eta()',
-         'jet1_p4.Phi()-lep1_p4.Phi()',
-         'jet2_p4.Pt()',
-         'jet2_p4.Eta()',
-         'jet2_p4.Phi()-lep1_p4.Phi()',
-         'met_pt',
-         'met_phi-lep1_p4.Phi()',
+         #'lep1_p4.Pt()',
+         #'lep1_p4.Eta()',
+         #'lep2_p4.Pt()',
+         #'lep2_p4.Eta()',
+         #'lep2_p4.Phi()-lep1_p4.Phi()',
+         #'jet1_p4.Pt()',
+         #'jet1_p4.Eta()',
+         #'jet1_p4.Phi()-lep1_p4.Phi()',
+         #'jet2_p4.Pt()',
+         #'jet2_p4.Eta()',
+         #'jet2_p4.Phi()-lep1_p4.Phi()',
+         #'met_pt',
+         #'met_phi-lep1_p4.Phi()',
 
          #######   Classification ##########
          #'-log10(weight_TT)',
@@ -163,11 +164,38 @@ inputs = [
          #'met_pt',
          #'met_phi-lep1_p4_Phi',
 
+         # Matrix Element #
+        'init1_p4.E()',
+        'init2_p4.E()',
+        'positron_p4.Px()',
+        'positron_p4.Py()',
+        'positron_p4.Pz()',
+        'positron_p4.E()',
+        'neutrino_p4.Px()',
+        'neutrino_p4.Py()',
+        'neutrino_p4.Pz()',
+        'neutrino_p4.E()',
+        'bjet_p4.Px()',
+        'bjet_p4.Py()',
+        'bjet_p4.Pz()',
+        'bjet_p4.E()',
+        'electron_p4.Px()',
+        'electron_p4.Py()',
+        'electron_p4.Pz()',
+        'electron_p4.E()',
+        'antineutrino_p4.Px()',
+        'antineutrino_p4.Py()',
+        'antineutrino_p4.Pz()',
+        'antineutrino_p4.E()',
+        'antibjet_p4.Px()',
+        'antibjet_p4.Py()',
+        'antibjet_p4.Pz()',
+        'antibjet_p4.E()',
          ]
 outputs = [
          #######   Regression ##########
-         'weight_TT',
-         'weight_DY',
+         #'weight_TT',
+         #'weight_DY',
          #'weight_HToZA_mH_200_mA_50',
          #'weight_HToZA_mH_200_mA_100',
          #'weight_HToZA_mH_250_mA_50', 
@@ -193,6 +221,8 @@ outputs = [
          #'weight_HToZA_mH_3000_mA_2000',
          #'weight_HToZA_mH_600_mA_250', # interpolation 
          #######   Classification ##########
+         ########  Matrix Element ##########
+        '-log10(MEPdf)'
           ] 
 other_variables = [
                      #'lep1_p4.Pt()',
@@ -227,9 +257,9 @@ other_variables = [
                      #'jet2_p4.Pz()',
                      #'jet2_p4.E()',
                     
-                     'll_M',
-                     'jj_M',
-                     'lljj_M',
+                     #'ll_M',
+                     #'jj_M',
+                     #'lljj_M',
 
                      #'weight_TT',
                      #'weight_DY',
@@ -284,10 +314,10 @@ other_variables = [
                      #'output_HToZA_mH_2000_mA_1000',
                      #'output_HToZA_mH_3000_mA_2000',
 
-                     'weight_DY_time',
-                     'weight_DY_err',
-                     'weight_TT_time',
-                     'weight_TT_err',
+                     #'weight_DY_time',
+                     #'weight_DY_err',
+                     #'weight_TT_time',
+                     #'weight_TT_err',
                      #'weight_HToZA_mH_200_mA_50_err',
                      #'weight_HToZA_mH_200_mA_100_err',
                      #'weight_HToZA_mH_250_mA_50_err', 
@@ -335,9 +365,10 @@ other_variables = [
                      #'weight_HToZA_mH_3000_mA_2000_time',
                      #'weight_HToZA_mH_600_mA_250_err', 
                      #'weight_HToZA_mH_600_mA_250_time', 
-                     'is_JEC',
+                     #'is_JEC',
                   ]
-weights = 'total_weight'
+#weights = 'total_weight'
+weights = None
 
 ################################  dtype operation ##############################
 

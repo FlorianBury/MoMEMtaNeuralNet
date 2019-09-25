@@ -54,6 +54,8 @@ def get_options():
         help='Turns on the one-hot classification AND adds the decoupling for the parameterization')
     a.add_argument('--binary', action='store_true', required=False, default=False,
         help='Turn the tags into targets (0 or 1) for the binary classification (background vs signal)')
+    a.add_argument('--ME', action='store_true', required=False, default=False,
+        help='Use the ME integrand for the regression')
     a.add_argument('-task','--task', action='store', required=False, type=str, default='',
         help='Name of dict to be used for scan (Used by function itself when submitting jobs or DEBUG)')
 
@@ -94,7 +96,7 @@ def get_options():
 
     if opt.class_param:
         logging.warning('In addition to one-hot classification, will parameterize the inputs')
-    if not opt.DY and not opt.TT and not opt.HToZA and not opt.class_param and not class_global and not opt.binary:
+    if not opt.DY and not opt.TT and not opt.HToZA and not opt.class_param and not opt.class_global and not opt.binary and not opt.ME:
         if opt.scan!='' or opt.report!='' or opt.submit!='':
             logging.critical('Either --DY, --TT, --HToZA, --class_param, --class_global or --binary must be specified')  
             sys.exit(1)
@@ -162,9 +164,10 @@ def main():
         if opt.DY:              args += '--DY '
         if opt.TT:              args += '--TT '
         if opt.HToZA:           args += '--HToZA '
-        if opt.class_global:  args += '--class_global'
-        if opt.class_param:   args += '--class_param '
+        if opt.class_global:    args += '--class_global'
+        if opt.class_param:     args += '--class_param '
         if opt.binary:          args += '--binary '
+        if opt.ME:              args += '--ME'
 
         if opt.submit!='':
             logging.info('Submitting jobs')
@@ -184,6 +187,7 @@ def main():
         dict_HToZA = ConcatenateCSV(opt.csv,'HToZA')
         dict_class = ConcatenateCSV(opt.csv,'class')
         dict_binary = ConcatenateCSV(opt.csv,'binary')
+        dict_ME = ConcatenateCSV(opt.csv,'ME')
         
         dict_DY.Concatenate()
         dict_DY.WriteToFile()
@@ -199,6 +203,9 @@ def main():
 
         dict_binary.Concatenate()
         dict_binary.WriteToFile()
+
+        dict_ME.Concatenate()
+        dict_ME.WriteToFile()
 
         sys.exit()
 
@@ -221,6 +228,9 @@ def main():
         if opt.binary:
             instance = HyperModel(opt.report,'binary')
             instance.HyperReport(parameters.eval_criterion)
+        if opt.ME:
+            instance = HyperModel(opt.report,'ME')
+            instance.HyperReport(parameters.eval_criterion)
 
         sys.exit()
 
@@ -234,6 +244,7 @@ def main():
     if opt.class_global         : list_model.append('class_global') 
     if opt.class_param          : list_model.append('class_param') 
     if opt.binary               : list_model.append('binary') 
+    if opt.ME                   : list_model.append('ME') 
 
     if opt.model != '' and len(opt.output) != 0:
         # Create directory #
@@ -294,22 +305,29 @@ def main():
                             tag='TT')
     logging.info('TT sample size : {}'.format(data_TT.shape[0]))
 
-    list_inputs = parameters.inputs
+    list_inputs  = parameters.inputs
+    list_outputs = parameters.outputs
 
     # Weight equalization #
-    weight_HToZA = data_HToZA[parameters.weights]
-    weight_DY = data_DY[parameters.weights]
-    weight_TT = data_TT[parameters.weights]
-    min_weight = np.min(np.concatenate((weight_HToZA,weight_DY,weight_TT),axis=0))-0.001 # 0.001 tl avoid zero weights
-    # By rescaling with min_weight, one avoids the negative weights and keep the difference between them
-    weight_HToZA -= min_weight
-    weight_DY -= min_weight
-    weight_TT -= min_weight
+    if parameters.weights is not None:
+        weight_HToZA = data_HToZA[parameters.weights]
+        weight_DY = data_DY[parameters.weights]
+        weight_TT = data_TT[parameters.weights]
+        min_weight = np.min(np.concatenate((weight_HToZA,weight_DY,weight_TT),axis=0))-0.001 # 0.001 to avoid zero weights
+        # By rescaling with min_weight, one avoids the negative weights and keep the difference between them
+        weight_HToZA -= min_weight
+        weight_DY -= min_weight
+        weight_TT -= min_weight
 
-    # We need the different types to have the same sumf of weight to equalize training
-    weight_HToZA = weight_HToZA/np.sum(weight_HToZA)*10000 
-    weight_DY = weight_DY/np.sum(weight_DY)*10000
-    weight_TT = weight_TT/np.sum(weight_TT)*10000
+        # We need the different types to have the same sumf of weight to equalize training
+        weight_HToZA = weight_HToZA/np.sum(weight_HToZA)*10000 
+        weight_DY = weight_DY/np.sum(weight_DY)*10000
+        weight_TT = weight_TT/np.sum(weight_TT)*10000
+    else:
+        weight_HToZA = np.ones(data_HToZA.shape[0])
+        weight_DY = np.ones(data_DY.shape[0])
+        weight_TT = np.ones(data_TT.shape[0])
+
 
 
     if np.sum(weight_HToZA) != np.sum(weight_DY) or np.sum(weight_HToZA) != np.sum(weight_TT) or np.sum(weight_TT) != np.sum(weight_DY):
@@ -463,6 +481,11 @@ def main():
         if opt.binary:
             instance = HyperModel(opt.scan,'binary')
             instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['Target_signal'],task=opt.task)
+            instance.HyperDeploy(best='eval_error')
+        # ME regression network #
+        if opt.ME:
+            instance = HyperModel(opt.scan,'ME')
+            instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=list_outputs,task=opt.task)
             instance.HyperDeploy(best='eval_error')
         
     if opt.model!='': 

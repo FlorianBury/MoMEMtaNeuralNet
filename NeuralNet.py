@@ -72,7 +72,6 @@ class HyperModel:
         Reference : /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/scan/Scan.py
         """
         logging.info(' Starting scan '.center(80,'-'))
-
         # Records #
         self.x = data[list_inputs].values
         self.y = data[list_outputs+['learning_weights']].values

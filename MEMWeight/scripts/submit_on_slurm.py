@@ -25,7 +25,7 @@ config = Configuration()
 config.sbatch_partition = 'cp3'
 config.sbatch_qos = 'cp3'
 #config.sbatch_workdir = '.'
-config.sbatch_time = '0-12:00:00'
+config.sbatch_time = '0-01:00:00'
 #config.sbatch_mem = '2048'
 #config.sbatch_additionalOptions = []
 config.inputSandboxContent = []#['confs/*']
@@ -80,7 +80,7 @@ for dataset in order:
     slurm_config.inputSandboxDir = slurm_config.batchScriptsDir
     slurm_config.stageoutDir = os.path.join(slurm_working_dir, 'output')
     slurm_config.stageoutLogsDir = os.path.join(slurm_working_dir, 'logs')
-    slurm_config.stageoutFiles = [output + "*.root"]
+    slurm_config.stageoutFiles = ["*.root"]
 
     slurm_config.payload = config.payload.format(executable_path=executable_path)
     # Compute number of jobs

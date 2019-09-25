@@ -551,6 +551,7 @@ int main(int argc, char** argv) {
         int n_start_DY = 20000;
         weight_DY_time = 0;
         do {
+            break;
             if (n_start_DY>=2000000){
                 LOG(error)<<"Weights did not converge despite higher precision";
                 break;

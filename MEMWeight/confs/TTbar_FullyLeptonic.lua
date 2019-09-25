@@ -197,6 +197,8 @@ Looper.looper = {
     MatrixElement.ttbar = {
       pdf = 'CT10nlo',
       pdf_scale = parameter('top_mass'),
+      save_ME = true,
+      save_max = 1000,
 
     -- "Name" of the matrix element: hidden inside the code exported from madgraph
       matrix_element = 'TTbar_ee_sm_P1_Sigma_sm_gg_epvebemvexbx',
