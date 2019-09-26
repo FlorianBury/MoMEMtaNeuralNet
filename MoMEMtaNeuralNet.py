@@ -8,6 +8,7 @@ import sys
 import logging
 import copy
 import pickle
+import psutil
 
 import argparse
 import numpy as np
@@ -98,7 +99,7 @@ def get_options():
         logging.warning('In addition to one-hot classification, will parameterize the inputs')
     if not opt.DY and not opt.TT and not opt.HToZA and not opt.class_param and not opt.class_global and not opt.binary and not opt.ME:
         if opt.scan!='' or opt.report!='' or opt.submit!='':
-            logging.critical('Either --DY, --TT, --HToZA, --class_param, --class_global or --binary must be specified')  
+            logging.critical('Either --DY, --TT, --HToZA, --class_param, --class_global or --binary or --ME must be specified')  
             sys.exit(1)
     if opt.split!=0 or opt.submit:
         if opt.scan!='' or opt.report!='':
@@ -308,6 +309,10 @@ def main():
     list_inputs  = parameters.inputs
     list_outputs = parameters.outputs
 
+    # Memory Usage #
+    pid = psutil.Process(os.getpid())
+    logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
+
     # Weight equalization #
     if parameters.weights is not None:
         weight_HToZA = data_HToZA[parameters.weights]
@@ -339,6 +344,7 @@ def main():
     data_HToZA['learning_weights'] = pd.Series(weight_HToZA)
     data_DY['learning_weights'] = pd.Series(weight_DY)
     data_TT['learning_weights'] = pd.Series(weight_TT)
+    logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
 
     # Data splitting #
     mask_HToZA = GenerateMask(data_HToZA.shape[0],parameters.suffix+'_HToZA')
@@ -356,12 +362,16 @@ def main():
         logging.critical("Problem with the mask you imported, has the data changed since it was generated ?")
         sys.exit(1)
         
+    logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
+    del data_HToZA, data_DY, data_TT
 
-    train_all = pd.concat([train_HToZA,train_DY,train_TT]).reset_index(drop=True)
-    test_all = pd.concat([test_HToZA,test_DY,test_TT]).reset_index(drop=True)
-
+    
+    train_all = pd.concat([train_HToZA,train_DY,train_TT],copy=True).reset_index(drop=True)
     del train_HToZA,train_DY,train_TT # Save space
+    test_all = pd.concat([test_HToZA,test_DY,test_TT],copy=True).reset_index(drop=True)
     del test_HToZA,test_DY,test_TT
+    logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
+
 
     # Parametrized case : add the masses as inputs and make the repetition for each mass #
     if opt.HToZA  and opt.scan!='': # We only need the training set for the scan
@@ -451,6 +461,7 @@ def main():
 
     logging.info("Sample size seen by network : %d"%train_all.shape[0])
     logging.info("Sample size for the output  : %d"%test_all.shape[0])
+    logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
 
     #############################################################################################
     # DNN #

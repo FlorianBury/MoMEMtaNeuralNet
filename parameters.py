@@ -26,8 +26,8 @@ output_ratio = 0.2      # Output set for plotting later
 ############################### Slurm parameters ######################################
 partition = 'cp3-gpu'  # Def, cp3 or cp3-gpu
 QOS = 'normal' # cp3 or normal
-time = '1-00:00:00' # days-hh:mm:ss
-mem = '50000' # ram in MB
+time = '0-12:00:00' # days-hh:mm:ss
+mem = '60000' # ram in MB
 
 ######################################  Names  ########################################
 # Model name (only for scans)
@@ -50,16 +50,16 @@ eval_criterion = "eval_error" # either val_loss or eval_error
 # Classification #
 p = { 
     'lr' : [0.0001], 
-    'first_neuron' : [100],
+    'first_neuron' : [500],
     'activation' : [relu],
     'dropout' : [0],
-    'hidden_layers' : [3], # does not take into account the first layer
+    'hidden_layers' : [5], # does not take into account the first layer
     'output_activation' : [selu],
     'l2' : [0],
     'optimizer' : [Adam],  
-    'epochs' : [100],   
-    'batch_size' : [5000], 
-    'loss_function' : [binary_crossentropy] 
+    'epochs' : [10],   
+    'batch_size' : [10000], 
+    'loss_function' : [mean_squared_error] 
 }
 #p = { 
 #    'lr' : [0.0001], 

@@ -47,12 +47,12 @@ class ProduceOutput:
 
         # Get Model Output #
         for model in self.list_model:
-            if model not in ['DY','TT','HToZA','class','class_param','binary']:
-                logging.critical('Wrong model type specified : %s must be either "DY", "TT", "HToZA", "class", "class_param", or binary')
+            if model not in ['DY','TT','HToZA','class','class_param','binary','ME']:
+                logging.critical('Wrong model type specified : %s must be either "DY", "TT", "HToZA", "class", "class_param", "binary" or "ME"')
                 sys.exit(1)
 
             instance = HyperModel(self.model,model)
-            if model in ['DY','TT','HToZA']:
+            if model in ['DY','TT','HToZA','ME']:
                 out = np.power(10,-instance.HyperRestore(inputs))
                 columns.append('output_%s'%model)
             else:
