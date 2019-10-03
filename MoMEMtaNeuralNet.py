@@ -59,6 +59,10 @@ def get_options():
         help='Use the ME integrand for the regression')
     a.add_argument('-task','--task', action='store', required=False, type=str, default='',
         help='Name of dict to be used for scan (Used by function itself when submitting jobs or DEBUG)')
+    a.add_argument('--generator', action='store_true', required=False, 
+        help='Wether to use a generator for the neural network')
+    a.add_argument('--resume', action='store_true', required=False,
+        help='Wether to resume the training of a given model (provide the path to zip file in parameters.py)')
 
     # Splitting and submitting jobs arguments #
     b = parser.add_argument_group('Splitting and submitting jobs arguments')
@@ -123,14 +127,14 @@ def main():
     #############################################################################################
     # Preparation #
     #############################################################################################
-    # Logging #
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s - %(levelname)s - %(message)s')
     # Get options from user #
     opt = get_options()
     # Verbose logging #
     if opt.verbose:
         logging.basicConfig(level=logging.DEBUG,
+                            format='%(asctime)s - %(levelname)s - %(message)s')
+    else:
+        logging.basicConfig(level=logging.INFO,
                             format='%(asctime)s - %(levelname)s - %(message)s')
 
     # Private modules containing Pyroot #
@@ -161,14 +165,15 @@ def main():
         
         logging.info('Splitting jobs done')
         # Arguments to send #
-        args = ' '
+        args = ' ' # Do not forget the spaces after each arg!
         if opt.DY:              args += '--DY '
         if opt.TT:              args += '--TT '
         if opt.HToZA:           args += '--HToZA '
-        if opt.class_global:    args += '--class_global'
+        if opt.class_global:    args += '--class_global '
         if opt.class_param:     args += '--class_param '
         if opt.binary:          args += '--binary '
-        if opt.ME:              args += '--ME'
+        if opt.ME:              args += '--ME '
+        if opt.generator:       args += '--generator '
 
         if opt.submit!='':
             logging.info('Submitting jobs')
@@ -272,197 +277,204 @@ def main():
     #############################################################################################
     # Data Input and preprocessing #
     #############################################################################################
+    # Memory Usage #
+    pid = psutil.Process(os.getpid())
+    logging.info('Current pid : %d'%os.getpid())
+
     # Input path #
     logging.info('Starting tree importation')
 
     # Import variables from parameters.py
     variables = parameters.inputs+parameters.outputs+parameters.other_variables
-
-    # Import arrays #
-    logging.info('HToZA samples')
-    data_HToZA = LoopOverTrees(input_dir=samples_path,
-                               variables=variables,
-                               weight=parameters.weights,
-                               reweight_to_cross_section=False,
-                               list_sample=samples_dict['HToZA'],
-                               tag = 'HToZA')
-    logging.info('HToZA sample size : {}'.format(data_HToZA.shape[0]))
-    logging.info('DY samples')
-    data_DY = LoopOverTrees(input_dir=samples_path,
-                            variables=variables,
-                            weight=parameters.weights,
-                            #reweight_to_cross_section=True,
-                            reweight_to_cross_section=False,
-                            list_sample=samples_dict['DY'],
-                            tag='DY')
-    logging.info('DY sample size : {}'.format(data_DY.shape[0]))
-    logging.info('TT samples')
-    data_TT = LoopOverTrees(input_dir=samples_path,
-                            variables=variables,
-                            weight=parameters.weights,
-                            #reweight_to_cross_section=True,
-                            reweight_to_cross_section=False,
-                            list_sample=samples_dict['TT'],
-                            tag='TT')
-    logging.info('TT sample size : {}'.format(data_TT.shape[0]))
-
     list_inputs  = parameters.inputs
     list_outputs = parameters.outputs
 
-    # Memory Usage #
-    pid = psutil.Process(os.getpid())
-    logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
-
-    # Weight equalization #
-    if parameters.weights is not None:
-        weight_HToZA = data_HToZA[parameters.weights]
-        weight_DY = data_DY[parameters.weights]
-        weight_TT = data_TT[parameters.weights]
-        min_weight = np.min(np.concatenate((weight_HToZA,weight_DY,weight_TT),axis=0))-0.001 # 0.001 to avoid zero weights
-        # By rescaling with min_weight, one avoids the negative weights and keep the difference between them
-        weight_HToZA -= min_weight
-        weight_DY -= min_weight
-        weight_TT -= min_weight
-
-        # We need the different types to have the same sumf of weight to equalize training
-        weight_HToZA = weight_HToZA/np.sum(weight_HToZA)*10000 
-        weight_DY = weight_DY/np.sum(weight_DY)*10000
-        weight_TT = weight_TT/np.sum(weight_TT)*10000
-    else:
-        weight_HToZA = np.ones(data_HToZA.shape[0])
-        weight_DY = np.ones(data_DY.shape[0])
-        weight_TT = np.ones(data_TT.shape[0])
-
-
-
-    if np.sum(weight_HToZA) != np.sum(weight_DY) or np.sum(weight_HToZA) != np.sum(weight_TT) or np.sum(weight_TT) != np.sum(weight_DY):
-        logging.warning ('Sum of weights different between the samples')
-        logging.warning('\tHToZA : '+str(np.sum(weight_HToZA)))
-        logging.warning('\tDY : '+str(np.sum(weight_DY)))
-        logging.warning('\tTT : '+str(np.sum(weight_TT)))
-
-    data_HToZA['learning_weights'] = pd.Series(weight_HToZA)
-    data_DY['learning_weights'] = pd.Series(weight_DY)
-    data_TT['learning_weights'] = pd.Series(weight_TT)
-    logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
-
-    # Data splitting #
-    mask_HToZA = GenerateMask(data_HToZA.shape[0],parameters.suffix+'_HToZA')
-    mask_DY = GenerateMask(data_DY.shape[0],parameters.suffix+'_DY')
-    mask_TT = GenerateMask(data_TT.shape[0],parameters.suffix+'_TT')
-       # Needs to keep the same testing set for the evaluation of model that was selected earlier
-    try:
-        train_HToZA = data_HToZA[mask_HToZA==True]
-        train_DY = data_DY[mask_DY==True]
-        train_TT = data_TT[mask_TT==True]
-        test_HToZA = data_HToZA[mask_HToZA==False]
-        test_DY = data_DY[mask_DY==False]
-        test_TT = data_TT[mask_TT==False]
-    except ValueError:
-        logging.critical("Problem with the mask you imported, has the data changed since it was generated ?")
-        sys.exit(1)
-        
-    logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
-    del data_HToZA, data_DY, data_TT
-
-    
-    train_all = pd.concat([train_HToZA,train_DY,train_TT],copy=True).reset_index(drop=True)
-    del train_HToZA,train_DY,train_TT # Save space
-    test_all = pd.concat([test_HToZA,test_DY,test_TT],copy=True).reset_index(drop=True)
-    del test_HToZA,test_DY,test_TT
-    logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
+    if not opt.generator:
+        # Import arrays #
+        logging.info('HToZA samples')
+        data_HToZA = LoopOverTrees(input_dir=samples_path,
+                                   variables=variables,
+                                   weight=parameters.weights,
+                                   reweight_to_cross_section=False,
+                                   list_sample=samples_dict['HToZA'],
+                                   tag = 'HToZA')
+        logging.info('HToZA sample size : {}'.format(data_HToZA.shape[0]))
+        logging.info('DY samples')
+        data_DY = LoopOverTrees(input_dir=samples_path,
+                                variables=variables,
+                                weight=parameters.weights,
+                                #reweight_to_cross_section=True,
+                                reweight_to_cross_section=False,
+                                list_sample=samples_dict['DY'],
+                                tag='DY')
+        logging.info('DY sample size : {}'.format(data_DY.shape[0]))
+        logging.info('TT samples')
+        data_TT = LoopOverTrees(input_dir=samples_path,
+                                variables=variables,
+                                weight=parameters.weights,
+                                #reweight_to_cross_section=True,
+                                reweight_to_cross_section=False,
+                                list_sample=samples_dict['TT'],
+                                tag='TT')
+        logging.info('TT sample size : {}'.format(data_TT.shape[0]))
 
 
-    # Parametrized case : add the masses as inputs and make the repetition for each mass #
-    if opt.HToZA  and opt.scan!='': # We only need the training set for the scan
-        # List of variables to decouple #
-        list_to_decouple = parameters.outputs
-        decoupled_name = 'weight_HToZA'
-        # Modify data #
-        logging.info("Starting the training set decoupling")
-        train_all = Decoupler(train_all,decoupled_name,list_to_decouple)
-        logging.info("\tTraining set decoupled : new size = %d"%train_all.shape[0])
-        # Update the list of variables #
-        list_inputs += ['mH_MEM','mA_MEM']
-        # For testing -> Done in produce_output.py
 
-    if opt.class_param and opt.scan!='':
-        signal_name = '-log10(weight_HToZA)'
-        train_all = ParametrizeClassifier(train_all,name=signal_name)
-        list_inputs = ['-log10(weight_DY)','-log10(weight_TT)',signal_name,'mH_gen','mA_gen']
+        logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
 
-    # Randomize order, we don't want only one type per batch #
-    random_train = np.arange(0,train_all.shape[0]) # needed to randomize x,y and w in same fashion
-    np.random.shuffle(random_train) # Not need for testing
-    train_all = train_all.iloc[random_train]
-      
-    # Preprocessing #
-    # The purpose is to create a scaler object and save it
-    # The preprocessing will be implemented in the network with a custom layer
-    if opt.scan!='': # If we don't scan we don't need to scale the data
-        scaler_name = 'scaler_'+parameters.suffix+'.pkl'
-        scaler_path = os.path.join(parameters.main_path,scaler_name)
-        if not os.path.exists(scaler_path):
-            scaler = preprocessing.StandardScaler().fit(train_all[list_inputs])
-            with open(scaler_path, 'wb') as handle:
-                pickle.dump(scaler, handle)
-            logging.info('Scaler %s has been created'%scaler_name)
+        # Weight equalization #
+        if parameters.weights is not None:
+            weight_HToZA = data_HToZA[parameters.weights]
+            weight_DY = data_DY[parameters.weights]
+            weight_TT = data_TT[parameters.weights]
+            min_weight = np.min(np.concatenate((weight_HToZA,weight_DY,weight_TT),axis=0))-0.001 # 0.001 to avoid zero weights
+            # By rescaling with min_weight, one avoids the negative weights and keep the difference between them
+            weight_HToZA -= min_weight
+            weight_DY -= min_weight
+            weight_TT -= min_weight
+
+            # We need the different types to have the same sumf of weight to equalize training
+            weight_HToZA = weight_HToZA/np.sum(weight_HToZA)*10000 
+            weight_DY = weight_DY/np.sum(weight_DY)*10000
+            weight_TT = weight_TT/np.sum(weight_TT)*10000
         else:
-            with open(scaler_path, 'rb') as handle:
-                scaler = pickle.load(handle)
-            logging.info('Scaler %s has been imported'%scaler_name)
+            weight_HToZA = np.ones(data_HToZA.shape[0])
+            weight_DY = np.ones(data_DY.shape[0])
+            weight_TT = np.ones(data_TT.shape[0])
 
-        # Test the scaler #
+
+
+        if np.sum(weight_HToZA) != np.sum(weight_DY) or np.sum(weight_HToZA) != np.sum(weight_TT) or np.sum(weight_TT) != np.sum(weight_DY):
+            logging.warning ('Sum of weights different between the samples')
+            logging.warning('\tHToZA : '+str(np.sum(weight_HToZA)))
+            logging.warning('\tDY : '+str(np.sum(weight_DY)))
+            logging.warning('\tTT : '+str(np.sum(weight_TT)))
+
+        data_HToZA['learning_weights'] = pd.Series(weight_HToZA)
+        data_DY['learning_weights'] = pd.Series(weight_DY)
+        data_TT['learning_weights'] = pd.Series(weight_TT)
+        logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
+
+        # Data splitting #
+        mask_HToZA = GenerateMask(data_HToZA.shape[0],parameters.suffix+'_HToZA')
+        mask_DY = GenerateMask(data_DY.shape[0],parameters.suffix+'_DY')
+        mask_TT = GenerateMask(data_TT.shape[0],parameters.suffix+'_TT')
+           # Needs to keep the same testing set for the evaluation of model that was selected earlier
         try:
-            mean_scale = np.mean(scaler.transform(train_all[list_inputs]))
-            var_scale = np.var(scaler.transform(train_all[list_inputs]))
+            train_HToZA = data_HToZA[mask_HToZA==True]
+            train_DY = data_DY[mask_DY==True]
+            train_TT = data_TT[mask_TT==True]
+            test_HToZA = data_HToZA[mask_HToZA==False]
+            test_DY = data_DY[mask_DY==False]
+            test_TT = data_TT[mask_TT==False]
         except ValueError:
-            logging.critical("Problem with the scaler '%s' you imported, has the data changed since it was generated ?"%scaler_name)
+            logging.critical("Problem with the mask you imported, has the data changed since it was generated ?")
             sys.exit(1)
-        if abs(mean_scale)>0.01 or abs((var_scale-1)/var_scale)>0.01: # Check that scaling is correct to 1%
-            logging.critical("Something is wrong with scaler '%s' (mean = %0.6f, var = %0.6f), maybe you loaded an incorrect scaler"%(scaler_name,mean_scale,var_scale))
-            sys.exit()
+            
+        logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
+        del data_HToZA, data_DY, data_TT
 
-    # Turns tags into one-hot vector #
-    if opt.class_param or opt.class_global:
-        # Instantiate #
-        label_encoder = LabelEncoder()
-        onehot_encoder = OneHotEncoder(sparse=False)
-        label_encoder.fit(train_all['tag'])
-        # From strings to labels #
-        train_integers = label_encoder.transform(train_all['tag']).reshape(-1, 1)
-        test_integers = label_encoder.transform(test_all['tag']).reshape(-1, 1)
-        # From labels to strings #
-        train_onehot = onehot_encoder.fit_transform(train_integers)
-        test_onehot = onehot_encoder.fit_transform(test_integers)
-        # From arrays to pd DF #
-        train_cat = pd.DataFrame(train_onehot,columns=label_encoder.classes_,index=train_all.index)
-        test_cat = pd.DataFrame(test_onehot,columns=label_encoder.classes_,index=test_all.index)
-        # Add to full #
-        train_all = pd.concat([train_all,train_cat],axis=1)
-        test_all = pd.concat([test_all,test_cat],axis=1)
+        
+        train_all = pd.concat([train_HToZA,train_DY,train_TT],copy=True).reset_index(drop=True)
+        del train_HToZA,train_DY,train_TT # Save space
+        test_all = pd.concat([test_HToZA,test_DY,test_TT],copy=True).reset_index(drop=True)
+        del test_HToZA,test_DY,test_TT
+        logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
 
-    # Turns signal or background into 0 or 1 #
-    if opt.binary:
-        # Get the booleans #
-        train_target = train_all['tag']=='HToZA'
-        test_target = test_all['tag']=='HToZA'
-        # From booleans to 0 or 1 #
-        train_target *= 1 
-        test_target *= 1
-        # Turn into DF #
-        train_binary = pd.DataFrame(train_target,index=train_all.index)
-        train_binary.columns = ['Target_signal']
-        test_binary = pd.DataFrame(test_target,index=test_all.index)
-        test_binary.columns = ['Target_signal']
-        # Concat #
-        train_all = pd.concat([train_all,train_binary],axis=1)
-        test_all = pd.concat([test_all,test_binary],axis=1)
 
-    logging.info("Sample size seen by network : %d"%train_all.shape[0])
-    logging.info("Sample size for the output  : %d"%test_all.shape[0])
-    logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
+        # Parametrized case : add the masses as inputs and make the repetition for each mass #
+        if opt.HToZA  and opt.scan!='': # We only need the training set for the scan
+            # List of variables to decouple #
+            list_to_decouple = parameters.outputs
+            decoupled_name = 'weight_HToZA'
+            # Modify data #
+            logging.info("Starting the training set decoupling")
+            train_all = Decoupler(train_all,decoupled_name,list_to_decouple)
+            logging.info("\tTraining set decoupled : new size = %d"%train_all.shape[0])
+            # Update the list of variables #
+            list_inputs += ['mH_MEM','mA_MEM']
+            # For testing -> Done in produce_output.py
 
+        if opt.class_param and opt.scan!='':
+            signal_name = '-log10(weight_HToZA)'
+            train_all = ParametrizeClassifier(train_all,name=signal_name)
+            list_inputs = ['-log10(weight_DY)','-log10(weight_TT)',signal_name,'mH_gen','mA_gen']
+
+        # Randomize order, we don't want only one type per batch #
+        random_train = np.arange(0,train_all.shape[0]) # needed to randomize x,y and w in same fashion
+        np.random.shuffle(random_train) # Not need for testing
+        train_all = train_all.iloc[random_train]
+          
+        # Preprocessing #
+        # The purpose is to create a scaler object and save it
+        # The preprocessing will be implemented in the network with a custom layer
+        if opt.scan!='': # If we don't scan we don't need to scale the data
+            scaler_name = 'scaler_'+parameters.suffix+'.pkl'
+            scaler_path = os.path.join(parameters.main_path,scaler_name)
+            if not os.path.exists(scaler_path):
+                scaler = preprocessing.StandardScaler().fit(train_all[list_inputs])
+                with open(scaler_path, 'wb') as handle:
+                    pickle.dump(scaler, handle)
+                logging.info('Scaler %s has been created'%scaler_name)
+            else:
+                with open(scaler_path, 'rb') as handle:
+                    scaler = pickle.load(handle)
+                logging.info('Scaler %s has been imported'%scaler_name)
+
+            # Test the scaler #
+            try:
+                mean_scale = np.mean(scaler.transform(train_all[list_inputs]))
+                var_scale = np.var(scaler.transform(train_all[list_inputs]))
+            except ValueError:
+                logging.critical("Problem with the scaler '%s' you imported, has the data changed since it was generated ?"%scaler_name)
+                sys.exit(1)
+            if abs(mean_scale)>0.01 or abs((var_scale-1)/var_scale)>0.01: # Check that scaling is correct to 1%
+                logging.critical("Something is wrong with scaler '%s' (mean = %0.6f, var = %0.6f), maybe you loaded an incorrect scaler"%(scaler_name,mean_scale,var_scale))
+                sys.exit()
+
+        # Turns tags into one-hot vector #
+        if opt.class_param or opt.class_global:
+            # Instantiate #
+            label_encoder = LabelEncoder()
+            onehot_encoder = OneHotEncoder(sparse=False)
+            label_encoder.fit(train_all['tag'])
+            # From strings to labels #
+            train_integers = label_encoder.transform(train_all['tag']).reshape(-1, 1)
+            test_integers = label_encoder.transform(test_all['tag']).reshape(-1, 1)
+            # From labels to strings #
+            train_onehot = onehot_encoder.fit_transform(train_integers)
+            test_onehot = onehot_encoder.fit_transform(test_integers)
+            # From arrays to pd DF #
+            train_cat = pd.DataFrame(train_onehot,columns=label_encoder.classes_,index=train_all.index)
+            test_cat = pd.DataFrame(test_onehot,columns=label_encoder.classes_,index=test_all.index)
+            # Add to full #
+            train_all = pd.concat([train_all,train_cat],axis=1)
+            test_all = pd.concat([test_all,test_cat],axis=1)
+
+        # Turns signal or background into 0 or 1 #
+        if opt.binary:
+            # Get the booleans #
+            train_target = train_all['tag']=='HToZA'
+            test_target = test_all['tag']=='HToZA'
+            # From booleans to 0 or 1 #
+            train_target *= 1 
+            test_target *= 1
+            # Turn into DF #
+            train_binary = pd.DataFrame(train_target,index=train_all.index)
+            train_binary.columns = ['Target_signal']
+            test_binary = pd.DataFrame(test_target,index=test_all.index)
+            test_binary.columns = ['Target_signal']
+            # Concat #
+            train_all = pd.concat([train_all,train_binary],axis=1)
+            test_all = pd.concat([test_all,test_binary],axis=1)
+
+        logging.info("Sample size seen by network : %d"%train_all.shape[0])
+        logging.info("Sample size for the output  : %d"%test_all.shape[0])
+        logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
+    else:
+        logging.info('No samples have been imported since you asked for a generator')
+        train_all = pd.DataFrame()
+        test_all = pd.DataFrame()
     #############################################################################################
     # DNN #
     #############################################################################################
@@ -471,32 +483,57 @@ def main():
         # DY network #
         if opt.DY:
             instance = HyperModel(opt.scan,'DY')
-            instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['weight_DY'],task=opt.task)
+            instance.HyperScan(data=train_all,
+                               list_inputs=list_inputs,
+                               list_outputs=list_outputs,
+                               task=opt.task,
+                               resume=opt.resume)
             instance.HyperDeploy(best='eval_error')
         # TT network #
         if opt.TT:
             instance = HyperModel(opt.scan,'TT')
-            instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['weight_TT'],task=opt.task)
+            instance.HyperScan(data=train_all,
+                               list_inputs=list_inputs,
+                               list_outputs=list_outputs,
+                               task=opt.task,
+                               resume=opt.resume)
             instance.HyperDeploy(best='eval_error')
         # HToZA network #
         if opt.HToZA:
             instance = HyperModel(opt.scan,'HToZA')
-            instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['weight_HToZA'],task=opt.task)
+            instance.HyperScan(data=train_all,
+                               list_inputs=list_inputs,
+                               list_outputs=list_outputs,
+                               task=opt.task,
+                               resume=opt.resume)
             instance.HyperDeploy(best='eval_error')
         # Multiclass network #
         if opt.class_param or opt.class_global:
             instance = HyperModel(opt.scan,'class')
-            instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['DY','HToZA','TT'],task=opt.task)
+            instance.HyperScan(data=train_all,
+                               list_inputs=list_inputs,
+                               list_outputs=['DY','HToZA','TT'],
+                               task=opt.task,
+                               resume=opt.resume)
             instance.HyperDeploy(best='eval_error')
         # Binary class network #
         if opt.binary:
             instance = HyperModel(opt.scan,'binary')
-            instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=['Target_signal'],task=opt.task)
+            instance.HyperScan(data=train_all,
+                               list_inputs=list_inputs,
+                               list_outputs=['Target_signal'],
+                               task=opt.task,
+                               resume=opt.resume)
             instance.HyperDeploy(best='eval_error')
         # ME regression network #
         if opt.ME:
             instance = HyperModel(opt.scan,'ME')
-            instance.HyperScan(data=train_all,list_inputs=list_inputs,list_outputs=list_outputs,task=opt.task)
+            instance.HyperScan(data=train_all,
+                               list_inputs=list_inputs,
+                               list_outputs=list_outputs,
+                               task=opt.task,
+                               generator=opt.generator,
+                               resume=opt.resume)
             instance.HyperDeploy(best='eval_error')
         
     if opt.model!='': 

@@ -23,7 +23,7 @@ def submit_on_slurm(name,args,debug=False):
     config.sbatch_workdir = parameters.main_path
     config.sbatch_time = parameters.time
     config.sbatch_mem = parameters.mem
-    config.sbatch_additionalOptions = []
+    config.sbatch_additionalOptions = ['--nodes='+parameters.nodes]
     config.inputSandboxContent = []
     config.useJobArray = True
     config.inputParamsNames = ['scan','task']

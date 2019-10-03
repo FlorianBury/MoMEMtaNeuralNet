@@ -5,7 +5,7 @@
 #           - parameters.py (mort important one)
 #           - sampleList.py (on what samples to run)
 #           (optionnaly NeuralNet.py for early_stopping etc)
-
+import multiprocessing
 from keras.losses import binary_crossentropy, mean_squared_error   
 from keras.optimizers import RMSprop, Adam, Nadam, SGD            
 from keras.activations import relu, elu, selu, softmax, tanh, sigmoid
@@ -15,6 +15,7 @@ from keras.regularizers import l1,l2
 
 main_path = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/'   
 path_out = '/nfs/scratch/fynu/fbury/MoMEMta_output/NNOutput/' 
+path_model = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model'
 
 ##############################  Datasets proportion   #################################
 # Total must be 1 #
@@ -26,20 +27,33 @@ output_ratio = 0.2      # Output set for plotting later
 ############################### Slurm parameters ######################################
 partition = 'cp3-gpu'  # Def, cp3 or cp3-gpu
 QOS = 'normal' # cp3 or normal
-time = '0-12:00:00' # days-hh:mm:ss
+time = '0-10:00:00' # days-hh:mm:ss
 mem = '60000' # ram in MB
+nodes = '1' # Number of nodes (as a string)
 
 ######################################  Names  ########################################
 # Model name (only for scans)
-model = 'NeuralNetModel' 
+#model = 'NeuralNetModel' 
 #model = 'ClassificationModel'
 #model = 'BinaryModel'
+model = 'NeuralNetGeneratorModel' 
 # scaler and mask names #
 #suffix = 'binary' 
 #suffix = 'class_param_test' 
 suffix = 'ME' 
 # scaler_name -> 'scaler_{suffix}.pkl'  If does not exist will be created 
 # mask_name -> 'mask_{suffix}_{sample}.npy'  If does not exist will be created 
+
+# Resume training #
+path_resume_model = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/test_generator_ME_1.zip'
+
+# Generator #
+#path_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator/path2'
+#path_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator/path1'
+path_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_test/'
+path_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_test/'
+#workers = multiprocessing.cpu_count()
+workers = 8
 
 ##############################  Evaluation criterion   ################################
 
@@ -57,8 +71,8 @@ p = {
     'output_activation' : [selu],
     'l2' : [0],
     'optimizer' : [Adam],  
-    'epochs' : [10],   
-    'batch_size' : [10000], 
+    'epochs' : [4],   
+    'batch_size' : [50000], 
     'loss_function' : [mean_squared_error] 
 }
 #p = { 
@@ -225,6 +239,7 @@ outputs = [
         '-log10(MEPdf)'
           ] 
 other_variables = [
+                    'MEPdf',
                      #'lep1_p4.Pt()',
                      #'lep1_p4.Eta()',
                      #'lep1_p4.Phi()',
@@ -373,7 +388,7 @@ weights = None
 ################################  dtype operation ##############################
 
 def make_dtype(list_names): # root_numpy does not like . and ()
-    list_dtype = [(name.replace('.','_').replace('(','_').replace(')','_').replace('-','_minus_').replace('*','_times_')) for name in list_names]
+    list_dtype = [(name.replace('.','_').replace('(','').replace(')','').replace('-','_minus_').replace('*','_times_')) for name in list_names]
     return list_dtype
         
 

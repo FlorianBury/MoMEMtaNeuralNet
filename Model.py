@@ -42,6 +42,7 @@ import matplotlib.pyplot as plt
 # Personal files #
 import parameters
 from preprocessing import PreprocessLayer
+from data_generator import DataGenerator
 
 #################################################################################################
 # LossHistory #
@@ -49,12 +50,69 @@ from preprocessing import PreprocessLayer
 class LossHistory(keras.callbacks.Callback):
     """ Records the history of the training per epoch and per batch """
     def on_train_begin(self, logs={}):
-        self.losses = []
-        self.val_losses = []
+        self.batch_loss         = {'batch':[], 'loss':[]}
+        self.epoch_loss         = {'epoch':[], 'loss':[]}
+        self.epoch_val_loss     = {'epoch':[], 'loss':[]}
+        self.epoch_lr           = {'epoch':[], 'lr':[]}
+        self.epoch_counter      = 0
+        self.batch_counter      = 0
+        self.epoch_to_batch     = 0
 
     def on_batch_end(self, batch, logs={}):
-        self.losses.append(logs.get('loss'))
-        self.val_losses.append(logs.get('val_loss'))
+        self.batch_loss['batch'].append(batch + self.epoch_to_batch)
+        self.batch_loss['loss'].append(logs.get('loss'))
+        self.batch_counter += 1
+
+    def on_epoch_end(self, epoch, logs={}):
+        self.epoch_loss['epoch'].append(epoch)
+        self.epoch_loss['loss'].append(logs.get('loss'))
+        self.epoch_val_loss['epoch'].append(epoch)
+        self.epoch_val_loss['loss'].append(logs.get('val_loss'))
+        self.epoch_lr['epoch'].append(epoch)
+        self.epoch_lr['lr'].append(K.eval(self.model.optimizer.lr))
+
+        # Batch counting #
+        self.epoch_counter += 1
+        self.epoch_to_batch = self.batch_counter
+        self.batch_counter = 0
+
+#################################################################################################
+# PlotHistory #
+#################################################################################################
+def PlotHistory(history):
+    # Figure #
+    fig = plt.figure(figsize=(6,9))
+    ax1 = plt.subplot(311)
+    ax2 = plt.subplot(312)
+    ax3 = plt.subplot(313)
+    plt.subplots_adjust(hspace=0.4)
+
+    # Plots #
+    ax1.plot(history.epoch_loss['epoch'],history.epoch_loss['loss'],c='r',label='train')
+    ax1.plot(history.epoch_val_loss['epoch'],history.epoch_val_loss['loss'],c='g',label='test')
+    ax2.plot(history.batch_loss['batch'],history.batch_loss['loss'],c='r',label='train')
+    ax2.set_yscale("log")
+    ax3.plot(history.epoch_lr['epoch'],history.epoch_lr['lr'])
+    
+    # Labels and titles #
+    ax1.set_ylabel('loss')
+    ax2.set_ylabel('loss')
+    ax1.set_xlabel('epoch')
+    ax2.set_xlabel('batch')
+    ax3.set_xlabel('epoch')
+    ax1.set_title('Loss over epochs')
+    ax2.set_title('Loss over batches')
+    ax3.set_title('Learning rate')
+    ax1.legend(loc='upper right')
+    ax2.legend(loc='upper right')
+    #ax1.set_yscale('log')
+    #ax2.set_yscale('log')
+
+    # Save #
+    rand_hash = ''.join(random.choice(string.ascii_uppercase) for _ in range(10)) # avoids overwritting
+    png_name = 'Loss_%s.png'%rand_hash
+    fig.savefig(png_name)
+    logging.info('Curves saved as %s'%png_name)
 
 #################################################################################################
 # NeuralNetModel #
@@ -82,8 +140,8 @@ def NeuralNetModel(x_train,y_train,x_val,y_val,params):
     L0 = PreprocessLayer(batch_size=params['batch_size'],mean=scaler.mean_,std=scaler.scale_,name='Preprocess')(IN)
     L1 = Dense(params['first_neuron'],
                activation=params['activation'],
-               kernel_regularizer=l2(params['l2']))(IN)
-    HIDDEN = hidden_layers(params,1,batch_normalization=False).API(L0)
+               kernel_regularizer=l2(params['l2']))(L0)
+    HIDDEN = hidden_layers(params,1,batch_normalization=False).API(L1)
     OUT = Dense(1,activation=params['output_activation'],name='OUT')(HIDDEN)
 
     # Define model #
@@ -121,28 +179,8 @@ def NeuralNetModel(x_train,y_train,x_val,y_val,params):
                     )
 
     # Plot history #
-    fig = plt.figure()
-    ax1 = plt.subplot(211)
-    ax2 = plt.subplot(212)
-    ax1.plot(history.history['loss'],c='r',label='train')
-    ax1.plot(history.history['val_loss'],c='g',label='test')
-    ax2.plot(loss_history.losses,c='r',label='train')
-    ax2.plot(loss_history.val_losses,c='g',label='test')
-    ax1.set_ylabel('loss')
-    ax2.set_ylabel('loss')
-    ax1.set_xlabel('epoch')
-    ax2.set_xlabel('batch')
-    ax1.set_title('Loss over epochs')
-    ax2.set_title('Loss over batches')
-    ax1.legend(loc='upper right')
-    ax2.legend(loc='upper right')
-    #ax1.set_yscale('log')
-    #ax2.set_yscale('log')
-    rand_hash = ''.join(random.choice(string.ascii_uppercase) for _ in range(10)) # avoids overwritting
-    png_name = 'Loss_%s.png'%rand_hash
-    fig.savefig(png_name)
-    logging.info('Curves saved as %s'%png_name)
-
+    PlotHistory(loss_history)
+    
     return history,model
 
 #################################################################################################
@@ -208,27 +246,7 @@ def ClassificationModel(x_train,y_train,x_val,y_val,params):
                     )
 
     # Plot history #
-    fig = plt.figure()
-    ax1 = plt.subplot(211)
-    ax2 = plt.subplot(212)
-    ax1.plot(history.history['loss'],c='r',label='train')
-    ax1.plot(history.history['val_loss'],c='g',label='test')
-    ax2.plot(loss_history.losses,c='r',label='train')
-    ax2.plot(loss_history.val_losses,c='g',label='test')
-    ax1.set_ylabel('loss')
-    ax2.set_ylabel('loss')
-    ax1.set_xlabel('epoch')
-    ax2.set_xlabel('batch')
-    ax1.set_title('Loss over epochs')
-    ax2.set_title('Loss over batches')
-    ax1.legend(loc='upper right')
-    ax2.legend(loc='upper right')
-    #ax1.set_yscale('log')
-    #ax2.set_yscale('log')
-    rand_hash = ''.join(random.choice(string.ascii_uppercase) for _ in range(10)) # avoids overwritting
-    png_name = 'Loss_%s.png'%rand_hash
-    fig.savefig(png_name)
-    logging.info('Curves saved as %s'%png_name)
+    PlotHistory(loss_history)
 
     return history,model
 
@@ -295,32 +313,81 @@ e   """
                     )
 
     # Plot history #
-    fig = plt.figure()
-    ax1 = plt.subplot(211)
-    ax2 = plt.subplot(212)
-    ax1.plot(history.history['loss'],c='r',label='train')
-    ax1.plot(history.history['val_loss'],c='g',label='test')
-    ax2.plot(loss_history.losses,c='r',label='train')
-    ax2.plot(loss_history.val_losses,c='g',label='test')
-    ax1.set_ylabel('loss')
-    ax2.set_ylabel('loss')
-    ax1.set_xlabel('epoch')
-    ax2.set_xlabel('batch')
-    ax1.set_title('Loss over epochs')
-    ax2.set_title('Loss over batches')
-    ax1.legend(loc='upper right')
-    ax2.legend(loc='upper right')
-    #ax1.set_yscale('log')
-    #ax2.set_yscale('log')
-    rand_hash = ''.join(random.choice(string.ascii_uppercase) for _ in range(10)) # avoids overwritting
-    png_name = 'Loss_%s.png'%rand_hash
-    fig.savefig(png_name)
-    logging.info('Curves saved as %s'%png_name)
-
+    PlotHistory(loss_history)
+    
     return history,model
 
 
+#################################################################################################
+# NeuralNetGeneratorModel#
+#################################################################################################
+def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
+    """
+    Keras model for the Neural Network, used to scan the hyperparameter space by Talos
+    Uses the generator rather than the input data (which are dummies)
+    """
+    
+    # Design network #
+    IN = Input(shape=(x_train.shape[1],),name='IN')
+    L1 = Dense(params['first_neuron'],
+               activation=params['activation'],
+               kernel_regularizer=l2(params['l2']))(IN)
+    HIDDEN = hidden_layers(params,1,batch_normalization=True).API(L1)
+    OUT = Dense(1,activation=params['output_activation'],name='OUT')(HIDDEN)
 
+    # Define model #
+    model = Model(inputs=[IN], outputs=[OUT])
+    utils.print_summary(model=model) #used to print model
 
+    # Callbacks #
+    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0., patience=25, verbose=1, mode='min')
+    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=1, mode='min', cooldown=1, min_lr=1e-6)
+    loss_history = LossHistory()
+    Callback_list = [loss_history,early_stopping,reduceLR]
+
+    # Compile #
+    if 'resume' not in params: 
+        model.compile(optimizer=Adam(lr=params['lr']),
+                      loss={'OUT':params['loss_function']},
+                      metrics=['accuracy'])
+        initial_epoch = 0
+    else: # a model has to be imported and resumes training
+        a = Restore(parameters.path_resume_model,method='h5')
+        model = a.model
+        model.compile(optimizer=Adam(lr=params['lr']),
+                      loss={'OUT':params['loss_function']},
+                      metrics=['accuracy'])
+        print (initial_epoch,initial_epoch+params['epochs'])
+        initial_epoch = a.params['epochs'][0]
+        logging.info("Will resume training at epoch %d"%initial_epoch)
+        
+    # Generator #
+    training_generator = DataGenerator(path = parameters.path_training,
+                                       inputs = parameters.inputs,
+                                       outputs = parameters.outputs,
+                                       batch_size = params['batch_size'],
+                                       training = True)
+    validation_generator = DataGenerator(path = parameters.path_validation,
+                                       inputs = parameters.inputs,
+                                       outputs = parameters.outputs,
+                                       batch_size = params['batch_size'],
+                                       training = False)
+
+    # Fit #
+    logging.info("Will use %d workers"%parameters.workers)
+    history = model.fit_generator(generator             = training_generator,
+                                  validation_data       = validation_generator,
+                                  epochs                = params['epochs'] + initial_epoch,
+                                  verbose               = 1,
+                                  callbacks             = Callback_list,
+                                  initial_epoch         = initial_epoch,
+                                  workers               = parameters.workers,
+                                  use_multiprocessing   = True,
+                                  steps_per_epoch = 1)
+                                    
+    # Plot history #
+    PlotHistory(loss_history)
+
+    return history,model
 
 

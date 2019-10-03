@@ -63,7 +63,7 @@ class HyperModel:
     #############################################################################################
     # HyperScan #
     #############################################################################################
-    def HyperScan(self,data,list_inputs,list_outputs,task):
+    def HyperScan(self,data,list_inputs,list_outputs,task,generator=False,resume=False):
         """
         Performs the scan for hyperparameters
         If task is specified, will load a pickle dict splitted from the whole set of parameters
@@ -72,35 +72,61 @@ class HyperModel:
         Reference : /home/ucl/cp3/fbury/.local/lib/python3.6/site-packages/talos/scan/Scan.py
         """
         logging.info(' Starting scan '.center(80,'-'))
-        # Records #
-        self.x = data[list_inputs].values
-        self.y = data[list_outputs+['learning_weights']].values
-        self.task = task
-        logging.info('Number of features : %d'%self.x.shape[1])
+
+        # Printing #
+        logging.info('Number of features : %d'%len(list_inputs))
         for name in list_inputs:
             logging.info('..... %s'%name)
+        logging.info('Number of outputs : %d'%len(list_outputs))
+        for name in list_outputs:
+            logging.info('..... %s'%name)
+        if resume:
+            logging.warning("The training from model %s will be resumed"%parameters.path_resume_model)
+            
+        # Records #
+        if not generator:
+            self.x = data[list_inputs].values
+            self.y = data[list_outputs+['learning_weights']].values
+            # Data splitting #
+            size = parameters.training_ratio/(parameters.training_ratio+parameters.validation_ratio)
+            self.x_train, self.x_val, self.y_train, self.y_val = train_test_split(self.x,self.y,train_size=size)
+            logging.info("Training set   : %d"%self.x_train.shape[0])
+            logging.info("Evaluation set : %d"%self.x_val.shape[0])
+        else:
+            dummyX = np.ones((1,len(list_inputs)))
+            dummyY = np.ones((1,len(list_outputs)+1)) # emulates output + weights
+            self.x_train = dummyX
+            self.y_train = dummyY
+            self.x_val = dummyX
+            self.y_val = dummyY
 
         # Talos hyperscan parameters #
+        self.task = task
         if self.task!='': # if task is specified load it otherwise get it from parameters.py
             with open(os.path.join(parameters.main_path,'split',self.name,self.task), 'rb') as f:
                 self.p = pickle.load(f)
         else: # We need the full dict
             self.p = parameters.p
 
+        # If resume, puts it as argument ot be passed to function #
+        if resume:
+            self.p['resume'] = [1] 
+            a = Restore(parameters.path_resume_model)
+            initial_epoch = a.params['epochs'][0]
+            print ('initial epoch NeuralNet ',initial_epoch)
+            print (self.p['epochs'])
+            self.p['epochs'][0] += initial_epoch
+            print (self.p['epochs'])
+
+
         # Check if no already exists then change it -> avoids rewriting  #
         no = 1
         self.name = self.name+'_'+self.sample+self.task.replace('.pkl','')
         self.path_model = os.path.join(parameters.main_path,'model',self.name)
-        while os.path.exists(self.name+str(no)+'.csv'):
+        while os.path.exists(os.path.join(parameters.path_model,self.name+'_'+str(no)+'.csv')):
             no +=1
         
         self.name_model = self.name+'_'+str(no)
-
-        # Data spltting splitting #
-        size = parameters.training_ratio/(parameters.training_ratio+parameters.validation_ratio)
-        self.x_train, self.x_val, self.y_train, self.y_val = train_test_split(self.x,self.y,train_size=size)
-        logging.info("Training set   : %d"%self.x_train.shape[0])
-        logging.info("Evaluation set : %d"%self.x_val.shape[0])
 
         # Define scan object #
         #parallel_gpu_jobs(0.5)
@@ -120,18 +146,22 @@ class HyperModel:
                    #last_epoch_value=True,
                    print_params=True,
                    repetition=parameters.repetition,
-                   custom_objects = {'PreprocessLayer': PreprocessLayer}
+                   path_model = parameters.path_model,
                 )
-        self.h_with_eval = Autom8(scan_object = self.h,
-                     x_val = self.x_val,
-                     y_val = self.y_val[:,:-1], # last column is weight
-                     n = -1,
-                     folds = 10,
-                     metric = 'val_loss',
-                     asc = True,
-                     shuffle = True,
-                     average = None)  
-        self.h_with_eval.data.to_csv(self.name_model+'.csv') # save to csv including error
+        if not generator:
+            self.h_with_eval = Autom8(scan_object = self.h,
+                         x_val = self.x_val,
+                         y_val = self.y_val[:,:-1], # last column is weight
+                         n = -1,
+                         folds = 10,
+                         metric = 'val_loss',
+                         asc = True,
+                         shuffle = True,
+                         average = None)  
+            self.h_with_eval.data.to_csv(self.name_model+'.csv') # save to csv including error
+            self.autom8 = True
+        else:
+            self.autom8 = False
 
         # returns the experiment configuration details
         logging.info('='*80)
@@ -156,27 +186,18 @@ class HyperModel:
         #    logging.warning('Best models according to val_loss and cross-validation are the same')
 
         # Save models #
-        if best == 'val_loss':
-            Deploy(self.h,model_name=self.name_model,metric='val_loss',asc=True)
-            logging.warning('Best model saved according to val_loss')
+        if best == 'eval_error' and not self.autom8:
+            logging.warning('You asked for the evaluation error but it was not computed, will switch to val_loss') 
+            best = 'val_loss'
         if best == 'eval_error':
-            Deploy(self.h,model_name=self.name_model,metric='eval_mean',asc=True)
+            Deploy(self.h,model_name=self.name_model,metric='eval_mean',asc=True,path_model=parameters.path_model)
+        elif best == 'val_loss':
+            Deploy(self.h,model_name=self.name_model,metric='val_loss',asc=True,path_model=parameters.path_model)
+            logging.warning('Best model saved according to val_loss')
+        else: 
+            logging.error('Argument of HyperDeploy not understood')
+            sys.exit(1)
 
-        # Move csv file to model dir #
-        if self.task == '': # if not split+submit -> because submit will put it in slurm dir
-            try:
-                shutil.move(self.name_model+'.csv',os.path.join(parameters.main_path,'model',self.name_model+'.csv'))
-            except:
-                logging.warning('Could not move file to model folder')
-                logging.warning('\tAttempted to move '+(os.path.abspath(self.name_model+'.csv') +' -> ' +os.path.join(parameters.main_path,'model',self.name_model+'.csv'))) 
-        
-        # Move zip file to model dir #
-        if self.task == '': # if not split+submit -> because submit will put it in slurm dir
-            try:
-                shutil.move(self.name_model+'.zip',os.path.join(parameters.main_path,'model',self.name_model+'.zip'))
-            except:
-                logging.warning('Could not move file to model folder')
-                logging.warning('\tAttempted to move '+(os.path.abspath(self.name_model+'.zip') +' -> ' +os.path.join(parameters.main_path,'model',self.name_model+'.zip'))) 
 
     #############################################################################################
     # HyperReport #
