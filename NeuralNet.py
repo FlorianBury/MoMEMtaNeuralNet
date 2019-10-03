@@ -81,7 +81,7 @@ class HyperModel:
         for name in list_outputs:
             logging.info('..... %s'%name)
         if resume:
-            logging.warning("The training from model %s will be resumed"%parameters.path_resume_model)
+            logging.warning("The training from model %s will be resumed"%resume)
             
         # Records #
         if not generator:
@@ -109,15 +109,12 @@ class HyperModel:
             self.p = parameters.p
 
         # If resume, puts it as argument ot be passed to function #
-        if resume:
-            self.p['resume'] = [1] 
-            a = Restore(parameters.path_resume_model)
+        if resume != '':
+            self.p['resume'] = [resume]
+            a = Restore(resume)
             initial_epoch = a.params['epochs'][0]
-            print ('initial epoch NeuralNet ',initial_epoch)
-            print (self.p['epochs'])
+            self.p['initial_epoch'] = [initial_epoch] 
             self.p['epochs'][0] += initial_epoch
-            print (self.p['epochs'])
-
 
         # Check if no already exists then change it -> avoids rewriting  #
         no = 1

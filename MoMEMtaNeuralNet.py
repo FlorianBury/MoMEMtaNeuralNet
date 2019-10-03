@@ -61,8 +61,8 @@ def get_options():
         help='Name of dict to be used for scan (Used by function itself when submitting jobs or DEBUG)')
     a.add_argument('--generator', action='store_true', required=False, 
         help='Wether to use a generator for the neural network')
-    a.add_argument('--resume', action='store_true', required=False,
-        help='Wether to resume the training of a given model (provide the path to zip file in parameters.py)')
+    a.add_argument('--resume', action='store', required=False, type=str, default='',
+        help='Wether to resume the training of a given model (provide the path as argument)')
 
     # Splitting and submitting jobs arguments #
     b = parser.add_argument_group('Splitting and submitting jobs arguments')

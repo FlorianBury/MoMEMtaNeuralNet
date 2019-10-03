@@ -352,14 +352,13 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
                       metrics=['accuracy'])
         initial_epoch = 0
     else: # a model has to be imported and resumes training
-        a = Restore(parameters.path_resume_model,method='h5')
+        a = Restore(params['resume'],method='h5')
         model = a.model
         model.compile(optimizer=Adam(lr=params['lr']),
                       loss={'OUT':params['loss_function']},
                       metrics=['accuracy'])
-        print (initial_epoch,initial_epoch+params['epochs'])
-        initial_epoch = a.params['epochs'][0]
-        logging.info("Will resume training at epoch %d"%initial_epoch)
+        initial_epoch = params['initial_epoch']
+        logging.info("Will resume training at epoch %d"%params['initial_epoch'])
         
     # Generator #
     training_generator = DataGenerator(path = parameters.path_training,
@@ -377,13 +376,13 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
     logging.info("Will use %d workers"%parameters.workers)
     history = model.fit_generator(generator             = training_generator,
                                   validation_data       = validation_generator,
-                                  epochs                = params['epochs'] + initial_epoch,
+                                  epochs                = params['epochs'], 
                                   verbose               = 1,
                                   callbacks             = Callback_list,
                                   initial_epoch         = initial_epoch,
                                   workers               = parameters.workers,
-                                  use_multiprocessing   = True,
-                                  steps_per_epoch = 1)
+                                  use_multiprocessing   = True)
+                                  
                                     
     # Plot history #
     PlotHistory(loss_history)

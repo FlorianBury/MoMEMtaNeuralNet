@@ -44,14 +44,11 @@ suffix = 'ME'
 # scaler_name -> 'scaler_{suffix}.pkl'  If does not exist will be created 
 # mask_name -> 'mask_{suffix}_{sample}.npy'  If does not exist will be created 
 
-# Resume training #
-path_resume_model = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/test_generator_ME_1.zip'
-
 # Generator #
-#path_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator/path2'
-#path_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator/path1'
-path_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_test/'
-path_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_test/'
+path_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator/path2'
+path_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator/path1'
+#path_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_test/'
+#path_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_test/'
 #workers = multiprocessing.cpu_count()
 workers = 8
 
@@ -71,7 +68,7 @@ p = {
     'output_activation' : [selu],
     'l2' : [0],
     'optimizer' : [Adam],  
-    'epochs' : [4],   
+    'epochs' : [1],   
     'batch_size' : [50000], 
     'loss_function' : [mean_squared_error] 
 }
