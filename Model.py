@@ -154,7 +154,7 @@ def NeuralNetModel(x_train,y_train,x_val,y_val,params):
     loss_history = LossHistory()
     Callback_list = [loss_history,early_stopping,reduceLR]
 
-    # Check normalization 5
+    # Check normalization ##
     preprocess = Model(inputs=[IN],outputs=[L0])
     out_preprocess = preprocess.predict(x_train,batch_size=params['batch_size'])
     mean_scale = np.mean(out_preprocess)
@@ -328,10 +328,13 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
     """
     
     # Design network #
+    with open(os.path.join(parameters.main_path,'scaler_'+parameters.suffix+'.pkl'), 'rb') as handle: # Import scaler that was created before
+        scaler = pickle.load(handle)
     IN = Input(shape=(x_train.shape[1],),name='IN')
+    L0 = PreprocessLayer(batch_size=params['batch_size'],mean=scaler.mean_,std=scaler.scale_,name='Preprocess')(IN)
     L1 = Dense(params['first_neuron'],
                activation=params['activation'],
-               kernel_regularizer=l2(params['l2']))(IN)
+               kernel_regularizer=l2(params['l2']))(L0)
     HIDDEN = hidden_layers(params,1,batch_normalization=True).API(L1)
     OUT = Dense(1,activation=params['output_activation'],name='OUT')(HIDDEN)
 
@@ -361,12 +364,12 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
         logging.info("Will resume training at epoch %d"%params['initial_epoch'])
         
     # Generator #
-    training_generator = DataGenerator(path = parameters.path_training,
+    training_generator = DataGenerator(path = parameters.path_gen_training,
                                        inputs = parameters.inputs,
                                        outputs = parameters.outputs,
                                        batch_size = params['batch_size'],
                                        training = True)
-    validation_generator = DataGenerator(path = parameters.path_validation,
+    validation_generator = DataGenerator(path = parameters.path_gen_validation,
                                        inputs = parameters.inputs,
                                        outputs = parameters.outputs,
                                        batch_size = params['batch_size'],
@@ -374,6 +377,13 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
 
     # Fit #
     logging.info("Will use %d workers"%parameters.workers)
+    logging.warning("Keras location " + keras.__file__)
+    logging.warning("Tensorflow location "+ tf.__file__)
+    logging.warning("GPU ")
+    logging.warning(K.tensorflow_backend._get_available_gpus())
+    logging.warning("Modules")
+    logging.warning(os.system("module list"))
+    logging.warning(os.system("env"))
     history = model.fit_generator(generator             = training_generator,
                                   validation_data       = validation_generator,
                                   epochs                = params['epochs'], 
@@ -381,6 +391,8 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
                                   callbacks             = Callback_list,
                                   initial_epoch         = initial_epoch,
                                   workers               = parameters.workers,
+                                  shuffle               = True,
+                                  #steps_per_epoch       = 1,
                                   use_multiprocessing   = True)
                                   
                                     

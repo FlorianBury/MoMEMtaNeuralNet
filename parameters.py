@@ -6,7 +6,7 @@
 #           - sampleList.py (on what samples to run)
 #           (optionnaly NeuralNet.py for early_stopping etc)
 import multiprocessing
-from keras.losses import binary_crossentropy, mean_squared_error   
+from keras.losses import binary_crossentropy, mean_squared_error, cosine_proximity
 from keras.optimizers import RMSprop, Adam, Nadam, SGD            
 from keras.activations import relu, elu, selu, softmax, tanh, sigmoid
 from keras.regularizers import l1,l2 
@@ -29,7 +29,7 @@ partition = 'cp3-gpu'  # Def, cp3 or cp3-gpu
 QOS = 'normal' # cp3 or normal
 time = '0-10:00:00' # days-hh:mm:ss
 mem = '60000' # ram in MB
-nodes = '1' # Number of nodes (as a string)
+tasks = '20' # Number of threads(as a string)
 
 ######################################  Names  ########################################
 # Model name (only for scans)
@@ -40,17 +40,19 @@ model = 'NeuralNetGeneratorModel'
 # scaler and mask names #
 #suffix = 'binary' 
 #suffix = 'class_param_test' 
-suffix = 'ME' 
+suffix = 'gen_ME' 
 # scaler_name -> 'scaler_{suffix}.pkl'  If does not exist will be created 
 # mask_name -> 'mask_{suffix}_{sample}.npy'  If does not exist will be created 
 
 # Generator #
-path_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator/path2'
-path_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator/path1'
-#path_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_test/'
-#path_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_test/'
-#workers = multiprocessing.cpu_count()
-workers = 8
+path_gen_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path0' # For training
+path_gen_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path1' # For val_loss during training
+path_gen_evaluation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path2' # for model evaluation
+path_gen_output = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path3' # for output
+workers = 20
+
+# Output #
+output_batch_size = 5000
 
 ##############################  Evaluation criterion   ################################
 
@@ -59,19 +61,19 @@ eval_criterion = "eval_error" # either val_loss or eval_error
 #################################  Scan dictionary   ##################################
 # /!\ Lists must always contain something (even if 0), otherwise 0 hyperparameters #
 # Classification #
-p = { 
-    'lr' : [0.0001], 
-    'first_neuron' : [500],
-    'activation' : [relu],
-    'dropout' : [0],
-    'hidden_layers' : [5], # does not take into account the first layer
-    'output_activation' : [selu],
-    'l2' : [0],
-    'optimizer' : [Adam],  
-    'epochs' : [1],   
-    'batch_size' : [50000], 
-    'loss_function' : [mean_squared_error] 
-}
+#p = { 
+#    'lr' : [0.001], 
+#    'first_neuron' : [500],
+#    'activation' : [relu],
+#    'dropout' : [0],
+#    'hidden_layers' : [3], # does not take into account the first layer
+#    'output_activation' : [selu],
+#    'l2' : [0],
+#    'optimizer' : [Adam],  
+#    'epochs' : [1],   
+#    'batch_size' : [50000], 
+#    'loss_function' : [mean_squared_error] 
+#}
 #p = { 
 #    'lr' : [0.0001], 
 #    'first_neuron' : [300],
@@ -86,19 +88,19 @@ p = {
 #    'loss_function' : [binary_crossentropy] 
 #}
 # Regression #
-#p = { 
-#    'lr' : [0.001], 
-#    'first_neuron' : [100,200,300,400,500],
-#    'activation' : [relu],
-#    'dropout' : [0,0.1,0.2,0.3],
-#    'hidden_layers' : [5,6,7,8], # does not take into account the first layer
-#    'output_activation' : [selu],
-#    'l2' : [0,0.1,0.2,0.3],
-#    'optimizer' : [Adam],  
-#    'epochs' : [100],   
-#    'batch_size' : [512], 
-#    'loss_function' : [mean_squared_error] 
-#}
+p = { 
+    'lr' : [0.001], 
+    'first_neuron' : [300],
+    'activation' : [relu],
+    'dropout' : [0.5],
+    'hidden_layers' : [5], # does not take into account the first layer
+    'output_activation' : [selu],
+    'l2' : [0],
+    'optimizer' : [Adam],  
+    'epochs' : [30],   
+    'batch_size' : [50000], 
+    'loss_function' : [cosine_proximity]
+}
 repetition = 1 # How many times each hyperparameter has to be used 
 
 ###################################  Variables   ######################################

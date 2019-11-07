@@ -127,6 +127,7 @@ class HyperModel:
 
         # Define scan object #
         #parallel_gpu_jobs(0.5)
+        custom_objects =  {'PreprocessLayer': PreprocessLayer}
         self.h = Scan(  x=self.x_train,
                    y=self.y_train,
                    params=self.p,
@@ -144,6 +145,7 @@ class HyperModel:
                    print_params=True,
                    repetition=parameters.repetition,
                    path_model = parameters.path_model,
+                   custom_objects = custom_objects,
                 )
         if not generator:
             self.h_with_eval = Autom8(scan_object = self.h,
@@ -158,6 +160,21 @@ class HyperModel:
             self.h_with_eval.data.to_csv(self.name_model+'.csv') # save to csv including error
             self.autom8 = True
         else:
+            #test_generator = DataGenerator(path = parameters.path_gen_validation,
+            #                               inputs = parameters.inputs,
+            #                               outputs = parameters.outputs,
+            #                               batch_size = params['batch_size'],
+            #                               training = False)
+
+            #mean_error = self.h.model.evaluate_generator(generator             = training_generator,
+            #                                verbose               = 1,
+            #                                callbacks             = Callback_list,
+            #                                workers               = parameters.workers,
+            #                                use_multiprocessing   = True)
+            #self.h.data['eval_mean'] = mean_error
+            #self.h.data.to_csv(self.name_model+'.csv') # save to csv including error
+            #self.autom8 = True
+            
             self.autom8 = False
 
         # returns the experiment configuration details

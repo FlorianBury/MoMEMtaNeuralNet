@@ -22,14 +22,16 @@ def submit_on_slurm(name,args,debug=False):
     config.sbatch_qos = parameters.QOS
     config.sbatch_workdir = parameters.main_path
     config.sbatch_time = parameters.time
-    config.sbatch_mem = parameters.mem
-    config.sbatch_additionalOptions = ['--nodes='+parameters.nodes]
+    #config.sbatch_mem = parameters.mem
+    #config.sbatch_additionalOptions = ['--ntask='+parameters.tasks , "--gpus=1", "--export=ALL"]
+    #config.sbatch_additionalOptions = ['-n 20', '-G 1']
+    config.sbatch_additionalOptions = ['-n 20','-G 1']
     config.inputSandboxContent = []
     config.useJobArray = True
     config.inputParamsNames = ['scan','task']
     config.inputParams = []
 
-    config.payload = " python {script} --scan ${{scan}} --task ${{task}} "
+    config.payload = " python3 {script} --scan ${{scan}} --task ${{task}} "
     config.payload += args
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')

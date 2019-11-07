@@ -141,6 +141,7 @@ def main():
     from import_tree import LoopOverTrees
     from produce_output import ProduceOutput
     from parameterize_classifier import ParametrizeClassifier
+    from make_scaler import MakeScaler
     # Needed because PyROOT messes with argparse
 
     logging.info("="*88)
@@ -176,7 +177,7 @@ def main():
         if opt.generator:       args += '--generator '
 
         if opt.submit!='':
-            logging.info('Submitting jobs')
+            logging.info('Submitting jobs with args "%s"'%args)
             if opt.resubmit:
                 submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug,args=args)
             else:
@@ -409,29 +410,8 @@ def main():
         # The purpose is to create a scaler object and save it
         # The preprocessing will be implemented in the network with a custom layer
         if opt.scan!='': # If we don't scan we don't need to scale the data
-            scaler_name = 'scaler_'+parameters.suffix+'.pkl'
-            scaler_path = os.path.join(parameters.main_path,scaler_name)
-            if not os.path.exists(scaler_path):
-                scaler = preprocessing.StandardScaler().fit(train_all[list_inputs])
-                with open(scaler_path, 'wb') as handle:
-                    pickle.dump(scaler, handle)
-                logging.info('Scaler %s has been created'%scaler_name)
-            else:
-                with open(scaler_path, 'rb') as handle:
-                    scaler = pickle.load(handle)
-                logging.info('Scaler %s has been imported'%scaler_name)
-
-            # Test the scaler #
-            try:
-                mean_scale = np.mean(scaler.transform(train_all[list_inputs]))
-                var_scale = np.var(scaler.transform(train_all[list_inputs]))
-            except ValueError:
-                logging.critical("Problem with the scaler '%s' you imported, has the data changed since it was generated ?"%scaler_name)
-                sys.exit(1)
-            if abs(mean_scale)>0.01 or abs((var_scale-1)/var_scale)>0.01: # Check that scaling is correct to 1%
-                logging.critical("Something is wrong with scaler '%s' (mean = %0.6f, var = %0.6f), maybe you loaded an incorrect scaler"%(scaler_name,mean_scale,var_scale))
-                sys.exit()
-
+            MakeScaler(train_all,list_inputs) 
+           
         # Turns tags into one-hot vector #
         if opt.class_param or opt.class_global:
             # Instantiate #
@@ -475,6 +455,7 @@ def main():
         logging.info('No samples have been imported since you asked for a generator')
         train_all = pd.DataFrame()
         test_all = pd.DataFrame()
+        MakeScaler(generator=True, list_inputs=list_inputs)
     #############################################################################################
     # DNN #
     #############################################################################################
