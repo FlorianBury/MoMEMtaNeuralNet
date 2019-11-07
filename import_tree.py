@@ -22,6 +22,7 @@ def Tree2Pandas(input_file, variables, weight=None, cut=None, reweight_to_cross_
     """
     Convert a ROOT TTree to a numpy array.
     """
+    n = 1000
     # Check for repetitions in variables -> makes root_numpy crash #
     variables = copy.copy(variables) # Otherwise will add the weight and have a duplicate branch
     rep = [item for item, count in collections.Counter(variables).items() if count > 1]
@@ -47,7 +48,7 @@ def Tree2Pandas(input_file, variables, weight=None, cut=None, reweight_to_cross_
     # Read the tree and convert it to a numpy structured array
     if weight is not None:
         variables += [weight]
-    data = tree2array(tree, branches=variables, selection=cut)
+    data = tree2array(tree, branches=variables, selection=cut, start=start, stop=n)
     
     # Convert to pandas dataframe #
     df = pd.DataFrame(data)
@@ -62,10 +63,8 @@ def Tree2Pandas(input_file, variables, weight=None, cut=None, reweight_to_cross_
             if n < start:
                 logging.critical('Importing tree with start higher than end, will output empty tree')
             logging.info("Reading from {} to {} in input tree".format(start,n))
-            df = df.iloc[start:n]
         else:
             logging.info("Reading only {} from input tree".format(n))
-            df = df.iloc[:n]
         
 
     return df
