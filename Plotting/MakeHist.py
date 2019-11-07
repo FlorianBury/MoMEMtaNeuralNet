@@ -64,14 +64,16 @@ def main():
                     #      override_params = {}),
                     #Plots(name = 'invalid_TT_weights',
                     #      override_params = {}),
-                    Plots(name = 'JEC_weights',
-                          override_params = {}),
+                    #Plots(name = 'JEC_weights',
+                    #      override_params = {}),
                     #Plots(name = 'interpolation_weights',
                     #      override_params = {}),
                     #Plots(name = 'classification_weights',
                     #        override_params = {}),
                     #Plots(name = 'delaunay',
                     #      override_params = {}),
+                    Plots(name = 'ME_full',
+                          override_params = {}),
                  ]
 
     # Select template #
@@ -94,7 +96,11 @@ def main():
                     #         class_name = 'Plot_TH1'),
                     #Template(tpl = 'TH1_binary.yml.tpl',
                     #         class_name = 'Plot_TH1'),
-                    Template(tpl = 'TH1_JEC.yml.tpl',
+                    #Template(tpl = 'TH1_JEC.yml.tpl',
+                    #         class_name = 'Plot_TH1'),
+                    Template(tpl = 'TH1_ME_single_variable.yml.tpl',
+                             class_name = 'Plot_TH1'),
+                    Template(tpl = 'TH1_ME_composite_variable.yml.tpl',
                              class_name = 'Plot_TH1'),
 
                     #########       TH1 Ratio       ###########
@@ -120,8 +126,8 @@ def main():
                     #         class_name = 'Plot_Multi_TH1'),
                     #Template(tpl = 'TH1Multi_class_param.yml.tpl',
                     #         class_name = 'Plot_Multi_TH1'),
-                    Template(tpl = 'TH1Multi_JEC.yml.tpl',
-                             class_name = 'Plot_Multi_TH1'),
+                    #Template(tpl = 'TH1Multi_JEC.yml.tpl',
+                    #         class_name = 'Plot_Multi_TH1'),
 
                     ############       TH2       ##############
                     #Template(tpl = 'TH2_background.yml.tpl',
@@ -130,6 +136,12 @@ def main():
                     #         class_name = 'Plot_TH2'),
                     #Template(tpl = 'TH2_class_global.yml.tpl',
                     #         class_name = 'Plot_TH2'),
+                    #Template(tpl = 'TH2_ME_composite_variable.yml.tpl',
+                    #         class_name = 'Plot_TH2'),
+                    Template(tpl = 'TH2_ME_single_variable.yml.tpl',
+                             class_name = 'Plot_TH2'),
+                    Template(tpl = 'TH2_ME_composite_variable.yml.tpl',
+                             class_name = 'Plot_TH2'),
                 ] 
 
     # Select template #
@@ -158,11 +170,11 @@ def main():
                 #    plot_name = 'Binary_MEM_DNN',
                 #    title = 'Binary classification MEM vs DNN')
                 ########### JEC discriminant  ###########
-                ROC(tpl = 'ROC_JEC.yml.tpl',
-                    class_name = 'Plot_ROC',
-                    def_name = 'MakeROCPlot',
-                    plot_name = 'JEC_discriminant',
-                    title = 'Discriminant applied on JEC events')
+                #ROC(tpl = 'ROC_JEC.yml.tpl',
+                #    class_name = 'Plot_ROC',
+                #    def_name = 'MakeROCPlot',
+                #    plot_name = 'JEC_discriminant',
+                #    title = 'Discriminant applied on JEC events')
                 ########### Global Classification ###########
                 #ROC(tpl = 'ROCMulti_class_global.yml.tpl',
                 #    class_name = 'Plot_Multi_ROC',
@@ -322,7 +334,8 @@ def main():
 
         # Loop over files #
         for f in files:
-            fullname = f.replace(obj.path+'/','').replace('.root','')
+            #fullname = f.replace(obj.path+'/','').replace('.root','')
+            fullname = os.path.basename(f).replace('.root','')
             logging.info('Processing weights from %s'%(fullname+'.root'))
             if fullname.startswith('DY'):
                 filename = 'Drell-Yann'

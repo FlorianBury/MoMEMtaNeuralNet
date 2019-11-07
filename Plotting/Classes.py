@@ -12,7 +12,6 @@ from sklearn.preprocessing import LabelBinarizer
 from root_numpy import root2array, rec2array
 from scipy import interp
 
-import ROOT
 from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT, TGaxis, TPad, TLegend, TImage, THStack
 
 from sklearn import metrics
@@ -22,6 +21,9 @@ from matplotlib.pyplot import cm
 # ROOT STYLE #
 import CMS_lumi
 import tdrstyle
+
+# FORMULAS #
+gROOT.LoadMacro("formulas.C")
 
  # PYPLOT STYLE #
 SMALL_SIZE = 16
@@ -80,7 +82,7 @@ class Plot_TH1:
 
 ####################################      Plot_TH2       ########################################
 class Plot_TH2:
-    def __init__(self,filename,tree,variablex,variabley,weight,cut,name,binsx,binsy,xmin,xmax,ymin,ymax,title,xlabel,ylabel,zlabel,option):
+    def __init__(self,filename,tree,variablex,variabley,weight,cut,name,binsx,binsy,xmin,xmax,ymin,ymax,title,xlabel,ylabel,zlabel='',option='colz'):
         self.filename = filename
         self.tree = tree
         self.variablex = variablex
@@ -103,7 +105,7 @@ class Plot_TH2:
     def MakeHisto(self):
         file_handle = TFile.Open(self.filename)
         tree = file_handle.Get(self.tree)
-        tree.Draw(self.variabley+':'+self.variablex+'>>'+self.name+'('+str(self.binsx)+','+str(self.xmin)+','+str(self.xmax)+','+str(self.binsx)+','+str(self.xmin)+','+str(self.xmax)+')',self.cut,"goff "+self.option)    
+        tree.Draw(self.variabley+':'+self.variablex+'>>'+self.name+'('+str(self.binsx)+','+str(self.xmin)+','+str(self.xmax)+','+str(self.binsy)+','+str(self.ymin)+','+str(self.ymax)+')',self.cut,"goff "+self.option)    
         self.histo = copy.deepcopy(gROOT.FindObject(self.name))
         self.histo.SetTitle(self.title+';'+self.xlabel+';'+self.ylabel+';'+self.zlabel)
         self.histo.SetMinimum(0)
