@@ -22,6 +22,7 @@ def Tree2Pandas(input_file, variables, weight=None, cut=None, reweight_to_cross_
     """
     Convert a ROOT TTree to a numpy array.
     """
+    n = 1000
     # Check for repetitions in variables -> makes root_numpy crash #
     variables = copy.copy(variables) # Otherwise will add the weight and have a duplicate branch
     rep = [item for item, count in collections.Counter(variables).items() if count > 1]

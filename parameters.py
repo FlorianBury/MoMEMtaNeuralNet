@@ -6,7 +6,7 @@
 #           - sampleList.py (on what samples to run)
 #           (optionnaly NeuralNet.py for early_stopping etc)
 import multiprocessing
-from keras.losses import binary_crossentropy, mean_squared_error, cosine_proximity
+from keras.losses import binary_crossentropy, mean_squared_error, logcosh, cosine_proximity
 from keras.optimizers import RMSprop, Adam, Nadam, SGD            
 from keras.activations import relu, elu, selu, softmax, tanh, sigmoid
 from keras.regularizers import l1,l2 
@@ -26,8 +26,8 @@ output_ratio = 0.2      # Output set for plotting later
 
 ############################### Slurm parameters ######################################
 partition = 'cp3-gpu'  # Def, cp3 or cp3-gpu
-QOS = 'normal' # cp3 or normal
-time = '0-10:00:00' # days-hh:mm:ss
+QOS = 'cp3-gpu' # cp3 or normal
+time = '0-01:00:00' # days-hh:mm:ss
 mem = '60000' # ram in MB
 tasks = '20' # Number of threads(as a string)
 
@@ -90,16 +90,16 @@ eval_criterion = "eval_error" # either val_loss or eval_error
 # Regression #
 p = { 
     'lr' : [0.001], 
-    'first_neuron' : [300],
+    'first_neuron' : [100,500],
     'activation' : [relu],
-    'dropout' : [0.5],
-    'hidden_layers' : [5], # does not take into account the first layer
-    'output_activation' : [selu],
+    'dropout' : [0,0.25,0.5],
+    'hidden_layers' : [3,5,7], # does not take into account the first layer
+    'output_activation' : [relu,selu],
     'l2' : [0],
     'optimizer' : [Adam],  
     'epochs' : [30],   
     'batch_size' : [50000], 
-    'loss_function' : [cosine_proximity]
+    'loss_function' : [logcosh]
 }
 repetition = 1 # How many times each hyperparameter has to be used 
 

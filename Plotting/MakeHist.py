@@ -98,8 +98,8 @@ def main():
                     #         class_name = 'Plot_TH1'),
                     #Template(tpl = 'TH1_JEC.yml.tpl',
                     #         class_name = 'Plot_TH1'),
-                    Template(tpl = 'TH1_ME_single_variable.yml.tpl',
-                             class_name = 'Plot_TH1'),
+                    #Template(tpl = 'TH1_ME_single_variable.yml.tpl',
+                    #         class_name = 'Plot_TH1'),
                     Template(tpl = 'TH1_ME_composite_variable.yml.tpl',
                              class_name = 'Plot_TH1'),
 

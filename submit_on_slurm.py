@@ -15,7 +15,7 @@ from CP3SlurmUtils.Exceptions import CP3SlurmUtilsException
 # Personal files #
 import parameters
 
-def submit_on_slurm(name,args,debug=False):
+def submit_on_slurm(name,args,debug=False,GPU=False):
     config = Configuration()
 
     config.sbatch_partition = parameters.partition
@@ -25,13 +25,20 @@ def submit_on_slurm(name,args,debug=False):
     #config.sbatch_mem = parameters.mem
     #config.sbatch_additionalOptions = ['--ntask='+parameters.tasks , "--gpus=1", "--export=ALL"]
     #config.sbatch_additionalOptions = ['-n 20', '-G 1']
-    config.sbatch_additionalOptions = ['-n 20','-G 1']
+    config.sbatch_additionalOptions = ['-n 20','-G 1','--export=NONE']
     config.inputSandboxContent = []
     config.useJobArray = True
     config.inputParamsNames = ['scan','task']
     config.inputParams = []
 
-    config.payload = " python3 {script} --scan ${{scan}} --task ${{task}} "
+    config.payload = """ """
+
+    #config.payload = " "
+    if GPU:
+        config.payload += "export PYTHONPATH=/root6/lib:$PYTHONPATH\n"
+        config.payload += "module load cp3\n" # needed on gpu to load slurm_utils
+        config.payload += "module load slurm/slurm_utils\n"
+    config.payload += "python3 {script} --scan ${{scan}} --task ${{task}}"
     config.payload += args
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')

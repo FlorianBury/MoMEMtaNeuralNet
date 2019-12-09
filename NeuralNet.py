@@ -20,7 +20,7 @@ from sklearn.model_selection import train_test_split
 import keras
 from keras import utils
 from keras.layers import Layer, Input, Dense, Concatenate, BatchNormalization, LeakyReLU, Lambda, Dropout
-from keras.losses import binary_crossentropy, mean_squared_error
+from keras.losses import binary_crossentropy, mean_squared_error, logcosh
 from keras.optimizers import RMSprop, Adam, Nadam, SGD
 from keras.activations import relu, elu, selu, softmax, tanh
 from keras.models import Model, model_from_json, load_model
@@ -46,6 +46,7 @@ import parameters
 from split_training import DictSplit
 from plot_scans import PlotScans
 from preprocessing import PreprocessLayer
+from data_generator import DataGenerator
 import Model
 
 #################################################################################################
@@ -160,22 +161,44 @@ class HyperModel:
             self.h_with_eval.data.to_csv(self.name_model+'.csv') # save to csv including error
             self.autom8 = True
         else:
-            #test_generator = DataGenerator(path = parameters.path_gen_validation,
-            #                               inputs = parameters.inputs,
-            #                               outputs = parameters.outputs,
-            #                               batch_size = params['batch_size'],
-            #                               training = False)
+            #import pickle
+            #with open("scan_object.pkl", 'wb') as handle: 
+            #    pickle.dump(self.h, handle)
+            #print (self.h.__dict__.keys())
+            #print (self.h.saved_models)
+            #print (self.h.saved_weights)
+            #self.h.data.to_csv('data_test.csv') # save to csv including error
+            #import copy
+            #copy_obj = copy.deepcopy(self.h)
+            #sys.exit()
+            error_arr = np.zeros(self.h.data.shape[0])
+            for i in range(self.h.data.shape[0]):
+                print ("Evaluating model ",i)
+                model_eval = model_from_json(self.h.saved_models[i],custom_objects=custom_objects)   
+                model_eval.set_weights(self.h.saved_weights[i])
+                model_eval.compile(optimizer=Adam(),loss={'OUT':logcosh},metrics=['accuracy'])
+                test_generator = DataGenerator(path = parameters.path_gen_validation,
+                                               inputs = parameters.inputs,
+                                               outputs = parameters.outputs,
+                                               batch_size = parameters.p['batch_size'][0],
+                                               training = False)
 
-            #mean_error = self.h.model.evaluate_generator(generator             = training_generator,
-            #                                verbose               = 1,
-            #                                callbacks             = Callback_list,
-            #                                workers               = parameters.workers,
-            #                                use_multiprocessing   = True)
-            #self.h.data['eval_mean'] = mean_error
-            #self.h.data.to_csv(self.name_model+'.csv') # save to csv including error
-            #self.autom8 = True
+                #error_arr[i] = model_eval.evaluate_generator(generator             = test_generator,
+                #                                            verbose               = 1,
+                #                                            #callbacks             = Callback_list,
+                #                                            #workers               = parameters.workers,
+                #                                            #max_queue_size        = 1,
+                #                                            steps                 = 10,
+                #                                            #workers               = 1,
+                #                                            use_multiprocessing   = True)
+                error_arr[i]=i
+                print ('Error is ',error_arr[i])
+            self.h.data['eval_mean'] = error_arr
+            print (self.h.data)
+            self.h.data.to_csv(self.name_model+'.csv') # save to csv including error
+            self.autom8 = True
             
-            self.autom8 = False
+            #self.autom8 = False
 
         # returns the experiment configuration details
         logging.info('='*80)
@@ -258,7 +281,7 @@ class HyperModel:
 
         for i in range(0,10):
             logging.info('-'*80)
-            logging.info('Best params n°%d'%(i+1))
+            logging.info('Best params no %d'%(i+1))
             try:
                 logging.info(sorted_data.iloc[i])
             except:

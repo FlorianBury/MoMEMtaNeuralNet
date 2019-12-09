@@ -335,7 +335,7 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
     L1 = Dense(params['first_neuron'],
                activation=params['activation'],
                kernel_regularizer=l2(params['l2']))(L0)
-    HIDDEN = hidden_layers(params,1,batch_normalization=True).API(L1)
+    HIDDEN = hidden_layers(params,1,batch_normalization=False).API(L1)
     OUT = Dense(1,activation=params['output_activation'],name='OUT')(HIDDEN)
 
     # Define model #
@@ -346,7 +346,7 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0., patience=25, verbose=1, mode='min')
     reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=1, mode='min', cooldown=1, min_lr=1e-6)
     loss_history = LossHistory()
-    Callback_list = [loss_history,early_stopping,reduceLR]
+    Callback_list = [loss_history,early_stopping,reduceLR]#
 
     # Compile #
     if 'resume' not in params: 
@@ -383,7 +383,7 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
     logging.warning(K.tensorflow_backend._get_available_gpus())
     logging.warning("Modules")
     logging.warning(os.system("module list"))
-    logging.warning(os.system("env"))
+    #logging.warning(os.system("env"))
     history = model.fit_generator(generator             = training_generator,
                                   validation_data       = validation_generator,
                                   epochs                = params['epochs'], 
@@ -392,7 +392,7 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
                                   initial_epoch         = initial_epoch,
                                   workers               = parameters.workers,
                                   shuffle               = True,
-                                  #steps_per_epoch       = 1,
+                                  #steps_per_epoch       = 10,
                                   use_multiprocessing   = True)
                                   
                                     

@@ -34,14 +34,17 @@ class PreprocessLayer(Layer):
 
         super(PreprocessLayer, self).__init__(**kwargs)
     def build(self, input_shape):
-        self.mean = self.add_weight(name='mean', 
-                                  shape=(self.b,input_shape[1]),
-                                  initializer=tf.constant_initializer(np.tile(self.m,(self.b,1)),verify_shape=True),
-                                  trainable=False)
-        self.std = self.add_weight(name='std', 
-                                  shape=(self.b,input_shape[1]),
-                                  initializer=tf.constant_initializer(np.tile(self.s,(self.b,1)),verify_shape=True),
-                                  trainable=False)
+        with tf.init_scope():
+            self.mean = self.add_weight(name='mean', 
+                                      shape=(self.b,input_shape[1]),
+                                      #initializer=tf.constant_initializer(np.tile(self.m,(self.b,1)),verify_shape=True),
+                                      initializer=tf.constant_initializer(np.tile(self.m,(self.b,1))),
+                                      trainable=False)
+            self.std = self.add_weight(name='std', 
+                                      shape=(self.b,input_shape[1]),
+                                      #initializer=tf.constant_initializer(np.tile(self.s,(self.b,1)),verify_shape=True),
+                                      initializer=tf.constant_initializer(np.tile(self.s,(self.b,1))),
+                                      trainable=False)
         super(PreprocessLayer, self).build(input_shape)  # Be sure to call this at the end
     def call(self, x):
         # Due to remainder at the end of epoch, input_shape[0]<=batch_size

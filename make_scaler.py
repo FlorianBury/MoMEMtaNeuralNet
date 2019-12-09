@@ -2,7 +2,7 @@ import os
 import logging
 import pickle
 import glob
-import enlighten
+#import enlighten
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
@@ -34,11 +34,11 @@ def MakeScaler(data=None,list_inputs=[],generator=False,batch=100000):
                 Ntot += N
                 logging.info("Opening file %s (%d entries)"%(f,N))
                 # Loop over batches #
-                pbar = enlighten.Counter(total=N//batch+1, desc='Mean', unit='Batch')
+                #pbar = enlighten.Counter(total=N//batch+1, desc='Mean', unit='Batch')
                 for i in range(0, N, batch):
                     array = rec2array(tree2array(tree,branches=list_inputs,start=i,stop=i+batch))
                     mean += np.sum(array,axis=0)
-                    pbar.update()
+                    #pbar.update()
             mean /= N
             
             # Var Loop #
@@ -52,11 +52,11 @@ def MakeScaler(data=None,list_inputs=[],generator=False,batch=100000):
                 Ntot += N
                 logging.info("Opening file %s (%d entries)"%(f,N))
                 # Loop over batches #
-                pbar = enlighten.Counter(total=N//batch+1, desc='Std', unit='Batch')
+                #pbar = enlighten.Counter(total=N//batch+1, desc='Std', unit='Batch')
                 for i in range(0, N, batch):
                     array = rec2array(tree2array(tree,branches=list_inputs,start=i,stop=i+batch))
                     std += np.sum(np.square(array-mean),axis=0)
-                    pbar.update()
+                    #pbar.update()
                 std = np.sqrt(std/N)
             # Set manually #
             scaler.mean_ = mean

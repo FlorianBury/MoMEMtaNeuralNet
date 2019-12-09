@@ -5,10 +5,11 @@ import glob
 import csv
 import os
 import sys
+import pprint
 import logging
 import copy
 import pickle
-import psutil
+#import psutil
 
 import argparse
 import numpy as np
@@ -96,6 +97,8 @@ def get_options():
     e = parser.add_argument_group('Additional arguments')
     e.add_argument('-v','--verbose', action='store_true', required=False, default=False,
         help='Show DEGUG logging')
+    e.add_argument('--GPU', action='store_true', required=False, default=False,
+        help='GPU requires to execute some commandes before')
 
     opt = parser.parse_args()
 
@@ -179,9 +182,9 @@ def main():
         if opt.submit!='':
             logging.info('Submitting jobs with args "%s"'%args)
             if opt.resubmit:
-                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug,args=args)
+                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug,args=args,GPU=opt.GPU)
             else:
-                submit_on_slurm(name=opt.submit,debug=opt.debug,args=args)
+                submit_on_slurm(name=opt.submit,debug=opt.debug,args=args,GPU=opt.GPU)
         sys.exit()
 
     #############################################################################################
@@ -279,7 +282,7 @@ def main():
     # Data Input and preprocessing #
     #############################################################################################
     # Memory Usage #
-    pid = psutil.Process(os.getpid())
+    #pid = psutil.Process(os.getpid())
     logging.info('Current pid : %d'%os.getpid())
 
     # Input path #
