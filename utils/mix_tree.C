@@ -51,7 +51,7 @@ void mix_tree(const char* dir){
         tree->SetBranchAddress( "MEPdf" , &MEPdf);
 
     /* Generate the mixed tree */
-    TFile *mix_file = new TFile(gSystem->ConcatFileName(dir, "MixTree_print.root"), "RECREATE");
+    TFile *mix_file = new TFile(gSystem->ConcatFileName(dir, "MixTree.root"), "RECREATE");
     TTree *mix_tree = trees[0]->CloneTree(0); 
     int i = 0; 
     TRandom3 rndm;
