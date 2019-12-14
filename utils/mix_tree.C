@@ -6,6 +6,7 @@
 #include "TSystem.h"
 #include "TString.h"
 #include "TRandom3.h"
+#include "TLorentzVector.h"
 
 void mix_tree(const char* dir){
     /* Get list of files */
@@ -45,10 +46,27 @@ void mix_tree(const char* dir){
     for (int j = 0 ; j<filenames.size(); ++j)
         std::cout<<"Filename : "<<filenames[j]<<" -> Prob = N/N_tot = "<<sizes[j]<<" /  "<<N_tot<<" = "<<probs[j]<<std::endl; 
 
-    /* Branch for checking */ 
+    /* SetBranchAddress */
     double MEPdf; 
-    for (auto & tree:trees)
+    TLorentzVector* init1_p4;
+    TLorentzVector* init2_p4;
+    TLorentzVector* positron_p4;
+    TLorentzVector* neutrino_p4;
+    TLorentzVector* bjet_p4;
+    TLorentzVector* electron_p4;
+    TLorentzVector* antineutrino_p4;
+    TLorentzVector* antibjet_p4;
+    for (auto & tree:trees){
         tree->SetBranchAddress( "MEPdf" , &MEPdf);
+        tree->SetBranchAddress( "init1_p4" , &init1_p4);
+        tree->SetBranchAddress( "init2_p4" , &init2_p4);
+        tree->SetBranchAddress( "positron_p4" , &positron_p4);
+        tree->SetBranchAddress( "neutrino_p4" , &neutrino_p4);
+        tree->SetBranchAddress( "bjet_p4" , &bjet_p4);
+        tree->SetBranchAddress( "electron_p4" , &electron_p4);
+        tree->SetBranchAddress( "antineutrino_p4" , &antineutrino_p4);
+        tree->SetBranchAddress( "antibjet_p4" , &antibjet_p4);
+    }// Need to that for all branches otherwise they will be repeated 
 
     /* Generate the mixed tree */
     TFile *mix_file = new TFile(gSystem->ConcatFileName(dir, "MixTree.root"), "RECREATE");
