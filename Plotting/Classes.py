@@ -65,6 +65,7 @@ class Plot_TH1:
         histo = gROOT.FindObject(self.name)
         histo.SetTitle(self.title+';'+self.xlabel+';'+self.ylabel)
         self.histo = copy.deepcopy(histo)
+        file_handle.Close()
 
     def PlotOnCanvas(self,pdf_name):
         tdrstyle.setTDRStyle() 
@@ -109,6 +110,7 @@ class Plot_TH2:
         self.histo = copy.deepcopy(gROOT.FindObject(self.name))
         self.histo.SetTitle(self.title+';'+self.xlabel+';'+self.ylabel+';'+self.zlabel)
         self.histo.SetMinimum(0)
+        file_handle.Close()
 
     def PlotOnCanvas(self,pdf_name):
         tdrstyle.setTDRStyle() 

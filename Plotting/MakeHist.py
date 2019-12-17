@@ -72,7 +72,7 @@ def main():
                     #        override_params = {}),
                     #Plots(name = 'delaunay',
                     #      override_params = {}),
-                    Plots(name = 'ME_full',
+                    Plots(name = 'ME_onevar',
                           override_params = {}),
                  ]
 
@@ -98,8 +98,8 @@ def main():
                     #         class_name = 'Plot_TH1'),
                     #Template(tpl = 'TH1_JEC.yml.tpl',
                     #         class_name = 'Plot_TH1'),
-                    #Template(tpl = 'TH1_ME_single_variable.yml.tpl',
-                    #         class_name = 'Plot_TH1'),
+                    Template(tpl = 'TH1_ME_single_variable.yml.tpl',
+                             class_name = 'Plot_TH1'),
                     Template(tpl = 'TH1_ME_composite_variable.yml.tpl',
                              class_name = 'Plot_TH1'),
 
@@ -138,10 +138,10 @@ def main():
                     #         class_name = 'Plot_TH2'),
                     #Template(tpl = 'TH2_ME_composite_variable.yml.tpl',
                     #         class_name = 'Plot_TH2'),
-                    Template(tpl = 'TH2_ME_single_variable.yml.tpl',
-                             class_name = 'Plot_TH2'),
-                    Template(tpl = 'TH2_ME_composite_variable.yml.tpl',
-                             class_name = 'Plot_TH2'),
+                    #Template(tpl = 'TH2_ME_single_variable.yml.tpl',
+                    #         class_name = 'Plot_TH2'),
+                    #Template(tpl = 'TH2_ME_composite_variable.yml.tpl',
+                    #         class_name = 'Plot_TH2'),
                 ] 
 
     # Select template #
