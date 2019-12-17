@@ -5,6 +5,13 @@
 #include "TSystem.h"
 
 void split_Ntree(const char* dir, TString name, std::vector<float> relcut){
+    /* Will cut the given tree in several N trees 
+        eg : relcut = std<float> [0.1,0.7,0.9], tree size = =N
+        -> tree with [0,0.1[*N
+        -> tree with [0.1,0.7[*N
+        -> tree with [0.7,0.9[*N
+        -> tree with [0.9,1]*N
+    */
     for (int i = 0 ; i<relcut.size() ; i++){
         if (i>0 && relcut[i]<relcut[i-1]){
             std::cout<<"[ERROR] Not increasing relative cuts"<<std::endl;
