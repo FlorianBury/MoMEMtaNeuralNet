@@ -27,7 +27,7 @@ output_ratio = 0.2      # Output set for plotting later
 ############################### Slurm parameters ######################################
 partition = 'cp3-gpu'  # Def, cp3 or cp3-gpu
 QOS = 'cp3-gpu' # cp3 or normal
-time = '0-01:00:00' # days-hh:mm:ss
+time = '1-00:00:00' # days-hh:mm:ss
 mem = '60000' # ram in MB
 tasks = '20' # Number of threads(as a string)
 
@@ -45,14 +45,19 @@ suffix = 'gen_ME'
 # mask_name -> 'mask_{suffix}_{sample}.npy'  If does not exist will be created 
 
 # Generator #
-path_gen_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path0' # For training
-path_gen_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path1' # For val_loss during training
-path_gen_evaluation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path2' # for model evaluation
-path_gen_output = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path3' # for output
+#path_gen_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path3' # For training
+#path_gen_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path0' # For val_loss during training
+#path_gen_evaluation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path1' # for model evaluation
+#path_gen_output = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path2' # for output
+path_gen_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_all/path3' # For training
+path_gen_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_all/path0' # For val_loss during training
+path_gen_evaluation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_all/path1' # for model evaluation
+path_gen_output = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_all/path2' # for output
+
 workers = 20
 
 # Output #
-output_batch_size = 5000
+output_batch_size = 1000
 
 ##############################  Evaluation criterion   ################################
 
@@ -90,17 +95,18 @@ eval_criterion = "eval_error" # either val_loss or eval_error
 # Regression #
 p = { 
     'lr' : [0.001], 
-    'first_neuron' : [100,500],
+    'first_neuron' : [100],
     'activation' : [relu],
-    'dropout' : [0,0.25,0.5],
-    'hidden_layers' : [3,5,7], # does not take into account the first layer
-    'output_activation' : [relu,selu],
+    'dropout' : [0],
+    'hidden_layers' : [5], # does not take into account the first layer
+    'output_activation' : [selu],
     'l2' : [0],
     'optimizer' : [Adam],  
-    'epochs' : [30],   
+    'epochs' : [1],   
     'batch_size' : [50000], 
     'loss_function' : [logcosh]
 }
+
 repetition = 1 # How many times each hyperparameter has to be used 
 
 ###################################  Variables   ######################################

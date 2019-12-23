@@ -73,7 +73,7 @@ class LossHistory(keras.callbacks.Callback):
 
         # Batch counting #
         self.epoch_counter += 1
-        self.epoch_to_batch = self.batch_counter
+        self.epoch_to_batch += self.batch_counter
         self.batch_counter = 0
 
 #################################################################################################
@@ -342,6 +342,9 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
     model = Model(inputs=[IN], outputs=[OUT])
     utils.print_summary(model=model) #used to print model
 
+    preprocess = Model(inputs=[IN],outputs=[L0])
+    utils.print_summary(model=preprocess)
+
     # Callbacks #
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0., patience=25, verbose=1, mode='min')
     reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=1, mode='min', cooldown=1, min_lr=1e-6)
@@ -374,16 +377,18 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
                                        outputs = parameters.outputs,
                                        batch_size = params['batch_size'],
                                        training = False)
+    test_generator = DataGenerator(path = parameters.path_gen_output,
+                                       inputs = parameters.inputs,
+                                       outputs = parameters.outputs,
+                                       batch_size = params['batch_size'],
+                                       training = False)
 
-    # Fit #
+        # Fit #
     logging.info("Will use %d workers"%parameters.workers)
     logging.warning("Keras location " + keras.__file__)
     logging.warning("Tensorflow location "+ tf.__file__)
     logging.warning("GPU ")
     logging.warning(K.tensorflow_backend._get_available_gpus())
-    logging.warning("Modules")
-    logging.warning(os.system("module list"))
-    #logging.warning(os.system("env"))
     history = model.fit_generator(generator             = training_generator,
                                   validation_data       = validation_generator,
                                   epochs                = params['epochs'], 
@@ -392,10 +397,30 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
                                   initial_epoch         = initial_epoch,
                                   workers               = parameters.workers,
                                   shuffle               = True,
-                                  #steps_per_epoch       = 10,
+                                  #steps_per_epoch       = 100,
                                   use_multiprocessing   = True)
                                   
-                                    
+    #out_preprocess = preprocess.predict_generator(test_generator,
+    #                                              workers=10,
+    #                                              steps=10, 
+    #                                              use_multiprocessing=False,
+    #                                              verbose=1)    
+    #print ("Mean preprocessing")
+    #print (np.mean(out_preprocess))
+    #print (np.std(out_preprocess))
+    #                                                
+    #out_all = model.predict_generator(test_generator,
+    #                                              workers=10,
+    #                                              steps=10, 
+    #                                              use_multiprocessing=False,
+    #                                              verbose=1)    
+    #                                                
+    #print (out_all)
+    #print ("Mean output")
+    #print (np.mean(out_all))
+    #print (np.std(out_all))
+
+                               
     # Plot history #
     PlotHistory(loss_history)
 

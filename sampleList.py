@@ -328,11 +328,11 @@ samples_dict['ME_test'] = [
 
 ##############################     ME generator    #######################
 samples_dict['ME_generator'] = [
-                            #'ME_TTBar_generator/path0/DYJetsToLL_M-10to50_ME.root',
-                            #'ME_TTBar_generator/path0/DYToLL_0J_ME.root ',
-                            #'ME_TTBar_generator/path0/DYToLL_1J_ME.root ',
-                            #'ME_TTBar_generator/path0/DYToLL_2J_ME.root ',
-                            #'ME_TTBar_generator/path0/TT_Other_ME.root  ',
-                            #'ME_TTBar_generator/path0/TTTo2L2Nu_ME.root ',
-                            'ME_TTBar_generator_mix/path3/MixTree.root'
+                            'ME_TTBar_generator_all/path1/DYJetsToLL_M-10to50_ME.root',
+                            'ME_TTBar_generator_all/path1/DYToLL_0J_ME.root',
+                            'ME_TTBar_generator_all/path1/DYToLL_1J_ME.root',
+                            'ME_TTBar_generator_all/path1/DYToLL_2J_ME.root',
+                            'ME_TTBar_generator_all/path1/TT_Other_ME.root',
+                            'ME_TTBar_generator_all/path1/TTTo2L2Nu_ME.root',
+                            #'ME_TTBar_generator_mix/path2/MixTree.root'
                           ]

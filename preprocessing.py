@@ -34,17 +34,30 @@ class PreprocessLayer(Layer):
 
         super(PreprocessLayer, self).__init__(**kwargs)
     def build(self, input_shape):
-        with tf.init_scope():
+        if tf.__version__.startswith('1.5'):
             self.mean = self.add_weight(name='mean', 
-                                      shape=(self.b,input_shape[1]),
-                                      #initializer=tf.constant_initializer(np.tile(self.m,(self.b,1)),verify_shape=True),
-                                      initializer=tf.constant_initializer(np.tile(self.m,(self.b,1))),
-                                      trainable=False)
+                                        shape=(self.b,input_shape[1]),
+                                        initializer=tf.constant_initializer(np.tile(self.m,(self.b,1)),verify_shape=True),
+                                        trainable=False)
             self.std = self.add_weight(name='std', 
-                                      shape=(self.b,input_shape[1]),
-                                      #initializer=tf.constant_initializer(np.tile(self.s,(self.b,1)),verify_shape=True),
-                                      initializer=tf.constant_initializer(np.tile(self.s,(self.b,1))),
-                                      trainable=False)
+                                        shape=(self.b,input_shape[1]),
+                                        initializer=tf.constant_initializer(np.tile(self.s,(self.b,1))),
+                                        trainable=False)
+
+        elif tf.__version__.startswith('2.'):
+            with tf.init_scope():
+                self.mean = self.add_weight(name='mean', 
+                                          shape=(self.b,input_shape[1]),
+                                          #initializer=tf.constant_initializer(np.tile(self.m,(self.b,1)),verify_shape=True),
+                                          initializer=tf.constant_initializer(np.tile(self.m,(self.b,1))),
+                                          trainable=False)
+                self.std = self.add_weight(name='std', 
+                                          shape=(self.b,input_shape[1]),
+                                          #initializer=tf.constant_initializer(np.tile(self.s,(self.b,1)),verify_shape=True),
+                                          initializer=tf.constant_initializer(np.tile(self.s,(self.b,1))),
+                                          trainable=False)
+        else:
+            sys.exit("Tensforflow version "+tf.__version__+" unknown for preprocessing layer")
         super(PreprocessLayer, self).build(input_shape)  # Be sure to call this at the end
     def call(self, x):
         # Due to remainder at the end of epoch, input_shape[0]<=batch_size

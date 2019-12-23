@@ -33,7 +33,6 @@ def submit_on_slurm(name,args,debug=False,GPU=False):
 
     config.payload = """ """
 
-    #config.payload = " "
     if GPU:
         config.payload += "export PYTHONPATH=/root6/lib:$PYTHONPATH\n"
         config.payload += "module load cp3\n" # needed on gpu to load slurm_utils

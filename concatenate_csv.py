@@ -19,15 +19,12 @@ class ConcatenateCSV:
     def Concatenate(self):
         self.dict_tot = {} 
         self.counter = 0
-        if self.sample!='DY' and self.sample!='TT' and self.sample!='HToZA' and self.sample!='class' and self.sample!='binary':
-            logging.critical('Sample type (TT or DY or HToZA or class or binary) must be used to concatenate csv file')
+        if self.sample!='DY' and self.sample!='TT' and self.sample!='HToZA' and self.sample!='class' and self.sample!='binary' and self.sample!='ME':
+            logging.critical('Sample type (TT or DY or HToZA or class or binary or ME) must be used to concatenate csv file')
             sys.exit(1)
 
-        for f in glob.glob(os.path.join(self.path,'*.csv')):
+        for f in glob.glob(os.path.join(self.path,'*'+self.sample+'*.csv')):
             name = f.replace(self.path,'')
-            if name.find(self.sample) == -1: # if DY or TT or HToZA not found in the string
-                continue
-
             logging.debug('File : %s'%(name))
 
             # Use pandas to get the dict inside the csv file #
@@ -45,7 +42,6 @@ class ConcatenateCSV:
                 entries = len(val)
 
             self.counter += entries
-
             logging.debug('\tCurrent number of hyperparameter sets : %d'%(self.counter)) 
 
         logging.info('Total number of hyperparameter sets in %s sample : %d'%(self.sample,self.counter)) 
@@ -99,6 +95,7 @@ class ConcatenateCSV:
                     # We don't want these values anyway because eval_error will be the largest 
 
         logging.info('CSV file saved as %s'%(self.path_out))
+        print ('CSV file saved as %s'%(self.path_out)) 
         logging.info('Invalid cases (overflow), total %d/%d'%(invalid_counter,self.counter))
 
 def _correct(obj):

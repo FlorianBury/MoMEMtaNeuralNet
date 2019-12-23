@@ -14,12 +14,14 @@ import parameters
 
 
 class ProduceOutput:
-    def __init__(self,model,list_model,is_signal=False,is_class_param=False,list_inputs=None):
+    def __init__(self,model,list_model,is_signal=False,generator=False,is_class_param=False,list_inputs=None):
         self.model = model              # Model of the NeuralNet
         self.is_signal = is_signal
         self.is_class_param = is_class_param
         self.list_model = list_model
         self.list_inputs = list_inputs
+        self.generator = generator
+        self.generator_filepath = None
         if self.list_inputs is None:
             self.list_inputs = copy.deepcopy(parameters.inputs) 
 
@@ -42,7 +44,8 @@ class ProduceOutput:
             self.list_inputs = ['-log10(weight_DY)','-log10(weight_TT)',signal_name,'mH_gen','mA_gen']
 
         inputs = data[self.list_inputs].values
-        output = np.empty((inputs.shape[0],0))
+        #output = np.empty((inputs.shape[0],0))
+        output = None
         columns = []
 
         # Get Model Output #
@@ -53,19 +56,21 @@ class ProduceOutput:
 
             instance = HyperModel(self.model,model)
             if model in ['DY','TT','HToZA','ME']:
-                out = np.power(10,-instance.HyperRestore(inputs))
+                out = np.power(10,-instance.HyperRestore(inputs,generator=self.generator,generator_filepath=self.generator_filepath))
                 columns.append('output_%s'%model)
             else:
-                out = instance.HyperRestore(inputs)
+                out = instance.HyperRestore(inputs,generator=self.generator,generator_filepath=self.generator_filepath)
                 if model in ['binary']:
                     columns.extend(['Prob_MEM_signal'])
                 if model in ['class_param','global']:
                     columns.extend(['Prob_MEM_DY','Prob_MEM_HToZA','Prob_MEM_TT'])
-                
-            output = np.c_[output,out]
+            if output is None: # First element of loop
+                output = copy.deepcopy(out) # TODO : fix data_generator for last smaller batch
+            else:               # append next elements
+                output = np.c_[output,out] 
 
         # From numpy output array to df #
-        output_df = pd.DataFrame(output,columns=columns,index=data.index)
+        output_df = pd.DataFrame(output,columns=columns,index=pd.RangeIndex(start=0,stop=output.shape[0]))
 
         # Make full df #
         full_df = pd.concat([data,output_df],axis=1)
@@ -114,27 +119,17 @@ class ProduceOutput:
             if variables is None:
                 var = parameters.inputs+parameters.outputs+parameters.other_variables
             else:
-                var = copy.deepcopy(variables)
+                var = copy.deepcopy(variables) # Avoid bug where variables is changed at each new file
             data = Tree2Pandas(input_file=full_path,
                                variables=var,
                                weight=parameters.weights,
                                reweight_to_cross_section=False)
+                
             if data.shape[0]==0:
                 logging.info('\tEmpty tree')
                 continue # Avoids empty trees
+            
+            if self.generator:
+                self.generator_filepath = full_path
+
             self.OutputFromTraining(data=data,path_output=path_output,output_name=name)
-
-
-
-        
-
-
-   
-    
-
-
-
-
-
-
-

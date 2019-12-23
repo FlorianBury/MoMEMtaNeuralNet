@@ -72,8 +72,11 @@ def main():
                     #        override_params = {}),
                     #Plots(name = 'delaunay',
                     #      override_params = {}),
-                    Plots(name = 'ME_onevar',
+                    #Plots(name = 'ME_onevar',
+                    #      override_params = {}),
+                    Plots(name = 'ME_generator_weights',
                           override_params = {}),
+                          
                  ]
 
     # Select template #
@@ -98,9 +101,11 @@ def main():
                     #         class_name = 'Plot_TH1'),
                     #Template(tpl = 'TH1_JEC.yml.tpl',
                     #         class_name = 'Plot_TH1'),
-                    Template(tpl = 'TH1_ME_single_variable.yml.tpl',
-                             class_name = 'Plot_TH1'),
-                    Template(tpl = 'TH1_ME_composite_variable.yml.tpl',
+                    #Template(tpl = 'TH1_ME_single_variable.yml.tpl',
+                    #         class_name = 'Plot_TH1'),
+                    #Template(tpl = 'TH1_ME_composite_variable.yml.tpl',
+                    #         class_name = 'Plot_TH1'),
+                    Template(tpl = 'TH1_ME.yml.tpl',
                              class_name = 'Plot_TH1'),
 
                     #########       TH1 Ratio       ###########
@@ -114,6 +119,8 @@ def main():
                     #         class_name = 'Plot_Ratio_TH1'),
                     #Template(tpl = 'TH1Ratio_binary.yml.tpl',
                     #         class_name = 'Plot_Ratio_TH1'),
+                    Template(tpl = 'TH1Ratio_ME.yml.tpl',
+                             class_name = 'Plot_Ratio_TH1'),
 
                     #########       TH1 Multi       ###########
                     #Template(tpl = 'TH1Multi_signal.yml.tpl',
@@ -142,6 +149,8 @@ def main():
                     #         class_name = 'Plot_TH2'),
                     #Template(tpl = 'TH2_ME_composite_variable.yml.tpl',
                     #         class_name = 'Plot_TH2'),
+                    Template(tpl = 'TH2_ME.yml.tpl',
+                             class_name = 'Plot_TH2'),
                 ] 
 
     # Select template #

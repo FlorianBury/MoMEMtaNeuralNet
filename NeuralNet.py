@@ -103,7 +103,7 @@ class HyperModel:
 
         # Talos hyperscan parameters #
         self.task = task
-        if self.task!='': # if task is specified load it otherwise get it from parameters.py
+        if self.task != '': # if task is specified load it otherwise get it from parameters.py
             with open(os.path.join(parameters.main_path,'split',self.name,self.task), 'rb') as f:
                 self.p = pickle.load(f)
         else: # We need the full dict
@@ -119,12 +119,14 @@ class HyperModel:
 
         # Check if no already exists then change it -> avoids rewriting  #
         no = 1
-        self.name = self.name+'_'+self.sample+self.task.replace('.pkl','')
-        self.path_model = os.path.join(parameters.main_path,'model',self.name)
-        while os.path.exists(os.path.join(parameters.path_model,self.name+'_'+str(no)+'.csv')):
-            no +=1
-        
-        self.name_model = self.name+'_'+str(no)
+        if self.task == '': # If done on frontend
+            self.name = self.name+'_'+self.sample
+            self.path_model = os.path.join(parameters.main_path,'model',self.name)
+            while os.path.exists(os.path.join(parameters.path_model,self.name+'_'+str(no)+'.csv')):
+                no +=1
+            self.name_model = self.name+'_'+str(no)
+        else:               # If job on cluster
+            self.name_model = self.name+'_'+self.sample+self.task.replace('.pkl','')
 
         # Define scan object #
         #parallel_gpu_jobs(0.5)
@@ -161,21 +163,12 @@ class HyperModel:
             self.h_with_eval.data.to_csv(self.name_model+'.csv') # save to csv including error
             self.autom8 = True
         else:
-            #import pickle
-            #with open("scan_object.pkl", 'wb') as handle: 
-            #    pickle.dump(self.h, handle)
-            #print (self.h.__dict__.keys())
-            #print (self.h.saved_models)
-            #print (self.h.saved_weights)
-            #self.h.data.to_csv('data_test.csv') # save to csv including error
-            #import copy
-            #copy_obj = copy.deepcopy(self.h)
-            #sys.exit()
             error_arr = np.zeros(self.h.data.shape[0])
             for i in range(self.h.data.shape[0]):
                 print ("Evaluating model ",i)
                 model_eval = model_from_json(self.h.saved_models[i],custom_objects=custom_objects)   
                 model_eval.set_weights(self.h.saved_weights[i])
+                #model_eval.compile(optimizer=Adam(),loss={'OUT':parameters.p['loss_function']},metrics=['accuracy'])
                 model_eval.compile(optimizer=Adam(),loss={'OUT':logcosh},metrics=['accuracy'])
                 test_generator = DataGenerator(path = parameters.path_gen_validation,
                                                inputs = parameters.inputs,
@@ -183,23 +176,16 @@ class HyperModel:
                                                batch_size = parameters.p['batch_size'][0],
                                                training = False)
 
-                #error_arr[i] = model_eval.evaluate_generator(generator             = test_generator,
-                #                                            verbose               = 1,
-                #                                            #callbacks             = Callback_list,
-                #                                            #workers               = parameters.workers,
-                #                                            #max_queue_size        = 1,
-                #                                            steps                 = 10,
-                #                                            #workers               = 1,
-                #                                            use_multiprocessing   = True)
-                error_arr[i]=i
+                eval_metric = model_eval.evaluate_generator(generator             = test_generator,
+                                                            workers               = parameters.workers,
+                                                            #steps                 = 10,
+                                                            use_multiprocessing   = True)
+                error_arr[i] = eval_metric[0]
                 print ('Error is ',error_arr[i])
             self.h.data['eval_mean'] = error_arr
-            print (self.h.data)
             self.h.data.to_csv(self.name_model+'.csv') # save to csv including error
             self.autom8 = True
             
-            #self.autom8 = False
-
         # returns the experiment configuration details
         logging.info('='*80)
         logging.debug('Details')
@@ -221,20 +207,23 @@ class HyperModel:
             logging.critical('Model not saved as .zip due to incorrect best model parameter')
         #if self.idx_best_model==self.idx_best_eval:
         #    logging.warning('Best models according to val_loss and cross-validation are the same')
+        if self.task == '':     # On frontend
+            path_model = parameters.path_model
+        else:                   # On cluster
+            path_model = ''
 
         # Save models #
         if best == 'eval_error' and not self.autom8:
             logging.warning('You asked for the evaluation error but it was not computed, will switch to val_loss') 
             best = 'val_loss'
         if best == 'eval_error':
-            Deploy(self.h,model_name=self.name_model,metric='eval_mean',asc=True,path_model=parameters.path_model)
+            Deploy(self.h,model_name=self.name_model,metric='eval_mean',asc=True,path_model=path_model)
         elif best == 'val_loss':
-            Deploy(self.h,model_name=self.name_model,metric='val_loss',asc=True,path_model=parameters.path_model)
+            Deploy(self.h,model_name=self.name_model,metric='val_loss',asc=True,path_model=path_model)
             logging.warning('Best model saved according to val_loss')
         else: 
             logging.error('Argument of HyperDeploy not understood')
             sys.exit(1)
-
 
     #############################################################################################
     # HyperReport #
@@ -324,7 +313,7 @@ class HyperModel:
     #############################################################################################
     # HyperRestore #
     #############################################################################################
-    def HyperRestore(self,inputs,batch_size=32,verbose=0):
+    def HyperRestore(self,inputs,verbose=0,generator=False,generator_filepath=None):
         """
         Retrieve a zip containing the best model, parameters, x and y data, ... and restores it
         Produces an output from the input numpy array
@@ -345,6 +334,20 @@ class HyperModel:
                 time.sleep(3)
 
         # Output of the model #
-        outputs = a.model.predict(inputs,batch_size=batch_size,verbose=verbose)
+        if not generator:
+            outputs = a.model.predict(inputs,batch_size=parameters.output_batch_size,verbose=verbose)
+        else:
+            if generator_filepath is None:
+                logging.error("Generator output must be provided with a filepath")
+                sys.exit(1)
+            output_generator = DataGenerator(path = generator_filepath,
+                                             inputs = parameters.inputs,
+                                             outputs = parameters.outputs,
+                                             batch_size = parameters.output_batch_size,
+                                             training = False)
+            outputs = a.model.predict_generator(output_generator,
+                                              workers=parameters.workers,
+                                              use_multiprocessing=True,
+                                              verbose=1)
 
         return outputs

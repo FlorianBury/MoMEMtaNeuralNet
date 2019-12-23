@@ -13,6 +13,7 @@ from root_numpy import root2array, rec2array
 from scipy import interp
 
 from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT, TGaxis, TPad, TLegend, TImage, THStack
+import ROOT
 
 from sklearn import metrics
 import matplotlib.pyplot as plt

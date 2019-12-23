@@ -18,7 +18,13 @@ class DataGenerator(keras.utils.Sequence):
         self.inputs     = inputs                        # List of strings of the variables as inputs
         self.outputs    = outputs                       # List of strings of the variables as outputs
         self.batch_size = batch_size                    # Batch size
-        self.list_files = glob.glob(path+'/*.root')     # List of files obtained from path
+        if os.path.isdir(path):
+            self.list_files = glob.glob(path+'/*.root') # List of files obtained from path
+        elif os.path.isfile(path):
+            self.list_files = [path]                    # Only one file for generation
+        else:
+            logging.error("path '%s' is not a dir nor a file "%path)
+            sys.exit(1)
         self.training   = training                      # True if training, False if validation (for printing purpose)
         self.get_fractions()
 
@@ -45,6 +51,10 @@ class DataGenerator(keras.utils.Sequence):
             logging.info("Number of entries of file %s : %d"%(f,n))
             entries[f] = n
             self.n_tot += n
+
+        if self.n_tot<self.batch_size:
+            logging.error("Fewer events than required batch size for generator")
+            sys.exit(1)
 
         # Fill batch contributions #
         total_in_batch = 0

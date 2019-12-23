@@ -23,14 +23,6 @@ from sklearn.preprocessing import OneHotEncoder
 
 
 # Personal files #
-from NeuralNet import HyperModel
-from submit_on_slurm import submit_on_slurm
-from generate_mask import GenerateMask
-from split_training import DictSplit
-from concatenate_csv import ConcatenateCSV
-from sampleList import samples_dict, samples_path
-from signal_coupling import Decoupler, Repeater
-import parameters
     
 
 
@@ -141,10 +133,19 @@ def main():
                             format='%(asctime)s - %(levelname)s - %(message)s')
 
     # Private modules containing Pyroot #
+    from NeuralNet import HyperModel
     from import_tree import LoopOverTrees
     from produce_output import ProduceOutput
     from parameterize_classifier import ParametrizeClassifier
     from make_scaler import MakeScaler
+    from submit_on_slurm import submit_on_slurm
+    from generate_mask import GenerateMask
+    from split_training import DictSplit
+    from concatenate_csv import ConcatenateCSV
+    from sampleList import samples_dict, samples_path
+    from signal_coupling import Decoupler, Repeater
+    import parameters
+
     # Needed because PyROOT messes with argparse
 
     logging.info("="*88)
@@ -266,7 +267,7 @@ def main():
         is_signal = True if opt.HToZA else False
         is_class_param = True if opt.class_param else False
         # Instantiate #
-        inst_out = ProduceOutput(model=os.path.join(parameters.main_path,'model',opt.model),list_model=list_model,is_signal=is_signal,is_class_param=is_class_param)
+        inst_out = ProduceOutput(model=os.path.join(parameters.main_path,'model',opt.model),list_model=list_model,is_signal=is_signal,is_class_param=is_class_param,generator=opt.generator)
         # Loop over output keys #
         for key in opt.output:
             # Create subdir #
@@ -530,7 +531,7 @@ def main():
         # Instance of output class #
         is_signal = True if opt.HToZA else False
         is_class_param = True if opt.class_param else False
-        inst_out = ProduceOutput(model=os.path.join(parameters.main_path,'model',opt.model),list_model=list_model,is_signal=is_signal,is_class_param=is_class_param)
+        inst_out = ProduceOutput(model=os.path.join(parameters.main_path,'model',opt.model),list_model=list_model,is_signal=is_signal,is_class_param=is_class_param,generator=opt.generator)
 
         # Use it on test samples #
         if opt.test:
