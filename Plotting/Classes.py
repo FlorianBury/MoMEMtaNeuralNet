@@ -74,6 +74,10 @@ class Plot_TH1:
         self.histo.SetTitleOffset(1.6,'xyz')
         self.histo.SetMinimum(0)
         self.histo.SetLineWidth(2)
+        # Overflow #
+        self.histo.SetBinContent(1,self.histo.GetBinContent(0)+self.histo.GetBinContent(1))
+        self.histo.SetBinContent(self.histo.GetNbinsX(),self.histo.GetBinContent(self.histo.GetNbinsX())+self.histo.GetBinContent(self.histo.GetNbinsX()+1))
+
 
         self.histo.Draw()
 
