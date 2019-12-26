@@ -6,110 +6,165 @@ import h5py
 import copy
 import pprint 
 import numpy as np
+#sys.path.insert(0,"/home/users/f/b/fbury/MoMEMtaNeuralNet/") # TODO : remove after
+import parameters
+
+class generateLwtnnNetwork():
+    def __init__(self,json_file,h5_file):
+        self.json_file      = json_file
+        self.h5_file        = h5_file
+        self.new_json_file  = "new_"+json_file
+        self.new_h5_file    = "new_"+h5_file
+        self.path_to_convert= "~/LWTNN/lwtnn/converters/kerasfunc2json.py"
+        self.variables_json = "variables.json"
+        self.neuralNet_json = "neuralNet.json"
+
+    def removeJsonPreprocess(self):
+        print ("="*80)
+        print ("Modifying the json file %s"%self.json_file)
+        with open(self.json_file, 'r') as f:
+            arch = json.load(f)
+        preprocess_layer = arch['config']['layers'][1]
+        self.mean = preprocess_layer['config']['mean']
+        self.std = preprocess_layer['config']['std']
+
+        del arch['config']['layers'][1]
+
+        arch['config']['layers'][1]['inbound_nodes'][0][0][0] = arch['config']['input_layers'][0][0]
 
 
-def removeJsonPreprocess(json_file):
-    with open(json_file, 'r') as f:
-        arch = json.load(f)
-    #pprint.pprint(arch) 
-    preprocess_layer = arch['config']['layers'][1]
-    mean = preprocess_layer['config']['mean']
-    std = preprocess_layer['config']['std']
+        with open(self.new_json_file, 'w') as f:
+            json.dump(arch,f)
 
-    del arch['config']['layers'][1]
+        print ("New architecture saved in %s"%self.new_json_file)
+        pprint.pprint(arch)
 
-    arch['config']['layers'][1]['inbound_nodes'][0][0][0] = arch['config']['input_layers'][0][0]
+    def print_structure(weight_file_path):
+        """
+        Prints out the structure of HDF5 file.
 
+        Args:
+          weight_file_path (str) : Path to the file to analyze
+        """
+        f = h5py.File(weight_file_path,'r')
+        try:
+            if len(f.attrs.items()):
+                print("{} contains: ".format(weight_file_path))
+                print("Root attributes:")
 
-    with open('new_'+json_file, 'w') as f:
-        json.dump(arch,f)
+            print("f.attrs.items(): ")
+            for key, value in f.attrs.items():           
+                print("  {}: {}".format(key, value))
 
-def print_structure(weight_file_path):
-    """
-    Prints out the structure of HDF5 file.
+            if len(f.items())==0:
+                print("Terminate # len(f.items())==0: ")
+                return 
 
-    Args:
-      weight_file_path (str) : Path to the file to analyze
-    """
-    f = h5py.File(weight_file_path,'r')
-    try:
-        if len(f.attrs.items()):
-            print("{} contains: ".format(weight_file_path))
-            print("Root attributes:")
+            print("layer, g in f.items():")
+            for layer, g in f.items():            
+                print("  {}".format(layer))
+                print("    g.attrs.items(): Attributes:")
+                for key, value in g.attrs.items():
+                    print("      {}: {}".format(key, value))
 
-        print("f.attrs.items(): ")
-        for key, value in f.attrs.items():           
-            print("  {}: {}".format(key, value))
+                print("    Dataset:")
+                for p_name in g.keys():
+                    param = g[p_name]
+                    subkeys = param.keys()
+                    print("    Dataset: param.keys():")
+                    for k_name in param.keys():
+                        print("      {}/{}: {}".format(p_name, k_name, param.get(k_name)[:]))
+                print()
+        finally:
+            f.close()
 
-        if len(f.items())==0:
-            print("Terminate # len(f.items())==0: ")
-            return 
+    def removeH5Preprocess(self):
+        print ("="*80)
+        print ("Modifying the h5 file %s"%self.h5_file)
+        f = h5py.File(self.h5_file, 'r')
+        new_f = h5py.File(self.new_h5_file, 'w')
 
-        print("layer, g in f.items():")
-        for layer, g in f.items():            
-            print("  {}".format(layer))
-            print("    g.attrs.items(): Attributes:")
-            for key, value in g.attrs.items():
-                print("      {}: {}".format(key, value))
+        for key, value in f.attrs.items(): # Needs to copy h5 attributes
+            if isinstance(value,np.ndarray): # Need to exclude the preprocess name from list of layers
+                new_value = np.ndarray(shape=(value.shape[0]-1,),dtype=value.dtype)
+                j = 0
+                for i in range(value.shape[0]):
+                    if b'Preprocess' not in value[i]:
+                        new_value[j] = value[i]
+                        j += 1
+                new_f.attrs[key] = new_value
+            else:
+                new_f.attrs[key] = value
 
-            print("    Dataset:")
-            for p_name in g.keys():
-                param = g[p_name]
-                subkeys = param.keys()
-                print("    Dataset: param.keys():")
-                for k_name in param.keys():
-                    print("      {}/{}: {}".format(p_name, k_name, param.get(k_name)[:]))
-            print()
-    finally:
+        for layer, group in f.items():     # Loop on groups and their names 'layer)
+            print ("Layer {}".format(layer))
+            # Check if preprocess layer #
+            if 'Preprocess' in layer:
+                print ('  Skipped')
+                continue
+            # Empty layers (dropout, ...)
+            if (len(list(group.keys())) == 0): # Does not contain subgroups of datasets
+                new_g = new_f.create_group(layer)
+                for key, value in group.attrs.items():
+                    new_g.attrs.create(key,value)
+                print ("  Empty group, has been copied")
+            # Non-Empty layers (dense, ...)
+            else: # Does contain something
+                new_g = new_f.create_group(layer)       # Create first level group
+                for key, value in group.attrs.items():  # Copy attributes of group
+                    new_g.attrs.create(key,value) 
+                for subname, subgroup in group.items(): # Loop through subgroups
+                    print ("  Contains subgroup ",subname)
+                    print ("  Group {}/{} has been added".format(layer,subname))
+                    new_subg = new_f.create_group("{}/{}".format(layer,subname)) # Create subgroup
+                    for dataset_name in subgroup.keys():    # Loop through datasets in the given layer and add them to new file
+                        print ("    Added dataset {}/{}/{} to group".format(layer,subname,dataset_name))
+                        new_f.create_dataset("{}/{}/{}".format(layer,subname,dataset_name),data=subgroup.get(dataset_name)[:])
+                        
         f.close()
+        new_f.close()
+        print ("New h5 file saved as %s"%self.new_h5_file)
 
-def removeH5Preprocess(h5_file):
-    f = h5py.File(h5_file, 'r')
-    new_f = h5py.File('new_'+h5_file, 'w')
+    def makeVariablesJson(self):
+        print ("="*80)
+        print ("Generate the variables json file")
+        os.system("{} {} {} > {}".format(self.path_to_convert,self.new_json_file,self.new_h5_file,self.variables_json))
+        print ("Created json file %s"%self.variables_json)
 
-    
-    for key, value in f.attrs.items(): # Needs to copy h5 attributes
-        print (key)
-        if isinstance(value,np.ndarray): # Need to exclude the preprocess name from list of layers
-            new_value = np.ndarray(shape=(value.shape[0]-1,),dtype=value.dtype)
-            j = 0
-            for i in range(value.shape[0]):
-                if b'Preprocess' not in value[i]:
-                    new_value[j] = value[i]
-                    j += 1
-            new_f.attrs[key] = new_value
-        else:
-            new_f.attrs[key] = value
+    def modifyVariablesJson(self):
+        print ("="*80)
+        print ("Modify the variables json script")
+        with open(self.variables_json, 'r') as f:
+            variables = json.load(f)
+        N_var = len(variables['inputs'][0]['variables'])
+        assert(N_var == len(parameters.inputs))
 
-    for layer, group in f.items():     # Loop on groups and their names 'layer)
-        print ("Layer {}".format(layer))
-        # Check if preprocess layer #
-        if 'Preprocess' in layer:
-            print ('  Skipped')
-            continue
-        # Empty layers (dropout, ...)
-        if (len(list(group.keys())) == 0): # Does not contain subgroups of datasets
-            new_g = new_f.create_group(layer)
-            for key, value in group.attrs.items():
-                new_g.attrs.create(key,value)
-            print ("  Empty group, has been copied")
-        # Non-Empty layers (dense, ...)
-        else: # Does contain something
-            new_g = new_f.create_group(layer)       # Create first level group
-            for key, value in group.attrs.items():  # Copy attributes of group
-                new_g.attrs.create(key,value) 
-            for subname, subgroup in group.items(): # Loop through subgroups
-                print ("  Contains subgroup ",subname)
-                print ("  Group {}/{} has been added".format(layer,subname))
-                new_subg = new_f.create_group("{}/{}".format(layer,subname)) # Create subgroup
-                for dataset_name in subgroup.keys():    # Loop through datasets in the given layer and add them to new file
-                    print ("    Added dataset {}/{}/{} to group".format(layer,subname,dataset_name))
-                    new_f.create_dataset("{}/{}/{}".format(layer,subname,dataset_name),data=subgroup.get(dataset_name)[:])
-                    
-    new_f.close()
+        for i in range(N_var):
+            var = variables['inputs'][0]['variables'][i]
+            var['name'] = parameters.inputs[i]
+            var['offset'] = -self.mean[i]
+            var['scale'] = 1/self.std[i]
+        pprint.pprint (variables)
+
+    def makeNeuralNetJson(self):
+        print ("="*80)
+        print ("Generate the Neural Net json file")
+        os.system("{} {} {} {} > {}".format(self.path_to_convert,self.new_json_file,self.new_h5_file,self.variables_json,self.neuralNet_json))
+        print ("Created json file %s"%self.neuralNet_json)
+
+    def cleanUp(self):
+        print ("="*80)
+        print ("Clean up")
+        os.system('rm -v '+self.new_json_file)
+        os.system('rm -v '+self.new_h5_file)
+        os.system('rm -v '+self.variables_json)
 
 if __name__ == '__main__':
-    removeJsonPreprocess(sys.argv[1])
-    removeH5Preprocess(sys.argv[2])
+    instance = generateLwtnnNetwork(sys.argv[1],sys.argv[2])
+    instance.removeJsonPreprocess()
+    instance.removeH5Preprocess()
+    instance.makeVariablesJson()
+    instance.modifyVariablesJson()
+    instance.makeNeuralNetJson()
+    instance.cleanUp()
     #print_structure(sys.argv[2])
-    print_structure('new_'+sys.argv[2])
