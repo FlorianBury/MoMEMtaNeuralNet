@@ -6,15 +6,14 @@ import h5py
 import copy
 import pprint 
 import numpy as np
-#sys.path.insert(0,"/home/users/f/b/fbury/MoMEMtaNeuralNet/") # TODO : remove after
 import parameters
 
 class generateLwtnnNetwork():
     def __init__(self,json_file,h5_file):
         self.json_file      = json_file
         self.h5_file        = h5_file
-        self.new_json_file  = "new_"+json_file
-        self.new_h5_file    = "new_"+h5_file
+        self.new_json_file  = "new_"+os.path.basename(json_file)
+        self.new_h5_file    = "new_"+os.path.basename(h5_file)
         self.path_to_convert= "~/LWTNN/lwtnn/converters/kerasfunc2json.py"
         self.variables_json = "variables.json"
         self.neuralNet_json = "neuralNet.json"
@@ -139,12 +138,20 @@ class generateLwtnnNetwork():
         N_var = len(variables['inputs'][0]['variables'])
         assert(N_var == len(parameters.inputs))
 
+        # Change input names, offset and scales #
         for i in range(N_var):
             var = variables['inputs'][0]['variables'][i]
             var['name'] = parameters.inputs[i]
             var['offset'] = -self.mean[i]
             var['scale'] = 1/self.std[i]
+
+        # Change output name #
+        variables['outputs'][0]['labels'] = [parameters.outputs[0]]
+        #variables['outputs'][0]['name'] = parameters.outputs[0]
+
         pprint.pprint (variables)
+        with open(self.variables_json, 'w') as f:
+            json.dump(variables,f,indent=4)
 
     def makeNeuralNetJson(self):
         print ("="*80)
@@ -157,7 +164,7 @@ class generateLwtnnNetwork():
         print ("Clean up")
         os.system('rm -v '+self.new_json_file)
         os.system('rm -v '+self.new_h5_file)
-        os.system('rm -v '+self.variables_json)
+        #os.system('rm -v '+self.variables_json)
 
 if __name__ == '__main__':
     instance = generateLwtnnNetwork(sys.argv[1],sys.argv[2])
