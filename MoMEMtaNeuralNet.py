@@ -20,8 +20,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
 
-
-
 # Personal files #
     
 def get_options():
@@ -119,7 +117,7 @@ def get_options():
     if (opt.generator):
         logging.info("Will use the generator")
     if (opt.generator_weights):
-        logging.info("Will provide weights to the generator from %s"%parameters.weights_generator)
+        logging.info("Will provide weights to the generator")
         if (not opt.generator):
             logging.critical("You need to specify --generator in order to use --generator_weights")
             sys.exit(1)
@@ -133,14 +131,11 @@ def main():
     # Preparation #
     #############################################################################################
     # Get options from user #
+    logging.basicConfig(level=logging.DEBUG,format='%(asctime)s - %(levelname)s - %(message)s',datefmt='%m/%d/%Y %H:%M:%S')
     opt = get_options()
     # Verbose logging #
-    if opt.verbose:
-        logging.basicConfig(level=logging.DEBUG,
-                            format='%(asctime)s - %(levelname)s - %(message)s')
-    else:
-        logging.basicConfig(level=logging.INFO,
-                            format='%(asctime)s - %(levelname)s - %(message)s')
+    if not opt.verbose:
+        logging.getLogger().setLevel(logging.INFO)
 
     # Private modules containing Pyroot #
     from NeuralNet import HyperModel
