@@ -24,8 +24,6 @@ from sklearn.preprocessing import OneHotEncoder
 
 # Personal files #
     
-
-
 def get_options():
     """
     Parse and return the arguments provided by the user.
@@ -52,10 +50,12 @@ def get_options():
         help='Use the ME integrand for the regression')
     a.add_argument('-task','--task', action='store', required=False, type=str, default='',
         help='Name of dict to be used for scan (Used by function itself when submitting jobs or DEBUG)')
-    a.add_argument('--generator', action='store_true', required=False, 
+    a.add_argument('--generator', action='store_true', required=False, default=False, 
         help='Wether to use a generator for the neural network')
-    a.add_argument('--resume', action='store', required=False, type=str, default='',
-        help='Wether to resume the training of a given model (provide the path as argument)')
+    a.add_argument('--generator_weights', action='store_true', required=False, default=False,
+        help='Wether to use weights in the generator (path in parameters.py)')
+    a.add_argument('--resume', action='store_true', required=False, default=False,
+        help='Wether to resume the training of a given model (path in parameters.py)')
 
     # Splitting and submitting jobs arguments #
     b = parser.add_argument_group('Splitting and submitting jobs arguments')
@@ -81,7 +81,7 @@ def get_options():
 
     # Concatenating csv files arguments #
     d = parser.add_argument_group('Concatenating csv files arguments')
-    d.add_argument('-csv','--csv', action='store', required=False, type=str, default='',                                                                                                          
+    d.add_argument('-csv','--csv', action='store', required=False, type=str, default='',
         help='Wether to concatenate the csv files from different slurm jobs into a main one, \
               please provide the path to the csv files')
 
@@ -116,6 +116,16 @@ def get_options():
     if (opt.test or len(opt.output)!=0) and opt.output == '': 
         logging.critical('You must specify the model with --output')
         sys.exit(1)
+    if (opt.generator):
+        logging.info("Will use the generator")
+    if (opt.generator_weights):
+        logging.info("Will provide weights to the generator from %s"%parameters.weights_generator)
+        if (not opt.generator):
+            logging.critical("You need to specify --generator in order to use --generator_weights")
+            sys.exit(1)
+    if (opt.resume):
+        logging.info("Will resume the training of the model")
+
     return opt
 
 def main():
@@ -472,6 +482,8 @@ def main():
                                list_inputs=list_inputs,
                                list_outputs=list_outputs,
                                task=opt.task,
+                               generator=opt.generator,
+                               generator_weights=opt.generator_weights,
                                resume=opt.resume)
             instance.HyperDeploy(best='eval_error')
         # TT network #
@@ -481,6 +493,8 @@ def main():
                                list_inputs=list_inputs,
                                list_outputs=list_outputs,
                                task=opt.task,
+                               generator=opt.generator,
+                               generator_weights=opt.generator_weights,
                                resume=opt.resume)
             instance.HyperDeploy(best='eval_error')
         # HToZA network #
@@ -490,6 +504,8 @@ def main():
                                list_inputs=list_inputs,
                                list_outputs=list_outputs,
                                task=opt.task,
+                               generator=opt.generator,
+                               generator_weights=opt.generator_weights,
                                resume=opt.resume)
             instance.HyperDeploy(best='eval_error')
         # Multiclass network #
@@ -499,6 +515,8 @@ def main():
                                list_inputs=list_inputs,
                                list_outputs=['DY','HToZA','TT'],
                                task=opt.task,
+                               generator=opt.generator,
+                               generator_weights=opt.generator_weights,
                                resume=opt.resume)
             instance.HyperDeploy(best='eval_error')
         # Binary class network #
@@ -508,6 +526,8 @@ def main():
                                list_inputs=list_inputs,
                                list_outputs=['Target_signal'],
                                task=opt.task,
+                               generator=opt.generator,
+                               generator_weights=opt.generator_weights,
                                resume=opt.resume)
             instance.HyperDeploy(best='eval_error')
         # ME regression network #
@@ -518,6 +538,7 @@ def main():
                                list_outputs=list_outputs,
                                task=opt.task,
                                generator=opt.generator,
+                               generator_weights=opt.generator_weights,
                                resume=opt.resume)
             instance.HyperDeploy(best='eval_error')
         

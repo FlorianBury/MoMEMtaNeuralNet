@@ -335,53 +335,61 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
     L1 = Dense(params['first_neuron'],
                activation=params['activation'],
                kernel_regularizer=l2(params['l2']))(L0)
-    HIDDEN = hidden_layers(params,1,batch_normalization=False).API(L1)
+    HIDDEN = hidden_layers(params,1,batch_normalization=True).API(L1)
     OUT = Dense(1,activation=params['output_activation'],name='OUT')(HIDDEN)
 
-    # Define model #
-    model = Model(inputs=[IN], outputs=[OUT])
-    utils.print_summary(model=model) #used to print model
 
-    preprocess = Model(inputs=[IN],outputs=[L0])
-    utils.print_summary(model=preprocess)
+    #preprocess = Model(inputs=[IN],outputs=[L0])
+    #utils.print_summary(model=preprocess)
 
     # Callbacks #
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0., patience=25, verbose=1, mode='min')
-    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, verbose=1, mode='min', cooldown=1, min_lr=1e-6)
+    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0., patience=50, verbose=1, mode='min')
+    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=20, verbose=1, mode='min', cooldown=1, min_lr=1e-5)
     loss_history = LossHistory()
     Callback_list = [loss_history,early_stopping,reduceLR]#
 
     # Compile #
     if 'resume' not in params: 
+        # Define model #
+        model = Model(inputs=[IN], outputs=[OUT])
+        logging.info("/!\ CURRENT MODEL /!\ ")
+        print("/!\ CURRENT MODEL /!\ ")
+        utils.print_summary(model=model) #used to print model
+        # Compile it #
         model.compile(optimizer=Adam(lr=params['lr']),
                       loss={'OUT':params['loss_function']},
                       metrics=['accuracy'])
         initial_epoch = 0
     else: # a model has to be imported and resumes training
-        a = Restore(params['resume'],method='h5')
+        custom_objects =  {'PreprocessLayer': PreprocessLayer}
+        logging.info("/!\ LOADED MODEL /!\ ")
+        print("/!\ LOADED MODEL /!\ ")
+        a = Restore(params['resume'],custom_objects=custom_objects,method='h5')
         model = a.model
         model.compile(optimizer=Adam(lr=params['lr']),
                       loss={'OUT':params['loss_function']},
                       metrics=['accuracy'])
+        utils.print_summary(model=model) #used to print model
+        #initial_epoch = a.params['epochs'][0]  
         initial_epoch = params['initial_epoch']
-        logging.info("Will resume training at epoch %d"%params['initial_epoch'])
         
     # Generator #
     training_generator = DataGenerator(path = parameters.path_gen_training,
                                        inputs = parameters.inputs,
                                        outputs = parameters.outputs,
                                        batch_size = params['batch_size'],
-                                       training = True)
+                                       state_set = 'training',
+                                       weights_generator = parameters.weights_generator)
     validation_generator = DataGenerator(path = parameters.path_gen_validation,
                                        inputs = parameters.inputs,
                                        outputs = parameters.outputs,
                                        batch_size = params['batch_size'],
-                                       training = False)
-    test_generator = DataGenerator(path = parameters.path_gen_output,
-                                       inputs = parameters.inputs,
-                                       outputs = parameters.outputs,
-                                       batch_size = params['batch_size'],
-                                       training = False)
+                                       state_set = 'validation')
+    #test_generator = DataGenerator(path = parameters.path_gen_output,
+    #                                   inputs = parameters.inputs,
+    #                                   outputs = parameters.outputs,
+    #                                   batch_size = params['batch_size'],
+    #                                   training = False)
 
         # Fit #
     logging.info("Will use %d workers"%parameters.workers)
@@ -393,6 +401,7 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
                                   validation_data       = validation_generator,
                                   epochs                = params['epochs'], 
                                   verbose               = 1,
+                                  max_queue_size        = 100,
                                   callbacks             = Callback_list,
                                   initial_epoch         = initial_epoch,
                                   workers               = parameters.workers,

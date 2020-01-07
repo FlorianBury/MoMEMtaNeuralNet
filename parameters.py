@@ -27,7 +27,7 @@ output_ratio = 0.2      # Output set for plotting later
 ############################### Slurm parameters ######################################
 partition = 'cp3-gpu'  # Def, cp3 or cp3-gpu
 QOS = 'cp3-gpu' # cp3 or normal
-time = '1-00:00:00' # days-hh:mm:ss
+time = '5-00:00:00' # days-hh:mm:ss
 mem = '60000' # ram in MB
 tasks = '20' # Number of threads(as a string)
 
@@ -44,6 +44,9 @@ suffix = 'gen_ME'
 # scaler_name -> 'scaler_{suffix}.pkl'  If does not exist will be created 
 # mask_name -> 'mask_{suffix}_{sample}.npy'  If does not exist will be created 
 
+# Training resume #
+resume_model = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/GPU_8x500_elu_200epochs_withBatchNorm_ME.zip'   # Must be turned on in the argparse arguments
+
 # Generator #
 #path_gen_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path3' # For training
 #path_gen_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path0' # For val_loss during training
@@ -53,6 +56,10 @@ path_gen_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generat
 path_gen_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_all/path0' # For val_loss during training
 path_gen_evaluation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_all/path1' # for model evaluation
 path_gen_output = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_all/path2' # for output
+
+#weights_generator = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/utils/profile.root' # Must be turned on in the argparse arguments
+weights_generator = ''
+
 
 workers = 20
 
@@ -93,20 +100,32 @@ eval_criterion = "eval_error" # either val_loss or eval_error
 #    'loss_function' : [binary_crossentropy] 
 #}
 # Regression #
+#p = { 
+#    'lr' : [0.001], 
+#    'first_neuron' : [100],
+#    'activation' : [relu],
+#    'dropout' : [0],
+#    'hidden_layers' : [5], # does not take into account the first layer
+#    'output_activation' : [elu],
+#    'l2' : [0],
+#    'optimizer' : [Adam],  
+#    'epochs' : [100],   
+#    'batch_size' : [50000], 
+#    'loss_function' : [mean_squared_error]
+#}
 p = { 
     'lr' : [0.001], 
-    'first_neuron' : [100],
+    'first_neuron' : [200],
     'activation' : [relu],
     'dropout' : [0],
-    'hidden_layers' : [5], # does not take into account the first layer
-    'output_activation' : [selu],
+    'hidden_layers' : [7], # does not take into account the first layer
+    'output_activation' : [elu],
     'l2' : [0],
     'optimizer' : [Adam],  
     'epochs' : [1],   
     'batch_size' : [50000], 
-    'loss_function' : [logcosh]
+    'loss_function' : [mean_squared_error],
 }
-
 repetition = 1 # How many times each hyperparameter has to be used 
 
 ###################################  Variables   ######################################

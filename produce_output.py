@@ -74,6 +74,14 @@ class ProduceOutput:
 
         # Make full df #
         full_df = pd.concat([data,output_df],axis=1)
+        # Unresolved issue in DataGenerator :
+        # Cannot use smaller batches than batch_size to truncate the last elements of array
+        # that do not fit in a last batch
+        # TODO : fix that
+        # In the meantime, also truncate the output array, otherwise will fill nan
+        full_df = full_df[:output.shape[0]]
+
+        # Check signal case , needs to recouple parameters #
         if self.is_signal:
             logging.info("Signal case : Recoupling of the data")
             full_df = Recoupler(full_df,col_to_recouple = ['weight_HToZA','output_HToZA'],N=len(list_to_decouple))
@@ -101,7 +109,6 @@ class ProduceOutput:
             full_output_name = os.path.join(path_output,output_name)
             array2root(full_output,full_output_name,mode='recreate')
             logging.info('Output saved as : '+full_output_name)
-
          
     def OutputNewData(self,input_dir,list_sample,path_output,variables=None):
         """

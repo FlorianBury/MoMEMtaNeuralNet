@@ -60,11 +60,12 @@ class HyperModel:
         self.name = name
         self.sample = sample
         logging.info((' Starting '+self.sample+' case ').center(80,'='))
+        self.custom_objects =  {'PreprocessLayer': PreprocessLayer} # Needs to be specified when saving and restoring
 
     #############################################################################################
     # HyperScan #
     #############################################################################################
-    def HyperScan(self,data,list_inputs,list_outputs,task,generator=False,resume=False):
+    def HyperScan(self,data,list_inputs,list_outputs,task,generator=False,generator_weights=False,resume=False):
         """
         Performs the scan for hyperparameters
         If task is specified, will load a pickle dict splitted from the whole set of parameters
@@ -81,8 +82,6 @@ class HyperModel:
         logging.info('Number of outputs : %d'%len(list_outputs))
         for name in list_outputs:
             logging.info('..... %s'%name)
-        if resume:
-            logging.warning("The training from model %s will be resumed"%resume)
             
         # Records #
         if not generator:
@@ -110,12 +109,23 @@ class HyperModel:
             self.p = parameters.p
 
         # If resume, puts it as argument ot be passed to function #
-        if resume != '':
-            self.p['resume'] = [resume]
-            a = Restore(resume)
+        # Also, needs to change the dictionary parameters for the one in the imported model #
+        if resume:
+            logging.info("Will resume training of model %s"%parameters.resume_model)
+            # Get model and extract epoch range #
+            a = Restore(parameters.resume_model,custom_objects=self.custom_objects)
             initial_epoch = a.params['epochs'][0]
-            self.p['initial_epoch'] = [initial_epoch] 
-            self.p['epochs'][0] += initial_epoch
+            supp_epochs = self.p['epochs'][0] # Will update the param dict, so must keep that in memory
+            batch_size_save = self.p['batch_size'] # Might want to change batch_size in retraining
+            # Update params dict with the one from the trained model #
+            self.p = a.params
+            self.p['resume'] = [parameters.resume_model]
+            self.p['initial_epoch'] = [initial_epoch]  # Save initial epoch to be passed to Model
+            self.p['epochs'][0] = initial_epoch+supp_epochs # Initial = last epoch of already trained model (is a list)
+            self.p['batch_size'] = batch_size_save
+            logging.warning("Since you asked to resume training of model %s, the parameters dictionary has been set to the one used to train the model"%parameters.resume_model)
+            logging.info("Will train the model from epoch %d to %d"%(self.p['initial_epoch'][0],self.p['epochs'][0]))
+            print("Will train the model from epoch %d to %d"%(self.p['initial_epoch'][0],self.p['epochs'][0]))
 
         # Check if no already exists then change it -> avoids rewriting  #
         no = 1
@@ -130,7 +140,6 @@ class HyperModel:
 
         # Define scan object #
         #parallel_gpu_jobs(0.5)
-        custom_objects =  {'PreprocessLayer': PreprocessLayer}
         self.h = Scan(  x=self.x_train,
                    y=self.y_train,
                    params=self.p,
@@ -148,7 +157,7 @@ class HyperModel:
                    print_params=True,
                    repetition=parameters.repetition,
                    path_model = parameters.path_model,
-                   custom_objects = custom_objects,
+                   custom_objects=self.custom_objects,
                 )
         if not generator:
             self.h_with_eval = Autom8(scan_object = self.h,
@@ -166,11 +175,11 @@ class HyperModel:
             error_arr = np.zeros(self.h.data.shape[0])
             for i in range(self.h.data.shape[0]):
                 print ("Evaluating model ",i)
-                model_eval = model_from_json(self.h.saved_models[i],custom_objects=custom_objects)   
+                model_eval = model_from_json(self.h.saved_models[i],custom_objects=self.custom_objects)   
                 model_eval.set_weights(self.h.saved_weights[i])
                 #model_eval.compile(optimizer=Adam(),loss={'OUT':parameters.p['loss_function']},metrics=['accuracy'])
-                model_eval.compile(optimizer=Adam(),loss={'OUT':logcosh},metrics=['accuracy'])
-                test_generator = DataGenerator(path = parameters.path_gen_validation,
+                model_eval.compile(optimizer=Adam(),loss={'OUT':mean_squared_error},metrics=['accuracy'])
+                test_generator = DataGenerator(path = parameters.path_gen_evaluation,
                                                inputs = parameters.inputs,
                                                outputs = parameters.outputs,
                                                batch_size = parameters.p['batch_size'][0],
@@ -178,7 +187,6 @@ class HyperModel:
 
                 eval_metric = model_eval.evaluate_generator(generator             = test_generator,
                                                             workers               = parameters.workers,
-                                                            #steps                 = 10,
                                                             use_multiprocessing   = True)
                 error_arr[i] = eval_metric[0]
                 print ('Error is ',error_arr[i])
@@ -322,12 +330,11 @@ class HyperModel:
         """
         logging.info((' Starting restoration of sample %s with model %s_%s.zip '%(self.sample,self.name,self.sample)).center(80,'-'))
         # Load the preprocessing layer #
-        custom_objects =  {'PreprocessLayer': PreprocessLayer}
         # Restore model #
         loaded = False
         while not loaded:
             try:
-                a = Restore(os.path.join(parameters.main_path,'model',self.name+'_'+self.sample+'.zip'),custom_objects = custom_objects)
+                a = Restore(os.path.join(parameters.main_path,'model',self.name+'_'+self.sample+'.zip'),custom_objects=self.custom_objects)
                 loaded = True
             except Exception as e:
                 logging.warning('Could not load model due to "%s", will try again in 3s'%e)

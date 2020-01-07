@@ -4,6 +4,7 @@ import os
 import math
 import logging
 import pickle
+import copy
 
 import numpy as np
 import keras
@@ -12,8 +13,25 @@ import ROOT
 
 from root_numpy import root2array, rec2array
 
+class WeightsGenerator():
+    def __init__(self,path_hist):
+        root_file = ROOT.TFile(path_hist,"READ")
+        self.hist = copy.deepcopy(root_file.Get("profile"))
+        root_file.Close()
+    def getWeights(self,arr):
+        weights = np.zeros(arr.shape[0])
+        for i in range(0,arr.shape[0]):
+            hist_bin = self.hist.FindBin(arr[i])
+            if hist_bin < self.hist.GetNbinsX() and hist_bin >= 0:
+                weights[i] = self.hist.GetBinContent(hist_bin)
+            else: # If we are in the under/overflow bin
+                weights[i] = 1
+        return weights
+        
+
+
 class DataGenerator(keras.utils.Sequence):
-    def __init__(self,path,inputs,outputs,batch_size=32,training=True):
+    def __init__(self,path,inputs,outputs,batch_size=32,state_set='',weights_generator=''):
         self.path       = path                          # Path to root file 
         self.inputs     = inputs                        # List of strings of the variables as inputs
         self.outputs    = outputs                       # List of strings of the variables as outputs
@@ -25,18 +43,20 @@ class DataGenerator(keras.utils.Sequence):
         else:
             logging.error("path '%s' is not a dir nor a file "%path)
             sys.exit(1)
-        self.training   = training                      # True if training, False if validation (for printing purpose)
-        self.get_fractions()
+        self.state_set = state_set # 'training', 'validation', 'test' 
+        self.weights_generator = weights_generator
 
-        self.n          = 0
-        self.max        = self.__len__()
 
         if (len(self.list_files)>self.batch_size):
             logging.warning("Fewer files than requested batch size, might be errors")
-        if self.training:
-            logging.info("Starting importation for training set")
-        else:
-            logging.info("Starting importation for validation set")
+        logging.info("Starting importation for %s set"%self.state_set)
+        if self.weights_generator != '':
+            logging.info("Will produce weights from %s"%weights_generator)
+            self.weightsGen = WeightsGenerator(self.weights_generator)
+
+        self.get_fractions()
+        self.n          = 0
+        self.max        = self.__len__() # Must be after get_fractions because that's where self.n_batches is defined
 
     def get_fractions(self):
         entries = dict() # fraction inside each dataset compared to total
@@ -90,12 +110,13 @@ class DataGenerator(keras.utils.Sequence):
             X[pointer:pointer+size,:]= rec2array(root2array(f,treename='tree',branches=self.inputs,start=index*size,stop=(index+1)*size))
             Y[pointer:pointer+size,:] = rec2array(root2array(f,treename='tree',branches=self.outputs,start=index*size,stop=(index+1)*size))
             pointer += size
-            if self.training:
-                logging.debug('Training   - Added %d entries from file %s'%(size,os.path.basename(f)))
-            else:
-                logging.debug('Validation - Added %d entries from file %s'%(size,os.path.basename(f)))
+            logging.debug("%s    - Added %d entries from file %s"%(self.state_set,size,os.path.basename(f)))
 
-        return X,Y
+        if self.weights_generator == '':
+            return X,Y
+        else:
+            W = self.weightsGen.getWeights(Y)
+            return X,Y,W
 
     def __len__(self): # gets the number of batches
         # return the number of batches in this epoch (do not change in the middle of an epoch)
