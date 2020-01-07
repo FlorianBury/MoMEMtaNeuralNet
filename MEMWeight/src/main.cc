@@ -513,7 +513,8 @@ int main(int argc, char** argv) {
             ParameterSet lua_parameters;
             lua_parameters.set("random", rand_num);
             lua_parameters.set("n_start_TT", n_start_TT);
-            lua_parameters.set("max_eval", n_start_TT*20);
+            lua_parameters.set("max_eval", n_start_TT);
+            //lua_parameters.set("max_eval", n_start_TT*20);
 
             ConfigurationReader configuration_TTbar(FLAGS_confs_dir + "TTbar_FullyLeptonic.lua",lua_parameters);
 

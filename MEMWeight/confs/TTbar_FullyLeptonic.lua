@@ -11,8 +11,8 @@ local bjet1 = declare_input("bjet1")
 local bjet2 = declare_input("bjet2")
 
 baseDirME = "/home/ucl/cp3/fbury/MoMEMtaNeuralNet/MEMWeight/MatrixElements/ME_TTbar"
-baseDirTF = "/home/ucl/cp3/brfranco/scratch/framework/MIS_prod_data/CMSSW_7_6_5/src/cp3_llbb/HHTools/histFactory_hh/"
-TFFile = baseDirTF .. "tf_genCut0_noRecoCut_lljjorbb_Oct18/condor/output/allTT_smoothed_notPutToZero.root"
+--baseDirTF = "/home/ucl/cp3/brfranco/scratch/framework/MIS_prod_data/CMSSW_7_6_5/src/cp3_llbb/HHTools/histFactory_hh/"
+--TFFile = baseDirTF .. "tf_genCut0_noRecoCut_lljjorbb_Oct18/condor/output/allTT_smoothed_notPutToZero.root"
 
 
 -- Global parameters used by several modules
@@ -26,15 +26,15 @@ parameters = {
     Z_mass = 91.1876,
     Z_width = 2.49,
     lep1_me_index = 1,
-    lep1TFFile = TFFile,
-    lep1TFName = "ERecMinEGenVSEGen_el_matchedToAfterFSR_allEta_Norm_hh_llmetjj_HWWleptons_nobtag_csv",
-    lep2_me_index = 2,
-    lep2TFFile = TFFile,
-    lep2TFName = "ERecMinEGenVSEGen_el_matchedToAfterFSR_allEta_Norm_hh_llmetjj_HWWleptons_nobtag_csv",
-    jet1TFFile = TFFile,
-    jet1TFName = "ERecMinEGenVSEGen_bjet_matchedToAfterFSR_allEta_Norm_hh_llmetjj_HWWleptons_nobtag_csv",
-    jet2TFFile = TFFile,
-    jet2TFName = "ERecMinEGenVSEGen_bjet_matchedToAfterFSR_allEta_Norm_hh_llmetjj_HWWleptons_nobtag_csv",
+    --lep1TFFile = TFFile,
+    --lep1TFName = "ERecMinEGenVSEGen_el_matchedToAfterFSR_allEta_Norm_hh_llmetjj_HWWleptons_nobtag_csv",
+    --lep2_me_index = 2,
+    --lep2TFFile = TFFile,
+    --lep2TFName = "ERecMinEGenVSEGen_el_matchedToAfterFSR_allEta_Norm_hh_llmetjj_HWWleptons_nobtag_csv",
+    --jet1TFFile = TFFile,
+    --jet1TFName = "ERecMinEGenVSEGen_bjet_matchedToAfterFSR_allEta_Norm_hh_llmetjj_HWWleptons_nobtag_csv",
+    --jet2TFFile = TFFile,
+    --jet2TFName = "ERecMinEGenVSEGen_bjet_matchedToAfterFSR_allEta_Norm_hh_llmetjj_HWWleptons_nobtag_csv",
 
     -- You can export a graphviz representation of the computation graph using the
     -- `export_graph_as` parameter
@@ -56,39 +56,72 @@ cuba = {
 
 -- The transfer functions take as input the particles passed in the computeWeights() function,
 -- and each add a dimension of integration
-BinnedTransferFunctionOnEnergy.tf_p1 = { 
+--BinnedTransferFunctionOnEnergy.tf_p1 = { 
+--    ps_point = add_dimension(),
+--    reco_particle = lepton1.reco_p4,
+--    file = parameter('lep1TFFile'),
+--    th2_name = parameter('lep1TFName'),
+--} 
+--lepton1.set_gen_p4("tf_p1::output");
+--
+--BinnedTransferFunctionOnEnergy.tf_p2 = { 
+--    ps_point = add_dimension(),
+--    reco_particle = lepton2.reco_p4,
+--    file = parameter('lep2TFFile'),
+--    th2_name = parameter('lep2TFName'),
+--    --min_E = 5.,
+--}   
+--lepton2.set_gen_p4("tf_p2::output")
+--
+--BinnedTransferFunctionOnEnergy.tf_p3 = {
+--    ps_point = add_dimension(),
+--    reco_particle = bjet1.reco_p4,
+--    file = parameter('jet1TFFile'),
+--    th2_name = parameter('jet1TFName'),
+--}
+--
+--bjet1.set_gen_p4("tf_p3::output");
+--
+--BinnedTransferFunctionOnEnergy.tf_p4 = {
+--    ps_point = add_dimension(),
+--    reco_particle = bjet2.reco_p4,
+--    file = parameter('jet2TFFile'),
+--    th2_name = parameter('jet2TFName'),
+--}
+--bjet2.set_gen_p4("tf_p4::output");
+GaussianTransferFunctionOnEnergy.tf_p1 = { 
     ps_point = add_dimension(),
     reco_particle = lepton1.reco_p4,
-    file = parameter('lep1TFFile'),
-    th2_name = parameter('lep1TFName'),
+    sigma = 0.1,
+    sigma_range = 3.,
 } 
 lepton1.set_gen_p4("tf_p1::output");
 
-BinnedTransferFunctionOnEnergy.tf_p2 = { 
+GaussianTransferFunctionOnEnergy.tf_p2 = { 
     ps_point = add_dimension(),
     reco_particle = lepton2.reco_p4,
-    file = parameter('lep2TFFile'),
-    th2_name = parameter('lep2TFName'),
-    --min_E = 5.,
+    sigma = 0.1,
+    sigma_range = 3.,
 }   
 lepton2.set_gen_p4("tf_p2::output")
 
-BinnedTransferFunctionOnEnergy.tf_p3 = {
+GaussianTransferFunctionOnEnergy.tf_p3 = {
     ps_point = add_dimension(),
     reco_particle = bjet1.reco_p4,
-    file = parameter('jet1TFFile'),
-    th2_name = parameter('jet1TFName'),
+    sigma = 0.3,
+    sigma_range = 3.,
 }
 
 bjet1.set_gen_p4("tf_p3::output");
 
-BinnedTransferFunctionOnEnergy.tf_p4 = {
+GaussianTransferFunctionOnEnergy.tf_p4 = {
     ps_point = add_dimension(),
     reco_particle = bjet2.reco_p4,
-    file = parameter('jet2TFFile'),
-    th2_name = parameter('jet2TFName'),
+    sigma = 0.3,
+    sigma_range = 3.,
 }
 bjet2.set_gen_p4("tf_p4::output");
+
 
 inputs_before_perm = {
     'tf_p1::output',
@@ -197,8 +230,6 @@ Looper.looper = {
     MatrixElement.ttbar = {
       pdf = 'CT10nlo',
       pdf_scale = parameter('top_mass'),
-      save_ME = true,
-      save_max = 1000,
 
     -- "Name" of the matrix element: hidden inside the code exported from madgraph
       matrix_element = 'TTbar_ee_sm_P1_Sigma_sm_gg_epvebemvexbx',
@@ -207,6 +238,13 @@ Looper.looper = {
           card = ME_card 
       },
 
+    -- NN related arguments
+      save_ME = false, -- Save ME x PDF for learning 
+      save_max = 1000, -- Maximum number of points in phase space to save
+      use_NN = false,   -- Use NN regression for ME x PDF
+      json_file = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/MEMWeight/src/neuralNet.json',
+
+    
       initialState = 'boost::partons',
 
       -- Configure how particles are linked to the matrix element (order and PID of the leg)
