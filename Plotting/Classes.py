@@ -146,6 +146,7 @@ class Plot_TH2:
         self.histo.SetTitleOffset(1.6,'xyz')
         if self.option == "colz":
             canvas.SetRightMargin(0.2)
+            self.histo.SetContour(100)
         self.histo.Draw(self.option)
 
         canvas.Print(pdf_name,'Title:'+self.title)
