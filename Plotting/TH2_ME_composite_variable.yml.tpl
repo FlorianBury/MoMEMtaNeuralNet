@@ -21,6 +21,7 @@ ME_Wminus_M_vs_MEPdf:
   title: '{} W- Boson : M vs ME x PDF'
   ylabel: M
   xlabel: -log_{10}(ME x PDF)
+  normalizeY: True
 
 ME_Wminus_E_vs_MEPdf:
   filename: 
@@ -39,6 +40,7 @@ ME_Wminus_E_vs_MEPdf:
   title: '{} W- Boson : E vs ME x PDF'
   ylabel: E
   xlabel: -log_{10}(ME x PDF)
+  normalizeY: True
 
 ME_Wminus_Pt_vs_MEPdf:
   filename: 
@@ -57,6 +59,7 @@ ME_Wminus_Pt_vs_MEPdf:
   title: '{} W- Boson : Pt vs ME x PDF'
   ylabel: Pt
   xlabel: -log_{10}(ME x PDF)
+  normalizeY: True
 
 ME_Wplus_M_vs_MEPdf:
   filename: 
@@ -75,6 +78,7 @@ ME_Wplus_M_vs_MEPdf:
   title: '{} W+ Boson : M vs ME x PDF'
   ylabel: M
   xlabel: -log_{10}(ME x PDF)
+  normalizeY: True
 
 ME_Wplus_E_vs_MEPdf:
   filename: 
@@ -93,6 +97,7 @@ ME_Wplus_E_vs_MEPdf:
   title: '{} W+ Boson : E vs ME x PDF'
   ylabel: E
   xlabel: -log_{10}(ME x PDF)
+  normalizeY: True
 
 ME_Wplus_Pt_vs_MEPdf:
   filename: 
@@ -111,6 +116,7 @@ ME_Wplus_Pt_vs_MEPdf:
   title: '{} W+ Boson : Pt vs ME x PDF'
   ylabel: Pt
   xlabel: -log_{10}(ME x PDF)
+  normalizeY: True
 
 #####################
 ###  top quarks  ####
@@ -133,6 +139,7 @@ ME_antitop_M_vs_MEPdf:
   title: '{} Antitop quark : M vs ME x PDF'
   ylabel: M
   xlabel: -log_{10}(ME x PDF)
+  normalizeY: True
 
 ME_antitop_E_vs_MEPdf:
   filename: 
@@ -151,6 +158,7 @@ ME_antitop_E_vs_MEPdf:
   title: '{} Antitop quark : E vs ME x PDF'
   ylabel: E
   xlabel: -log_{10}(ME x PDF)
+  normalizeY: True
 
 ME_antitop_Pt_vs_MEPdf:
   filename: 
@@ -169,6 +177,7 @@ ME_antitop_Pt_vs_MEPdf:
   title: '{} Antitop quark : Pt vs ME x PDF'
   ylabel: Pt
   xlabel: -log_{10}(ME x PDF)
+  normalizeY: True
 
 ME_top_M_vs_MEPdf:
   filename: 
@@ -187,6 +196,7 @@ ME_top_M_vs_MEPdf:
   title: '{} Top quark : M vs ME x PDF'
   ylabel: M
   xlabel: -log_{10}(ME x PDF)
+  normalizeY: True
 
 ME_top_E_vs_MEPdf:
   filename: 
@@ -205,6 +215,7 @@ ME_top_E_vs_MEPdf:
   title: '{} Top quark : E vs ME x PDF'
   ylabel: E
   xlabel: -log_{10}(ME x PDF)
+  normalizeY: True
 
 ME_top_Pt_vs_MEPdf:
   filename: 
@@ -223,3 +234,4 @@ ME_top_Pt_vs_MEPdf:
   title: '{} Top quark : Pt vs ME x PDF'
   ylabel: Pt
   xlabel: -log_{10}(ME x PDF)
+  normalizeY: True

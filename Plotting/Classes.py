@@ -88,7 +88,7 @@ class Plot_TH1:
 
 ####################################      Plot_TH2       ########################################
 class Plot_TH2:
-    def __init__(self,filename,tree,variablex,variabley,weight,cut,name,binsx,binsy,xmin,xmax,ymin,ymax,title,xlabel,ylabel,zlabel='',option='colz'):
+    def __init__(self,filename,tree,variablex,variabley,weight,cut,name,binsx,binsy,xmin,xmax,ymin,ymax,title,xlabel,ylabel,zlabel='',option='colz',normalizeX=False,normalizeY=False):
         self.filename = filename
         self.tree = tree
         self.variablex = variablex
@@ -107,12 +107,35 @@ class Plot_TH2:
         self.ylabel = ylabel
         self.zlabel = zlabel
         self.option = option
+        self.normalizeX = normalizeX
+        self.normalizeY = normalizeY
 
     def MakeHisto(self):
         file_handle = TFile.Open(self.filename)
         tree = file_handle.Get(self.tree)
         tree.Draw(self.variabley+':'+self.variablex+'>>'+self.name+'('+str(self.binsx)+','+str(self.xmin)+','+str(self.xmax)+','+str(self.binsy)+','+str(self.ymin)+','+str(self.ymax)+')',self.cut,"goff "+self.option)    
         self.histo = copy.deepcopy(gROOT.FindObject(self.name))
+        if self.normalizeX:
+            for x in range(0,self.histo.GetNbinsX()+1):
+                sum_y = 0
+                for y in range(0,self.histo.GetNbinsY()+1):
+                    sum_y += self.histo.GetBinContent(x,y)
+                if sum_y == 0:
+                    continue
+                for y in range(0,self.histo.GetNbinsY()+1):
+                    self.histo.SetBinContent(x,y,self.histo.GetBinContent(x,y)/sum_y)
+            self.title += ' [Normalized]'
+
+        if self.normalizeY:
+            for y in range(0,self.histo.GetNbinsY()+1):
+                sum_x = 0
+                for x in range(0,self.histo.GetNbinsX()+1):
+                    sum_x += self.histo.GetBinContent(x,y)
+                if sum_x == 0:
+                    continue
+                for x in range(0,self.histo.GetNbinsX()+1):
+                    self.histo.SetBinContent(x,y,self.histo.GetBinContent(x,y)/sum_x)
+            self.title += ' [Normalized]'
         self.histo.SetTitle(self.title+';'+self.xlabel+';'+self.ylabel+';'+self.zlabel)
         self.histo.SetMinimum(0)
         file_handle.Close()
@@ -121,7 +144,8 @@ class Plot_TH2:
         tdrstyle.setTDRStyle() 
         canvas = TCanvas("c1", "c1", 600, 600)
         self.histo.SetTitleOffset(1.6,'xyz')
-        canvas.SetRightMargin(0.2)
+        if self.option == "colz":
+            canvas.SetRightMargin(0.2)
         self.histo.Draw(self.option)
 
         canvas.Print(pdf_name,'Title:'+self.title)
