@@ -177,22 +177,22 @@ class HyperModel:
         else:
             error_arr = np.zeros(self.h.data.shape[0])
             for i in range(self.h.data.shape[0]):
-                print ("Evaluating model ",i)
+                logging.info("Evaluating model %d"%i)
                 model_eval = model_from_json(self.h.saved_models[i],custom_objects=self.custom_objects)   
                 model_eval.set_weights(self.h.saved_weights[i])
                 #model_eval.compile(optimizer=Adam(),loss={'OUT':parameters.p['loss_function']},metrics=['accuracy'])
                 model_eval.compile(optimizer=Adam(),loss={'OUT':mean_squared_error},metrics=['accuracy'])
-                test_generator = DataGenerator(path = parameters.path_gen_evaluation,
-                                               inputs = parameters.inputs,
-                                               outputs = parameters.outputs,
-                                               batch_size = parameters.p['batch_size'][0],
-                                               state_set = 'test')
+                evaluation_generator = DataGenerator(path = parameters.path_gen_evaluation,
+                                                     inputs = parameters.inputs,
+                                                     outputs = parameters.outputs,
+                                                     batch_size = parameters.p['batch_size'][0],
+                                                     state_set = 'evaluation')
 
-                eval_metric = model_eval.evaluate_generator(generator             = test_generator,
+                eval_metric = model_eval.evaluate_generator(generator             = evaluation_generator,
                                                             workers               = parameters.workers,
                                                             use_multiprocessing   = True)
                 error_arr[i] = eval_metric[0]
-                print ('Error is ',error_arr[i])
+                logging.info('Error is %f'%error_arr[i])
             self.h.data['eval_mean'] = error_arr
             self.h.data.to_csv(self.name_model+'.csv') # save to csv including error
             self.autom8 = True
