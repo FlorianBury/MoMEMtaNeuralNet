@@ -9,7 +9,6 @@ import nvidia_smi
 from time import sleep
 from threading import Thread
 
-
 class utilizationGPU(Thread):
     """
     Class generaring a parallel thread to monitor the GPU usage
@@ -37,7 +36,7 @@ class utilizationGPU(Thread):
         self.memAvgTot  = []
         self.memAvgStep = []
         self.running = True
-           
+
         try:
             nvmlInit()
             self.deviceCount = nvmlDeviceGetCount()
@@ -56,7 +55,7 @@ class utilizationGPU(Thread):
         except Exception as e:
             logging.error("[GPU] *** Caught exception: %s : %s"%(str(e.__class__),str(e)))
             traceback.print_exc()
-
+          
    # Override the run function of Thread class
     def run(self):
         import random
@@ -67,19 +66,23 @@ class utilizationGPU(Thread):
             res = []
             for i in range(self.deviceCount):
                 res.append(nvidia_smi.nvmlDeviceGetUtilizationRates(self.GPUs[i]))
-                res[i].gpu = random.randint(1,100)
-                res[i].memory = random.randint(1,100)
 
             # Print every self.print_time #
             if print_counter == int(self.print_time/self.time_step):
                 # Print current #
                 if self.print_current:
-                    s = "[GPU] "
+                    s = "\t[GPU] "
                     for i in range(self.deviceCount):
                         s += "Device %d %s : utilization : %d%%, memory : %d%%\t"%(i, nvmlDeviceGetName(self.GPUs[i]),res[i].gpu,res[i].memory)
                     logging.info(s)
                 # Print avg #
-                logging.info("[GPU] Occupation over the last %d seconds"%self.print_time)
+                if self.print_time<60:
+                    logging.info("\n[GPU] Occupation over the last %d seconds"%self.print_time)
+                else:
+                    minutes = self.print_time//60
+                    seconds = self.print_time%60
+                    logging.info("\n[GPU] Occupation over the last %d minutes, %d seconds"%(minutes,seconds))
+                    
                 s = "[GPU] "
                 for i in range(self.deviceCount):
                     self.occAvgStep[i] /= (print_counter*self.time_step)
