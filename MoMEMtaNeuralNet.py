@@ -149,6 +149,7 @@ def main():
     from concatenate_csv import ConcatenateCSV
     from sampleList import samples_dict, samples_path
     from signal_coupling import Decoupler, Repeater
+    from threadGPU import utilizationGPU
     import parameters
 
     # Needed because PyROOT messes with argparse
@@ -176,14 +177,16 @@ def main():
         logging.info('Splitting jobs done')
         # Arguments to send #
         args = ' ' # Do not forget the spaces after each arg!
-        if opt.DY:              args += '--DY '
-        if opt.TT:              args += '--TT '
-        if opt.HToZA:           args += '--HToZA '
-        if opt.class_global:    args += '--class_global '
-        if opt.class_param:     args += '--class_param '
-        if opt.binary:          args += '--binary '
-        if opt.ME:              args += '--ME '
-        if opt.generator:       args += '--generator '
+        if opt.DY:                  args += '--DY '
+        if opt.TT:                  args += '--TT '
+        if opt.HToZA:               args += '--HToZA '
+        if opt.class_global:        args += '--class_global '
+        if opt.class_param:         args += '--class_param '
+        if opt.binary:              args += '--binary '
+        if opt.ME:                  args += '--ME '
+        if opt.generator:           args += '--generator '
+        if opt.generator_weights:   args += '--generator_weights '
+        if opt.resume:              args += '--resume '
 
         if opt.submit!='':
             logging.info('Submitting jobs with args "%s"'%args)
@@ -468,6 +471,12 @@ def main():
     #############################################################################################
     # DNN #
     #############################################################################################
+    if opt.GPU:
+        # Start the GPU monitoring thread #
+        thread = utilizationGPU(print_time = 60,
+                                print_current = True,
+                                time_step=0.01)
+        thread.start()
 
     if opt.scan != '':
         # DY network #
@@ -536,6 +545,11 @@ def main():
                                generator_weights=opt.generator_weights,
                                resume=opt.resume)
             instance.HyperDeploy(best='eval_error')
+
+    if opt.GPU:
+        # Closing monitor thread #
+        thread.stopLoop()
+        thread.join()
         
     if opt.model!='': 
         # Make path #

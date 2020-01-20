@@ -72,7 +72,7 @@ def Tree2Pandas(input_file, variables, weight=None, cut=None, reweight_to_cross_
 # LoopOverTrees #
 ###############################################################################
 
-def LoopOverTrees(input_dir, variables, weight, tag=None, cut=None, reweight_to_cross_section=False, n=None, list_sample=None):
+def LoopOverTrees(input_dir, variables, weight=None, tag=None, cut=None, reweight_to_cross_section=False, n=None, list_sample=None, start=None):
     """
     Loop over ROOT trees inside input_dir and process them using Tree2Pandas.
     """
@@ -85,7 +85,7 @@ def LoopOverTrees(input_dir, variables, weight, tag=None, cut=None, reweight_to_
 
     # Wether to use a given sample list or loop over files inside a dir #
     if list_sample is None:
-        list_sample = glob.glob(input_dir+"*.root")
+        list_sample = glob.glob(os.path.join(input_dir,"*.root"))
     else:
         list_sample = [input_dir + s for s in list_sample]
 
@@ -104,7 +104,14 @@ def LoopOverTrees(input_dir, variables, weight, tag=None, cut=None, reweight_to_
                 continue 
        
         # Get the data as pandas df #
-        df = Tree2Pandas(name,variables,weight,cut,reweight_to_cross_section,n) 
+        df = Tree2Pandas(input_file                 = name,
+                         variables                  = variables,
+                         weight                     = weight,
+                         cut                        = cut,
+                         reweight_to_cross_section  = reweight_to_cross_section,
+                         n                          = n,
+                         tree_name                  = 'tree',
+                         start                      = start) 
 
         # Find mH, mA #
         if filename.find('HToZA')!=-1: # Signal -> Search for mH and mA

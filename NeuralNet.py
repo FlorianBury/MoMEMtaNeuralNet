@@ -125,7 +125,10 @@ class HyperModel:
             self.p['batch_size'] = batch_size_save
             logging.warning("Since you asked to resume training of model %s, the parameters dictionary has been set to the one used to train the model"%parameters.resume_model)
             logging.info("Will train the model from epoch %d to %d"%(self.p['initial_epoch'][0],self.p['epochs'][0]))
-            print("Will train the model from epoch %d to %d"%(self.p['initial_epoch'][0],self.p['epochs'][0]))
+
+        # Specify that weights should be used by generator #
+        if generator_weights:
+            self.p['generator_weights'] = [True] # Add to dictionary to be passed to Model
 
         # Check if no already exists then change it -> avoids rewriting  #
         no = 1
@@ -183,7 +186,7 @@ class HyperModel:
                                                inputs = parameters.inputs,
                                                outputs = parameters.outputs,
                                                batch_size = parameters.p['batch_size'][0],
-                                               training = False)
+                                               state_set = 'test')
 
                 eval_metric = model_eval.evaluate_generator(generator             = test_generator,
                                                             workers               = parameters.workers,
@@ -351,7 +354,7 @@ class HyperModel:
                                              inputs = parameters.inputs,
                                              outputs = parameters.outputs,
                                              batch_size = parameters.output_batch_size,
-                                             training = False)
+                                             state_set = 'output')
             outputs = a.model.predict_generator(output_generator,
                                               workers=parameters.workers,
                                               use_multiprocessing=True,

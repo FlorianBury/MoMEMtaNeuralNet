@@ -45,7 +45,9 @@ suffix = 'gen_ME'
 # mask_name -> 'mask_{suffix}_{sample}.npy'  If does not exist will be created 
 
 # Training resume #
-resume_model = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/GPU_8x500_elu_200epochs_withBatchNorm_ME.zip'   # Must be turned on in the argparse arguments
+resume_model = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/GPU_10x100_elu_100epochs_batchNorm_ME.zip'
+#resume_model = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/GPU_8x500_elu_300epochs_withBatchNorm_ME.zip'   # Must be turned on in the argparse arguments
+#resume_model = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/GPU_split_ME.zip'   # Must be turned on in the argparse arguments
 
 # Generator #
 #path_gen_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path3' # For training
@@ -57,8 +59,8 @@ path_gen_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_gener
 path_gen_evaluation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_all/path1' # for model evaluation
 path_gen_output = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_all/path2' # for output
 
-#weights_generator = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/utils/profile.root' # Must be turned on in the argparse arguments
-weights_generator = ''
+weights_generator = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/utils/weights.root' # Must be turned on in the argparse arguments
+#weights_generator = ''
 
 
 workers = 20
@@ -114,8 +116,8 @@ eval_criterion = "eval_error" # either val_loss or eval_error
 #    'loss_function' : [mean_squared_error]
 #}
 p = { 
-    'lr' : [0.001], 
-    'first_neuron' : [200],
+    'lr' : [0.01], 
+    'first_neuron' : [500],
     'activation' : [relu],
     'dropout' : [0],
     'hidden_layers' : [7], # does not take into account the first layer

@@ -16,16 +16,30 @@ from root_numpy import root2array, rec2array
 class WeightsGenerator():
     def __init__(self,path_hist):
         root_file = ROOT.TFile(path_hist,"READ")
-        self.hist = copy.deepcopy(root_file.Get("profile"))
+        self.hist = copy.deepcopy(root_file.Get("weights"))
         root_file.Close()
+        self.tot_time = 0
+#        self.hist_time = ROOT.TH1F("weight_time","weight_time",1000,0,5)
+
+    def fromHistToDict(self):
+        self.weightDict = {}
+
     def getWeights(self,arr):
         weights = np.zeros(arr.shape[0])
+        import timeit
+        start_time = timeit.default_timer()
         for i in range(0,arr.shape[0]):
             hist_bin = self.hist.FindBin(arr[i])
             if hist_bin < self.hist.GetNbinsX() and hist_bin >= 0:
                 weights[i] = self.hist.GetBinContent(hist_bin)
             else: # If we are in the under/overflow bin
                 weights[i] = 1
+        # Normalize weights (learning becomes unstable otherwise #
+        weights /= np.sum(weights)
+        elapsed = timeit.default_timer() - start_time
+        self.tot_time += elapsed
+
+        print("Weights evaluated on ",elapsed,"Total time for weight generation ",self.tot_time)
         return weights
         
 
@@ -43,7 +57,7 @@ class DataGenerator(keras.utils.Sequence):
         else:
             logging.error("path '%s' is not a dir nor a file "%path)
             sys.exit(1)
-        self.state_set = state_set # 'training', 'validation', 'test' 
+        self.state_set = state_set # 'training', 'validation', 'test', 'output'
         self.weights_generator = weights_generator
 
 

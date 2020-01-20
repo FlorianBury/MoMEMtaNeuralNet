@@ -91,7 +91,7 @@ def PlotHistory(history):
     ax1.plot(history.epoch_loss['epoch'],history.epoch_loss['loss'],c='r',label='train')
     ax1.plot(history.epoch_val_loss['epoch'],history.epoch_val_loss['loss'],c='g',label='test')
     ax2.plot(history.batch_loss['batch'],history.batch_loss['loss'],c='r',label='train')
-    ax2.set_yscale("log")
+    #ax2.set_yscale("log")
     ax3.plot(history.epoch_lr['epoch'],history.epoch_lr['lr'])
     
     # Labels and titles #
@@ -344,16 +344,18 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
 
     # Callbacks #
     early_stopping = EarlyStopping(monitor='val_loss', min_delta=0., patience=50, verbose=1, mode='min')
-    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=20, verbose=1, mode='min', cooldown=1, min_lr=1e-5)
+    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=1, mode='min', cooldown=1, min_lr=1e-5)
     loss_history = LossHistory()
     Callback_list = [loss_history,early_stopping,reduceLR]#
+
+    # Check if generator weights has been asked #
+    weights_generator = parameters.weights_generator if 'generator_weights' in params and params['generator_weights'] else ''
 
     # Compile #
     if 'resume' not in params: 
         # Define model #
         model = Model(inputs=[IN], outputs=[OUT])
         logging.info("/!\ CURRENT MODEL /!\ ")
-        print("/!\ CURRENT MODEL /!\ ")
         utils.print_summary(model=model) #used to print model
         # Compile it #
         model.compile(optimizer=Adam(lr=params['lr']),
@@ -363,7 +365,6 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
     else: # a model has to be imported and resumes training
         custom_objects =  {'PreprocessLayer': PreprocessLayer}
         logging.info("/!\ LOADED MODEL /!\ ")
-        print("/!\ LOADED MODEL /!\ ")
         a = Restore(params['resume'],custom_objects=custom_objects,method='h5')
         model = a.model
         model.compile(optimizer=Adam(lr=params['lr']),
@@ -379,12 +380,13 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
                                        outputs = parameters.outputs,
                                        batch_size = params['batch_size'],
                                        state_set = 'training',
-                                       weights_generator = parameters.weights_generator)
+                                       weights_generator = weights_generator)
     validation_generator = DataGenerator(path = parameters.path_gen_validation,
                                        inputs = parameters.inputs,
                                        outputs = parameters.outputs,
                                        batch_size = params['batch_size'],
-                                       state_set = 'validation')
+                                       state_set = 'validation',
+                                       weights_generator = weights_generator) # Might be unnecessary
     #test_generator = DataGenerator(path = parameters.path_gen_output,
     #                                   inputs = parameters.inputs,
     #                                   outputs = parameters.outputs,
@@ -401,12 +403,12 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
                                   validation_data       = validation_generator,
                                   epochs                = params['epochs'], 
                                   verbose               = 1,
-                                  max_queue_size        = 100,
+                                  max_queue_size        = parameters.workers*2,
                                   callbacks             = Callback_list,
                                   initial_epoch         = initial_epoch,
                                   workers               = parameters.workers,
                                   shuffle               = True,
-                                  #steps_per_epoch       = 100,
+                                  #steps_per_epoch       = 20,
                                   use_multiprocessing   = True)
                                   
     #out_preprocess = preprocess.predict_generator(test_generator,
