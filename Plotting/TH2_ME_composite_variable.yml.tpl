@@ -16,8 +16,8 @@ ME_Wminus_M_vs_MEPdf:
   xmin: 0
   xmax: 15
   binsy: 100
-  ymin: 60
-  ymax: 100
+  ymin: 20
+  ymax: 150
   title: '{} W- Boson : M vs ME x PDF'
   ylabel: M
   xlabel: -log_{10}(ME x PDF)
@@ -73,8 +73,8 @@ ME_Wplus_M_vs_MEPdf:
   xmin: 0
   xmax: 15
   binsy: 100
-  ymin: 60
-  ymax: 100
+  ymin: 20
+  ymax: 150
   title: '{} W+ Boson : M vs ME x PDF'
   ylabel: M
   xlabel: -log_{10}(ME x PDF)
@@ -134,8 +134,8 @@ ME_antitop_M_vs_MEPdf:
   xmin: 0
   xmax: 15
   binsy: 100
-  ymin: 140
-  ymax: 200
+  ymin: 100
+  ymax: 280
   title: '{} Antitop quark : M vs ME x PDF'
   ylabel: M
   xlabel: -log_{10}(ME x PDF)
@@ -191,8 +191,8 @@ ME_top_M_vs_MEPdf:
   xmin: 0
   xmax: 15
   binsy: 100
-  ymin: 140
-  ymax: 200
+  ymin: 100
+  ymax: 280
   title: '{} Top quark : M vs ME x PDF'
   ylabel: M
   xlabel: -log_{10}(ME x PDF)
