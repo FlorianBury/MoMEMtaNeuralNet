@@ -112,6 +112,7 @@ class utilizationGPU(Thread):
         s = "[GPU] "
         for i in range(self.deviceCount):
             self.occAvgTot[i] /= (counter*self.time_step)
+            self.memAvgTot[i] /= (counter*self.time_step)
             s += "Device %d %s : utilization : %d%%, memory : %d%%\t"%(i, nvmlDeviceGetName(self.GPUs[i]),self.occAvgTot[i],self.memAvgTot[i])
         logging.info(s)
     
