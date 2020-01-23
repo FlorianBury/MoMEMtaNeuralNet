@@ -186,6 +186,7 @@ def main():
         if opt.ME:                  args += '--ME '
         if opt.generator:           args += '--generator '
         if opt.generator_weights:   args += '--generator_weights '
+        if opt.GPU:                 args += '--GPU '
         if opt.resume:              args += '--resume '
 
         if opt.submit!='':
@@ -473,8 +474,8 @@ def main():
     #############################################################################################
     if opt.GPU:
         # Start the GPU monitoring thread #
-        thread = utilizationGPU(print_time = 60,
-                                print_current = True,
+        thread = utilizationGPU(print_time = 900,
+                                print_current = False,
                                 time_step=0.01)
         thread.start()
 

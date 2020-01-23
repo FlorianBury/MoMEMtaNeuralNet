@@ -162,8 +162,8 @@ class generateLwtnnNetwork():
     def cleanUp(self):
         print ("="*80)
         print ("Clean up")
-        os.system('rm -v '+self.new_json_file)
-        os.system('rm -v '+self.new_h5_file)
+        #os.system('rm -v '+self.new_json_file)
+        #os.system('rm -v '+self.new_h5_file)
         #os.system('rm -v '+self.variables_json)
 
 if __name__ == '__main__':

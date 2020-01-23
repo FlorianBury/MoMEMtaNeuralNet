@@ -385,13 +385,8 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
                                        inputs = parameters.inputs,
                                        outputs = parameters.outputs,
                                        batch_size = params['batch_size'],
-                                       state_set = 'validation',
-                                       weights_generator = weights_generator) # Might be unnecessary
-    #test_generator = DataGenerator(path = parameters.path_gen_output,
-    #                                   inputs = parameters.inputs,
-    #                                   outputs = parameters.outputs,
-    #                                   batch_size = params['batch_size'],
-    #                                   training = False)
+                                       state_set = 'validation')
+                                       #weights_generator = weights_generator) # Might be unnecessary
 
         # Fit #
     logging.info("Will use %d workers"%parameters.workers)
@@ -411,6 +406,10 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
                                   #steps_per_epoch       = 20,
                                   use_multiprocessing   = True)
                                   
+    #test_generator = DataGenerator(path = parameters.path_gen_output,
+    #                                   inputs = parameters.inputs,
+    #                                   outputs = parameters.outputs,
+    #                                   batch_size = params['batch_size'],
     #out_preprocess = preprocess.predict_generator(test_generator,
     #                                              workers=10,
     #                                              steps=10, 

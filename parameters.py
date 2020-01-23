@@ -117,14 +117,14 @@ eval_criterion = "eval_error" # either val_loss or eval_error
 #}
 p = { 
     'lr' : [0.01], 
-    'first_neuron' : [500],
+    'first_neuron' : [200],
     'activation' : [relu],
     'dropout' : [0],
-    'hidden_layers' : [7], # does not take into account the first layer
+    'hidden_layers' : [5], # does not take into account the first layer
     'output_activation' : [elu],
     'l2' : [0],
     'optimizer' : [Adam],  
-    'epochs' : [1],   
+    'epochs' : [200],   
     'batch_size' : [50000], 
     'loss_function' : [mean_squared_error],
 }

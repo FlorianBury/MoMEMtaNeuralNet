@@ -39,7 +39,7 @@ class WeightsGenerator():
         elapsed = timeit.default_timer() - start_time
         self.tot_time += elapsed
 
-        print("Weights evaluated on ",elapsed,"Total time for weight generation ",self.tot_time)
+        #print("Weights evaluated on ",elapsed,"Total time for weight generation ",self.tot_time)
         return weights
         
 
