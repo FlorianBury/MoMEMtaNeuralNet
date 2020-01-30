@@ -45,7 +45,7 @@ plt.rc('figure', titlesize=BIGGER_SIZE) # fontsize of the figure title
 
 #####################################     Plot_TH1      #########################################
 class Plot_TH1:
-    def __init__(self,filename,tree,variable,weight,cut,name,bins,xmin,xmax,title,xlabel,ylabel):
+    def __init__(self,filename,tree,variable,weight,cut,name,bins,xmin,xmax,title,xlabel,ylabel,logx=False,logy=False):
         self.filename = filename
         self.tree = tree
         self.variable = variable
@@ -58,6 +58,8 @@ class Plot_TH1:
         self.title = title
         self.xlabel = xlabel
         self.ylabel = ylabel
+        self.logx = logx
+        self.logy = logy
 
     def MakeHisto(self):
         file_handle = TFile.Open(self.filename)
@@ -78,6 +80,10 @@ class Plot_TH1:
         self.histo.SetBinContent(1,self.histo.GetBinContent(0)+self.histo.GetBinContent(1))
         self.histo.SetBinContent(self.histo.GetNbinsX(),self.histo.GetBinContent(self.histo.GetNbinsX())+self.histo.GetBinContent(self.histo.GetNbinsX()+1))
 
+        if self.logx:
+            canvas.SetLogx()
+        if self.logy:
+            canvas.SetLogy()
 
         self.histo.Draw()
 
@@ -88,7 +94,7 @@ class Plot_TH1:
 
 ####################################      Plot_TH2       ########################################
 class Plot_TH2:
-    def __init__(self,filename,tree,variablex,variabley,weight,cut,name,binsx,binsy,xmin,xmax,ymin,ymax,title,xlabel,ylabel,zlabel='',option='colz',normalizeX=False,normalizeY=False):
+    def __init__(self,filename,tree,variablex,variabley,weight,cut,name,binsx,binsy,xmin,xmax,ymin,ymax,title,xlabel,ylabel,zlabel='',option='colz',normalizeX=False,normalizeY=False,logx=False,logy=False,logz=False):
         self.filename = filename
         self.tree = tree
         self.variablex = variablex
@@ -109,6 +115,9 @@ class Plot_TH2:
         self.option = option
         self.normalizeX = normalizeX
         self.normalizeY = normalizeY
+        self.logx = logx
+        self.logy = logy
+        self.logz = logz
 
     def MakeHisto(self):
         file_handle = TFile.Open(self.filename)
@@ -149,12 +158,19 @@ class Plot_TH2:
             self.histo.SetContour(100)
         self.histo.Draw(self.option)
 
+        if self.logx:
+            canvas.SetLogx()
+        if self.logy:
+            canvas.SetLogy()
+        if self.logz:
+            canvas.SetLogz()
+
         canvas.Print(pdf_name,'Title:'+self.title)
         canvas.Close()
 
 ####################################    Plot_Ratio_TH1    ########################################
 class Plot_Ratio_TH1:
-    def __init__(self,filename,tree,variable1,variable2,weight,cut,name,bins,xmin,xmax,title,xlabel,ylabel,legend1,legend2):
+    def __init__(self,filename,tree,variable1,variable2,weight,cut,name,bins,xmin,xmax,title,xlabel,ylabel,legend1,legend2,logx=False,logy=False):
         self.filename = filename
         self.tree = tree
         self.variable1 = variable1
@@ -170,6 +186,8 @@ class Plot_Ratio_TH1:
         self.ylabel = ylabel
         self.legend1 = legend1
         self.legend2 = legend2
+        self.logx = logx
+        self.logy = logy
 
     def MakeHisto(self):
         instance1 = Plot_TH1(self.filename,self.tree,self.variable1,self.weight,self.cut,self.name,self.bins,self.xmin,self.xmax,self.title,self.xlabel,self.ylabel)
@@ -199,6 +217,11 @@ class Plot_Ratio_TH1:
         self.histo1.Draw()
         self.histo2.Draw("same")
 
+        if self.logx:
+            pad1.SetLogx()
+        if self.logy:
+            pad1.SetLogy()
+
         legend = TLegend(0.65,0.7,0.85,0.83)
         legend.SetHeader("Legend","C")
         legend.AddEntry(self.histo1,self.legend1,"l")
@@ -219,6 +242,9 @@ class Plot_Ratio_TH1:
         pad2.SetGridx()
         pad2.Draw()
         pad2.cd() 
+
+        if self.logx:
+            pad2.SetLogx()
 
         self.ratio.SetLineColor(ROOT.kBlack)
         self.ratio.SetMinimum(0.5)
@@ -265,7 +291,7 @@ class Plot_Ratio_TH1:
 
 ####################################    Plot_Multi_TH1    #######################################
 class Plot_Multi_TH1:
-    def __init__(self,filename,tree,list_variable,weight,list_cut,list_legend,list_color,name,bins,xmin,xmax,title,xlabel,ylabel,legend_pos=[0.5,0.5,0.9,0.85]):
+    def __init__(self,filename,tree,list_variable,weight,list_cut,list_legend,list_color,name,bins,xmin,xmax,title,xlabel,ylabel,logx=False,logy=False,legend_pos=[0.5,0.5,0.9,0.85]):
         self.filename = filename
         self.tree = tree
         self.weight = weight
@@ -277,6 +303,9 @@ class Plot_Multi_TH1:
         self.xlabel = xlabel
         self.ylabel = ylabel
         self.legend_pos = legend_pos
+        self.logx = logx
+        self.logy = logy
+
         if len(list_variable) == 1 and len(list_cut) > 1:
             logging.debug('\tOnly one variable but several cuts')
             self.list_variable = list_variable*len(list_cut)
@@ -319,7 +348,9 @@ class Plot_Multi_TH1:
                                 xmax     = self.xmax,
                                 title    = self.title,
                                 xlabel   = self.xlabel,
-                                ylabel   = self.ylabel)
+                                ylabel   = self.ylabel,
+                                logx     = self.logx,
+                                logy     = self.logy)
             instance.MakeHisto()
             self.list_obj.append(copy.deepcopy(instance.histo))
 
@@ -348,6 +379,11 @@ class Plot_Multi_TH1:
             obj.SetTitleOffset(2,'y')
             obj.Draw("same")
             
+        if self.logx:
+            c1.SetLogx()
+        if self.logy:
+            c1.SetLogy()
+
         legend.Draw()
         c1.Print(pdf_name,'Title:'+self.title+' Same')
         c1.Close()
@@ -372,6 +408,11 @@ class Plot_Multi_TH1:
             obj.Draw()
 
         self.stack_hist.Draw("same")
+
+        if self.logx:
+            c2.SetLogx()
+        if self.logy:
+            c2.SetLogy()
 
         legend.Draw()
 

@@ -17,6 +17,7 @@ MEM_vs_DNN_MEPdf:
   ylabel: -log_{10}(ME x PDF) from DNN
   zlabel: Events
   option : 'colz'
+  logz : True
 
 MEM_vs_DNN_MEPdf_prof:
   filename: 
