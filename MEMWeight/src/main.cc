@@ -399,6 +399,16 @@ int main(int argc, char** argv) {
     // Instantiate MoMEMta using a **frozen** configuration
     //MoMEMta TTbar_weight(configuration_TTbar.freeze());
     //MoMEMta DY_weight(configuration_DY.freeze());
+    int rand_num = rand()%1000;
+    ParameterSet lua_parameters;
+    lua_parameters.set("random", rand_num);
+    lua_parameters.set("n_start", 20000);
+    lua_parameters.set("max_eval", 1000000);
+    LOG(info)<<"Random number for seed : "<<rand_num;
+    LOG(info)<<"Starting eval : 20000\tMax eval : 400000";
+    ConfigurationReader configuration_TTbar(FLAGS_confs_dir + "TTbar_FullyLeptonic.lua",lua_parameters);
+    // Instantiate MoMEMta using a **frozen** configuration
+    MoMEMta TTbar_weight(configuration_TTbar.freeze());
 
     // To and From parameters
     size_t to = 0;
@@ -505,22 +515,21 @@ int main(int argc, char** argv) {
                 LOG(error)<<"Weights did not converge despite higher precision";
                 break;
             }
-            int rand_num = rand()%1000;
             failed_TT = false;
-            LOG(info)<<"Random number for seed : "<<rand_num;
-            LOG(info)<<"Starting eval : "<<n_start_TT<<"\tMax eval : "<<n_start_TT*20;
 
-            ParameterSet lua_parameters;
-            lua_parameters.set("random", rand_num);
-            lua_parameters.set("n_start_TT", n_start_TT);
-            lua_parameters.set("max_eval", n_start_TT);
-            //lua_parameters.set("max_eval", n_start_TT*20);
-
-            ConfigurationReader configuration_TTbar(FLAGS_confs_dir + "TTbar_FullyLeptonic.lua",lua_parameters);
-
-            // Instantiate MoMEMta using a **frozen** configuration
-            MoMEMta TTbar_weight(configuration_TTbar.freeze());
-
+            //if (USE_RECOMPUTE){ // If recomputation is asked, parameters need to be updated
+            //    int rand_num = rand()%1000;
+            //    LOG(info)<<"recomputing";
+            //    ParameterSet lua_parameters;
+            //    lua_parameters.set("random", rand_num);
+            //    lua_parameters.set("n_start", n_start_TT);
+            //    lua_parameters.set("max_eval", n_start_TT*20);
+            //    LOG(info)<<"Random number for seed : "<<rand_num;
+            //    LOG(info)<<"Starting eval : "<<n_start_TT<<"\tMax eval : "<<n_start_TT*20;
+            //    ConfigurationReader configuration_TTbar(FLAGS_confs_dir + "TTbar_FullyLeptonic.lua",lua_parameters);
+            //    // Instantiate MoMEMta using a **frozen** configuration
+            //    MoMEMta TTbar_weight(configuration_TTbar.freeze());
+            //}
 
             // Retrieve the weight and uncertainty for TT
             auto start_time_TT = system_clock::now();
@@ -535,7 +544,7 @@ int main(int argc, char** argv) {
             LOG(info) << "Weight computed in " << weight_TT_time << "ms";
 
             // If weights did not converge 
-            if (USE_RECOMPUTE == true and weight_TT<=weight_TT_err){ 
+            if (USE_RECOMPUTE && weight_TT<=weight_TT_err){ 
                 LOG(warning) << "TT weights did not converge, will increase precision";
                 failed_TT = true;
                 n_start_TT += 400000;
@@ -564,7 +573,7 @@ int main(int argc, char** argv) {
 
             ParameterSet lua_parameters;
             lua_parameters.set("random", rand_num);
-            lua_parameters.set("n_start_DY", n_start_DY);
+            lua_parameters.set("n_start", n_start_DY);
             lua_parameters.set("max_eval", n_start_DY*20);
 
             ConfigurationReader configuration_DY(FLAGS_confs_dir + "dy_to_ll_simple.lua",lua_parameters);

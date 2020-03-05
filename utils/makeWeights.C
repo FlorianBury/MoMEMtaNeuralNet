@@ -1,7 +1,7 @@
 #include <iostream>
 #include <TSystem.h>
 
-void makeWeights(std::string root_file){
+void makeWeights(std::string root_file, float cutoff=-1.){
     gStyle->SetOptStat(0);
 
     TH1F* h;
@@ -28,12 +28,13 @@ void makeWeights(std::string root_file){
         f_hist->Close(); 
     }
     TH1F* h_weights = new TH1F("weights","weights",1000,0,15);
-
     /* Fill weights hist */
     for (int b = 1 ; b <= h->GetNbinsX() ; ++b){
         auto val = h->GetBinContent(b);
         if (val>0){
             h_weights->SetBinContent(b,h->GetMaximum()/val);    
+            if(cutoff != -1. && h->GetMaximum()/val > cutoff)
+                h_weights->SetBinContent(b,cutoff);
         }
         else{
             h_weights->SetBinContent(b,1);

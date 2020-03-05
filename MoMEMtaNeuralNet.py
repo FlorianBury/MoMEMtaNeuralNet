@@ -98,13 +98,14 @@ def get_options():
         if opt.scan!='' or opt.report!='' or opt.submit!='':
             logging.critical('Either --DY, --TT, --HToZA, --class_param, --class_global or --binary or --ME must be specified')  
             sys.exit(1)
-    if opt.split!=0 or opt.submit:
+    if opt.split!=0 or opt.submit!='':
         if opt.scan!='' or opt.report!='':
             logging.critical('These parameters cannot be used together')  
             sys.exit(1)
-    if opt.submit and opt.split==0:
-        logging.critical('You forgot to specify --split')
-        sys.exit(1)
+    if opt.submit!='': # Need --output or --split arguments
+        if opt.split==0 and len(opt.output)==0:
+            logging.warning('In case of learning you forgot to specify --split')
+            sys.exit(1)
     if opt.split!=0 and (opt.report!='' or opt.output!='' or opt.csv!='' or opt.scan!=''):
         logging.warning('Since you have specified a split, all the other arguments will be skipped')
     if opt.csv!='' and (opt.report!='' or opt.output!='' or opt.scan!=''):
@@ -171,10 +172,11 @@ def main():
     #############################################################################################
     # Splitting into sub-dicts and slurm submission #
     #############################################################################################
-    if opt.split!=0:
-        DictSplit(opt.split,opt.submit,opt.resubmit)
+    if opt.submit != '':
+        if opt.split != 0:
+            DictSplit(opt.split,opt.submit,opt.resubmit)
+            logging.info('Splitting jobs done')
         
-        logging.info('Splitting jobs done')
         # Arguments to send #
         args = ' ' # Do not forget the spaces after each arg!
         if opt.DY:                  args += '--DY '
@@ -188,13 +190,15 @@ def main():
         if opt.generator_weights:   args += '--generator_weights '
         if opt.GPU:                 args += '--GPU '
         if opt.resume:              args += '--resume '
+        if opt.model!='':           args += '--model '+opt.model+' '
+        if len(opt.output)!=0:      args += '--output '+ ' '.join(opt.output)+' '
 
         if opt.submit!='':
             logging.info('Submitting jobs with args "%s"'%args)
             if opt.resubmit:
-                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug,args=args,GPU=opt.GPU)
+                submit_on_slurm(name=opt.submit+'_resubmit',debug=opt.debug,args=args)
             else:
-                submit_on_slurm(name=opt.submit,debug=opt.debug,args=args,GPU=opt.GPU)
+                submit_on_slurm(name=opt.submit,debug=opt.debug,args=args)
         sys.exit()
 
     #############################################################################################
@@ -306,35 +310,38 @@ def main():
     if not opt.generator:
         # Import arrays #
         logging.info('HToZA samples')
-        data_HToZA = LoopOverTrees(input_dir=samples_path,
-                                   variables=variables,
-                                   weight=parameters.weights,
-                                   reweight_to_cross_section=False,
-                                   list_sample=samples_dict['HToZA'],
-                                   tag = 'HToZA')
+        data_HToZA = LoopOverTrees(input_dir                 = samples_path,
+                                   variables                 = variables,
+                                   weight                    = parameters.weights,
+                                   reweight_to_cross_section = False,
+                                   list_sample               = samples_dict['HToZA'],
+                                   cut                       = parameters.cut,
+                                   tag =                    'HToZA')
         logging.info('HToZA sample size : {}'.format(data_HToZA.shape[0]))
         logging.info('DY samples')
-        data_DY = LoopOverTrees(input_dir=samples_path,
-                                variables=variables,
-                                weight=parameters.weights,
-                                #reweight_to_cross_section=True,
-                                reweight_to_cross_section=False,
-                                list_sample=samples_dict['DY'],
-                                tag='DY')
+        data_DY = LoopOverTrees(input_dir                   = samples_path,
+                                variables                   = variables,
+                                weight                      = parameters.weights,
+                                #reweight_to_cross_section = True,
+                                reweight_to_cross_section   = False,
+                                list_sample                 = samples_dict['DY'],
+                                cut                         = parameters.cut,
+                                tag                         = 'DY')
         logging.info('DY sample size : {}'.format(data_DY.shape[0]))
         logging.info('TT samples')
-        data_TT = LoopOverTrees(input_dir=samples_path,
-                                variables=variables,
-                                weight=parameters.weights,
-                                #reweight_to_cross_section=True,
-                                reweight_to_cross_section=False,
-                                list_sample=samples_dict['TT'],
-                                tag='TT')
+        data_TT = LoopOverTrees(input_dir                   = samples_path,
+                                variables                   = variables,
+                                weight                      = parameters.weights,
+                                #reweight_to_cross_section = True,
+                                reweight_to_cross_section   = False,
+                                list_sample                 = samples_dict['TT'],
+                                cut                         = parameters.cut,
+                                tag                         = 'TT')
         logging.info('TT sample size : {}'.format(data_TT.shape[0]))
 
 
 
-        logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
+        #logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
 
         # Weight equalization #
         if parameters.weights is not None:
@@ -367,7 +374,7 @@ def main():
         data_HToZA['learning_weights'] = pd.Series(weight_HToZA)
         data_DY['learning_weights'] = pd.Series(weight_DY)
         data_TT['learning_weights'] = pd.Series(weight_TT)
-        logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
+        #logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
 
         # Data splitting #
         mask_HToZA = GenerateMask(data_HToZA.shape[0],parameters.suffix+'_HToZA')
@@ -385,7 +392,7 @@ def main():
             logging.critical("Problem with the mask you imported, has the data changed since it was generated ?")
             sys.exit(1)
             
-        logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
+        #logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
         del data_HToZA, data_DY, data_TT
 
         
@@ -393,7 +400,7 @@ def main():
         del train_HToZA,train_DY,train_TT # Save space
         test_all = pd.concat([test_HToZA,test_DY,test_TT],copy=True).reset_index(drop=True)
         del test_HToZA,test_DY,test_TT
-        logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
+        #logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
 
 
         # Parametrized case : add the masses as inputs and make the repetition for each mass #
@@ -463,7 +470,7 @@ def main():
 
         logging.info("Sample size seen by network : %d"%train_all.shape[0])
         logging.info("Sample size for the output  : %d"%test_all.shape[0])
-        logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
+        #logging.info('Current memory usage : %0.3f GB'%(pid.memory_info().rss/(1024**3)))
     else:
         logging.info('No samples have been imported since you asked for a generator')
         train_all = pd.DataFrame()

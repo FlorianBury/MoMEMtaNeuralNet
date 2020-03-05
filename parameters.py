@@ -25,11 +25,19 @@ output_ratio = 0.2      # Output set for plotting later
 # Will only be taken into account for the masks generation, ignored after
 
 ############################### Slurm parameters ######################################
+# For GPU #
 partition = 'cp3-gpu'  # Def, cp3 or cp3-gpu
 QOS = 'cp3-gpu' # cp3 or normal
 time = '5-00:00:00' # days-hh:mm:ss
 mem = '60000' # ram in MB
 tasks = '20' # Number of threads(as a string)
+
+# For CPU #
+#partition = 'cp3'  # Def, cp3 or cp3-gpu
+#QOS = 'cp3' # cp3 or normal
+#time = '0-02:00:00' # days-hh:mm:ss
+#mem = '60000' # ram in MB
+#tasks = '20' # Number of threads(as a string)
 
 ######################################  Names  ########################################
 # Model name (only for scans)
@@ -40,30 +48,36 @@ model = 'NeuralNetGeneratorModel'
 # scaler and mask names #
 #suffix = 'binary' 
 #suffix = 'class_param_test' 
-suffix = 'gen_ME' 
+#suffix = 'gen_ME' 
+suffix = 'gen_ME_newvar2' 
 # scaler_name -> 'scaler_{suffix}.pkl'  If does not exist will be created 
 # mask_name -> 'mask_{suffix}_{sample}.npy'  If does not exist will be created 
 
 # Training resume #
-resume_model = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/GPU_10x100_elu_100epochs_batchNorm_ME.zip'
-#resume_model = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/GPU_8x500_elu_300epochs_withBatchNorm_ME.zip'   # Must be turned on in the argparse arguments
-#resume_model = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/GPU_split_ME.zip'   # Must be turned on in the argparse arguments
+resume_model = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/GPU_10x200_elu_300epochs_batchNorm_CLHard200Epochs_ME.zip'
 
 # Generator #
-#path_gen_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path3' # For training
-#path_gen_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path0' # For val_loss during training
-#path_gen_evaluation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path1' # for model evaluation
-#path_gen_output = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_mix/path2' # for output
 path_gen_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_all/path3' # For training
 path_gen_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_all/path0' # For val_loss during training
 path_gen_evaluation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_all/path1' # for model evaluation
 path_gen_output = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_all/path2' # for output
 
+# Curriculum learning #
+#path_gen_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Training/All_in1OrderMag.root' # For curriculum training : easy
+#path_gen_validation= '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Validation/All_in1OrderMag.root' # For curriculum training : easy
+#path_gen_evaluation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Evaluation/All_in1OrderMag.root' # For curriculum training : easy
+#path_gen_output = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Output/All_in1OrderMag.root' # For curriculum training : easy
+
+#path_gen_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Training/All_out1OrderMag.root' # For curriculum training : hard
+#path_gen_validation= '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Validation/All_out1OrderMag.root' # For curriculum training : hard
+#path_gen_evaluation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Evaluation/All_out1OrderMag.root' # For curriculum training : hard
+#path_gen_output = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Output/All_out1OrderMag.root' # For curriculum training : hard
+
 weights_generator = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/utils/weights.root' # Must be turned on in the argparse arguments
 #weights_generator = ''
 
 
-workers = 20
+workers = 30
 
 # Output #
 output_batch_size = 1000
@@ -120,7 +134,7 @@ p = {
     'first_neuron' : [200],
     'activation' : [relu],
     'dropout' : [0],
-    'hidden_layers' : [5], # does not take into account the first layer
+    'hidden_layers' : [9], # does not take into account the first layer
     'output_activation' : [elu],
     'l2' : [0],
     'optimizer' : [Adam],  
@@ -131,6 +145,15 @@ p = {
 repetition = 1 # How many times each hyperparameter has to be used 
 
 ###################################  Variables   ######################################
+cut = None #'abs(-log10(output_ME)+log10(MEPdf))>1'
+
+#weights = 'total_weight'
+weights = None
+
+product2Momentas = '-{0}.Px()*{1}.Px()-{0}.Py()*{1}.Py()-{0}.Pz()*{1}.Pz()+{0}.E()*{1}.E()'
+invMass2Momentas = '-pow({0}.Px()+{1}.Px(),2)-pow({0}.Py()+{1}.Py(),2)-pow({0}.Pz()+{1}.Pz(),2)+pow({0}.E()+{1}.E(),2)'
+invMass3Momentas = '-pow({0}.Px()+{1}.Px()+{2}.Px(),2)-pow({0}.Py()+{1}.Py()+{2}.Py(),2)-pow({0}.Pz()+{1}.Pz()+{2}.Pz(),2)+pow({0}.E()+{1}.E()+{2}.E(),2)'
+
 inputs = [
          #######   Regression ##########
          #'lep1_p4.Pt()',
@@ -205,32 +228,122 @@ inputs = [
          #'met_phi-lep1_p4_Phi',
 
          # Matrix Element #
-        'init1_p4.E()',
-        'init2_p4.E()',
-        'positron_p4.Px()',
-        'positron_p4.Py()',
-        'positron_p4.Pz()',
-        'positron_p4.E()',
-        'neutrino_p4.Px()',
-        'neutrino_p4.Py()',
-        'neutrino_p4.Pz()',
-        'neutrino_p4.E()',
-        'bjet_p4.Px()',
-        'bjet_p4.Py()',
-        'bjet_p4.Pz()',
-        'bjet_p4.E()',
-        'electron_p4.Px()',
-        'electron_p4.Py()',
-        'electron_p4.Pz()',
-        'electron_p4.E()',
-        'antineutrino_p4.Px()',
-        'antineutrino_p4.Py()',
-        'antineutrino_p4.Pz()',
-        'antineutrino_p4.E()',
-        'antibjet_p4.Px()',
-        'antibjet_p4.Py()',
-        'antibjet_p4.Pz()',
-        'antibjet_p4.E()',
+        #'init1_p4.E()',
+        #'init2_p4.E()',
+        #'positron_p4.Px()',
+        #'positron_p4.Py()',
+        #'positron_p4.Pz()',
+        #'positron_p4.E()',
+        #'neutrino_p4.Px()',
+        #'neutrino_p4.Py()',
+        #'neutrino_p4.Pz()',
+        #'neutrino_p4.E()',
+        #'bjet_p4.Px()',
+        #'bjet_p4.Py()',
+        #'bjet_p4.Pz()',
+        #'bjet_p4.E()',
+        #'electron_p4.Px()',
+        #'electron_p4.Py()',
+        #'electron_p4.Pz()',
+        #'electron_p4.E()',
+        #'antineutrino_p4.Px()',
+        #'antineutrino_p4.Py()',
+        #'antineutrino_p4.Pz()',
+        #'antineutrino_p4.E()',
+        #'antibjet_p4.Px()',
+        #'antibjet_p4.Py()',
+        #'antibjet_p4.Pz()',
+        #'antibjet_p4.E()',
+
+         # Matrix Element newVar #
+        #'init1_p4.E()',
+        #'init2_p4.E()',
+        #'positron_p4.Pt()',
+        #'positron_p4.Eta()',
+        #'neutrino_p4.Pt()',
+        #'neutrino_p4.Eta()',
+        #'neutrino_p4.Phi()-positron_p4.Phi()',
+        #'bjet_p4.Pt()',
+        #'bjet_p4.Eta()',
+        #'bjet_p4.Phi()-positron_p4.Phi()',
+        #'electron_p4.Pt()',
+        #'electron_p4.Eta()',
+        #'electron_p4.Phi()-positron_p4.Phi()',
+        #'antineutrino_p4.Pt()',
+        #'antineutrino_p4.Eta()',
+        #'antineutrino_p4.Phi()-positron_p4.Phi()',
+        #'antibjet_p4.Pt()',
+        #'antibjet_p4.Eta()',
+        #'antibjet_p4.Phi()-positron_p4.Phi()',
+
+         # Matrix Element newVar2 #
+        invMass2Momentas.format('init1_p4','init2_p4'), # s = (P1+p2)²
+        invMass2Momentas.format('electron_p4','antineutrino_p4'),
+        invMass2Momentas.format('positron_p4','neutrino_p4'),
+        product2Momentas.format('electron_p4','neutrino_p4'),
+        product2Momentas.format('electron_p4','antineutrino_p4'),
+        product2Momentas.format('electron_p4','positron_p4'),
+        product2Momentas.format('electron_p4','bjet_p4'),
+        product2Momentas.format('electron_p4','antibjet_p4'),
+        product2Momentas.format('neutrino_p4','antineutrino_p4'),
+        product2Momentas.format('neutrino_p4','positron_p4'),
+        product2Momentas.format('neutrino_p4','bjet_p4'),
+        product2Momentas.format('neutrino_p4','antibjet_p4'),
+        product2Momentas.format('bjet_p4','antineutrino_p4'),
+        product2Momentas.format('bjet_p4','positron_p4'),
+        product2Momentas.format('bjet_p4','antibjet_p4'),
+        product2Momentas.format('positron_p4','antineutrino_p4'),
+        product2Momentas.format('positron_p4','antibjet_p4'),
+        product2Momentas.format('antineutrino_p4','antibjet_p4'),
+        invMass3Momentas.format('electron_p4','antineutrino_p4','bjet_p4'),
+        invMass3Momentas.format('positron_p4','neutrino_p4','antibjet_p4'),
+        'positron_p4.Pt()',
+        'positron_p4.Eta()',
+        'neutrino_p4.Pt()',
+        'neutrino_p4.Eta()',
+        'neutrino_p4.Phi()-positron_p4.Phi()',
+        'bjet_p4.Pt()',
+        'bjet_p4.Eta()',
+        'bjet_p4.Phi()-positron_p4.Phi()',
+        'electron_p4.Pt()',
+        'electron_p4.Eta()',
+        'electron_p4.Phi()-positron_p4.Phi()',
+        'antineutrino_p4.Pt()',
+        'antineutrino_p4.Eta()',
+        'antineutrino_p4.Phi()-positron_p4.Phi()',
+        'antibjet_p4.Pt()',
+        'antibjet_p4.Eta()',
+        'antibjet_p4.Phi()-positron_p4.Phi()',
+
+        # Matrix Element reprocessing #
+        #'init1_p4_E',
+        #'init2_p4_E',
+        #'positron_p4_Px',
+        #'positron_p4_Py',
+        #'positron_p4_Pz',
+        #'positron_p4_E',
+        #'neutrino_p4_Px',
+        #'neutrino_p4_Py',
+        #'neutrino_p4_Pz',
+        #'neutrino_p4_E',
+        #'bjet_p4_Px',
+        #'bjet_p4_Py',
+        #'bjet_p4_Pz',
+        #'bjet_p4_E',
+        #'electron_p4_Px',
+        #'electron_p4_Py',
+        #'electron_p4_Pz',
+        #'electron_p4_E',
+        #'antineutrino_p4_Px',
+        #'antineutrino_p4_Py',
+        #'antineutrino_p4_Pz',
+        #'antineutrino_p4_E',
+        #'antibjet_p4_Px',
+        #'antibjet_p4_Py',
+        #'antibjet_p4_Pz',
+        #'antibjet_p4_E',
+
+
          ]
 outputs = [
          #######   Regression ##########
@@ -266,6 +379,7 @@ outputs = [
           ] 
 other_variables = [
                     'MEPdf',
+                     #'output_ME',
                      #'lep1_p4.Pt()',
                      #'lep1_p4.Eta()',
                      #'lep1_p4.Phi()',
@@ -408,8 +522,6 @@ other_variables = [
                      #'weight_HToZA_mH_600_mA_250_time', 
                      #'is_JEC',
                   ]
-#weights = 'total_weight'
-weights = None
 
 ################################  dtype operation ##############################
 

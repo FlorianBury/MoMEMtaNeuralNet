@@ -130,6 +130,7 @@ class ProduceOutput:
             data = Tree2Pandas(input_file=full_path,
                                variables=var,
                                weight=parameters.weights,
+                               cut = parameters.cut,
                                reweight_to_cross_section=False)
                 
             if data.shape[0]==0:

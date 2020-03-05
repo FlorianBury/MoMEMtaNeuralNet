@@ -15,21 +15,31 @@ from CP3SlurmUtils.Exceptions import CP3SlurmUtilsException
 # Personal files #
 import parameters
 
-def submit_on_slurm(name,args,debug=False,GPU=False):
-    config = Configuration()
+def submit_on_slurm(name,args,debug=False):
+    # Check arguments #
+    GPU = args.find("--GPU") != -1
+    output = args.find("--output") != -1
 
+    config = Configuration()
     config.sbatch_partition = parameters.partition
     config.sbatch_qos = parameters.QOS
     config.sbatch_workdir = parameters.main_path
     config.sbatch_time = parameters.time
     #config.sbatch_mem = parameters.mem
-    #config.sbatch_additionalOptions = ['--ntask='+parameters.tasks , "--gpus=1", "--export=ALL"]
-    #config.sbatch_additionalOptions = ['-n 20', '-G 1']
-    config.sbatch_additionalOptions = ['-n 20','-G 1','--export=NONE']
+    config.sbatch_additionalOptions = ['-n '+str(parameters.tasks)]
+    if GPU:
+        config.sbatch_additionalOptions += ['--gres gpu:1','--export=NONE']
     config.inputSandboxContent = []
     config.useJobArray = True
-    config.inputParamsNames = ['scan','task']
+    config.inputParamsNames = []
     config.inputParams = []
+    if output:
+        config.inputParamsNames += ["--verbose"]
+        config.inputParams += [[""]]
+    if not output:
+        config.inputParamsNames += ['scan','task']
+
+    print (config.inputParamsNames, config.inputParams)
 
     config.payload = """ """
 
@@ -37,7 +47,9 @@ def submit_on_slurm(name,args,debug=False,GPU=False):
         config.payload += "export PYTHONPATH=/root6/lib:$PYTHONPATH\n"
         config.payload += "module load cp3\n" # needed on gpu to load slurm_utils
         config.payload += "module load slurm/slurm_utils\n"
-    config.payload += "python3 {script} --scan ${{scan}} --task ${{task}}"
+    config.payload += "python3 {script} "
+    if not output:
+        config.payload += "--scan ${{scan}} --task ${{task}} "
     config.payload += args
 
     timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
@@ -50,14 +62,14 @@ def submit_on_slurm(name,args,debug=False,GPU=False):
     slurm_config.inputSandboxDir = slurm_config.batchScriptsDir
     slurm_config.stageoutDir = os.path.join(slurm_working_dir, 'output')
     slurm_config.stageoutLogsDir = os.path.join(slurm_working_dir, 'logs')
-    slurm_config.stageoutFiles = ["*.csv","*.zip","*png"]
+    slurm_config.stageoutFiles = ["*.csv","*.zip","*.png","*.root"]
 
-    #slurm_config.payload = config.payload.format(scan=name,task=task)
     slurm_config.payload = config.payload.format(script=out_dir+"/MoMEMtaNeuralNet.py")
 
-    for f in glob.glob(os.path.join(parameters.main_path,'split',name,'*.pkl')):
-        task = os.path.basename(f)
-        slurm_config.inputParams.append([name,task])
+    if not output:
+        for f in glob.glob(os.path.join(parameters.main_path,'split',name,'*.pkl')):
+            task = os.path.basename(f)
+            slurm_config.inputParams.append([name,task])
 
     # Submit job!
 
@@ -68,6 +80,7 @@ def submit_on_slurm(name,args,debug=False,GPU=False):
         logging.info("Done")
     else:
         logging.debug(slurm_config.payload)
+        logging.debug(slurm_config.inputParamsNames)
         logging.debug(slurm_config.inputParams)
         logging.info('... don\'t worry, jobs not sent')
 

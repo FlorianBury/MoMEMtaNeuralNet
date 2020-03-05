@@ -327,7 +327,7 @@ samples_dict['ME_test'] = [
                           ]
 
 ##############################     ME generator    #######################
-samples_dict['ME_generator'] = [
+samples_dict['ME_generator_output'] = [
                             'ME_TTBar_generator_all/path2/DYJetsToLL_M-10to50_ME.root',
                             'ME_TTBar_generator_all/path2/DYToLL_0J_ME.root',
                             'ME_TTBar_generator_all/path2/DYToLL_1J_ME.root',
@@ -336,10 +336,41 @@ samples_dict['ME_generator'] = [
                             'ME_TTBar_generator_all/path2/TTTo2L2Nu_ME.root',
                           ]
 samples_dict['ME_generator_validation'] = [
-                            'ME_TTBar_generator_all/path1/DYJetsToLL_M-10to50_ME.root',
-                            'ME_TTBar_generator_all/path1/DYToLL_0J_ME.root',
-                            'ME_TTBar_generator_all/path1/DYToLL_1J_ME.root',
-                            'ME_TTBar_generator_all/path1/DYToLL_2J_ME.root',
-                            'ME_TTBar_generator_all/path1/TT_Other_ME.root',
-                            'ME_TTBar_generator_all/path1/TTTo2L2Nu_ME.root',
+                            'ME_TTBar_generator_all/path0/DYJetsToLL_M-10to50_ME.root',
+                            'ME_TTBar_generator_all/path0/DYToLL_0J_ME.root',
+                            'ME_TTBar_generator_all/path0/DYToLL_1J_ME.root',
+                            'ME_TTBar_generator_all/path0/DYToLL_2J_ME.root',
+                            'ME_TTBar_generator_all/path0/TT_Other_ME.root',
+                            'ME_TTBar_generator_all/path0/TTTo2L2Nu_ME.root',
                           ]
+samples_dict['ME_generator_evaluation'] = [
+                            'ME_TTBar_generator_all/path2/DYJetsToLL_M-10to50_ME.root',
+                            'ME_TTBar_generator_all/path2/DYToLL_0J_ME.root',
+                            'ME_TTBar_generator_all/path2/DYToLL_1J_ME.root',
+                            'ME_TTBar_generator_all/path2/DYToLL_2J_ME.root',
+                            'ME_TTBar_generator_all/path2/TT_Other_ME.root',
+                            'ME_TTBar_generator_all/path2/TTTo2L2Nu_ME.root',
+                          ]
+
+samples_dict['ME_generator_training'] = [
+                            'ME_TTBar_generator_all/path3/DYJetsToLL_M-10to50_ME.root',
+                            'ME_TTBar_generator_all/path3/DYToLL_0J_ME.root',
+                            'ME_TTBar_generator_all/path3/DYToLL_1J_ME.root',
+                            'ME_TTBar_generator_all/path3/DYToLL_2J_ME.root',
+                            'ME_TTBar_generator_all/path3/TT_Other_ME.root',
+                            'ME_TTBar_generator_all/path3/TTTo2L2Nu_ME.root',
+                          ]
+
+samples_dict['ME_CL_Easy'] = [ "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Output/All_in1OrderMag.root"]
+samples_dict['ME_CL_Hard'] = [ "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Output/All_out1OrderMag.root"]
+
+samples_dict['ME_reprocessing'] = ["/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_6x200_elu_500epochs_batchNorm/ME_generator_weights/All.root"]
+samples_dict['ME_reprocessing_training'] = [
+    "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_6x200_elu_500epochs_batchNorm/ME_generator_training_weights/All_1.root",
+    "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_6x200_elu_500epochs_batchNorm/ME_generator_training_weights/All_2.root",
+    "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_6x200_elu_500epochs_batchNorm/ME_generator_training_weights/All_4.root",
+    "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_6x200_elu_500epochs_batchNorm/ME_generator_training_weights/All_5.root",
+    "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_6x200_elu_500epochs_batchNorm/ME_generator_training_weights/All_6.root",
+    "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_6x200_elu_500epochs_batchNorm/ME_generator_training_weights/All_7.root",
+    "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_6x200_elu_500epochs_batchNorm/ME_generator_training_weights/All_8.root",
+    ]

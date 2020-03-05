@@ -22,7 +22,7 @@ from keras.losses import binary_crossentropy, mean_squared_error
 from keras.optimizers import RMSprop, Adam, Nadam, SGD
 from keras.activations import relu, elu, selu, softmax, tanh
 from keras.models import Model, model_from_json, load_model
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorBoard
 from keras.regularizers import l1,l2
 import keras.backend as K
 import tensorflow as tf
@@ -341,12 +341,43 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
 
     #preprocess = Model(inputs=[IN],outputs=[L0])
     #utils.print_summary(model=preprocess)
+    
+    # Tensorboard logs #
+    path_board = os.path.join(parameters.main_path,"TensorBoard")
+    suffix = 0
+    while(os.path.exists(os.path.join(path_board,"Run_"+str(suffix)))):
+        suffix += 1
+    path_board = os.path.join(path_board,"Run_"+str(suffix))
+    os.makedirs(path_board)
+    logging.info("TensorBoard log dir is at %s"%path_board)
 
     # Callbacks #
-    early_stopping = EarlyStopping(monitor='val_loss', min_delta=0., patience=50, verbose=1, mode='min')
-    reduceLR = ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=10, verbose=1, mode='min', cooldown=1, min_lr=1e-5)
+    early_stopping = EarlyStopping(monitor='val_loss', 
+                                   min_delta=0., 
+                                   patience=100, 
+                                   verbose=1, 
+                                   mode='min')
+    reduceLR = ReduceLROnPlateau(monitor='val_loss', 
+                                 factor=0.5, 
+                                 patience=50, 
+                                 verbose=1, 
+                                 mode='min', 
+                                 cooldown=10,
+                                 min_lr=1e-5)
     loss_history = LossHistory()
-    Callback_list = [loss_history,early_stopping,reduceLR]#
+    board = TensorBoard(log_dir=path_board, 
+                        histogram_freq=1, 
+                        batch_size=params['batch_size'], 
+                        write_graph=True, 
+                        write_grads=True, 
+                        write_images=True)
+                        #embeddings_freq=0, 
+                        #embeddings_layer_names=None, 
+                        #embeddings_metadata=None, 
+                        #embeddings_data=None, 
+                        #update_freq='epoch')
+    Callback_list = [loss_history,early_stopping,reduceLR,board]
+    #Callback_list = [loss_history,reduceLR,board]
 
     # Check if generator weights has been asked #
     weights_generator = parameters.weights_generator if 'generator_weights' in params and params['generator_weights'] else ''
@@ -355,7 +386,6 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
     if 'resume' not in params: 
         # Define model #
         model = Model(inputs=[IN], outputs=[OUT])
-        logging.info("/!\ CURRENT MODEL /!\ ")
         utils.print_summary(model=model) #used to print model
         # Compile it #
         model.compile(optimizer=Adam(lr=params['lr']),
@@ -364,7 +394,7 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
         initial_epoch = 0
     else: # a model has to be imported and resumes training
         custom_objects =  {'PreprocessLayer': PreprocessLayer}
-        logging.info("/!\ LOADED MODEL /!\ ")
+        logging.info("Loaded model %s"%params['resume'])
         a = Restore(params['resume'],custom_objects=custom_objects,method='h5')
         model = a.model
         model.compile(optimizer=Adam(lr=params['lr']),

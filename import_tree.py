@@ -10,6 +10,7 @@ import array
 import numpy as np
 import pandas as pd
 
+import parameters
 from root_numpy import tree2array, rec2array
 from ROOT import TChain, TFile, TTree
 
@@ -82,6 +83,12 @@ def LoopOverTrees(input_dir, variables, weight=None, tag=None, cut=None, reweigh
         sys.exit(1)
 
     logging.debug("Accessing directory : "+input_dir)
+
+    # Add potential cut to the one in parameters.py file #
+    if cut is not None:
+        cut += " && "+parameters.cut
+    else:
+        cut : parameters.cut
 
     # Wether to use a given sample list or loop over files inside a dir #
     if list_sample is None:
