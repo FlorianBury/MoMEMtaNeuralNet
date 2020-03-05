@@ -76,8 +76,10 @@ def main():
                     #      override_params = {}),
                     #Plots(name = 'ME_twovar',
                     #      override_params = {}),
-                    Plots(name = 'ME_generator_weights',
+                    Plots(name = 'ME_generator_output_weights',
                           override_params = {}),
+                    #Plots(name = 'ME_generator_training_weights',
+                    #      override_params = {}),
                           
                  ]
 
