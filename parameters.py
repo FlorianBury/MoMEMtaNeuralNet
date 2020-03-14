@@ -73,11 +73,11 @@ path_gen_output = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator
 #path_gen_evaluation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Evaluation/All_out1OrderMag.root' # For curriculum training : hard
 #path_gen_output = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Output/All_out1OrderMag.root' # For curriculum training : hard
 
-weights_generator = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/utils/weights.root' # Must be turned on in the argparse arguments
+#weights_generator = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/utils/weights.root' # Must be turned on in the argparse arguments
 #weights_generator = ''
 
 
-workers = 30
+workers = 20
 
 # Output #
 output_batch_size = 1000
@@ -138,7 +138,7 @@ p = {
     'output_activation' : [elu],
     'l2' : [0],
     'optimizer' : [Adam],  
-    'epochs' : [200],   
+    'epochs' : [100],   
     'batch_size' : [50000], 
     'loss_function' : [mean_squared_error],
 }
@@ -151,6 +151,7 @@ cut = None #'abs(-log10(output_ME)+log10(MEPdf))>1'
 weights = None
 
 product2Momentas = '-{0}.Px()*{1}.Px()-{0}.Py()*{1}.Py()-{0}.Pz()*{1}.Pz()+{0}.E()*{1}.E()'
+product2Plus1Momentas = '-({0}.Px()+{1}.Px())*{2}.Px()-({0}.Py()+{1}.Py())*{2}.Py()-({0}.Pz()+{1}.Pz())*{2}.Pz()+({0}.E()+{1}.E())*{2}.E()'
 invMass2Momentas = '-pow({0}.Px()+{1}.Px(),2)-pow({0}.Py()+{1}.Py(),2)-pow({0}.Pz()+{1}.Pz(),2)+pow({0}.E()+{1}.E(),2)'
 invMass3Momentas = '-pow({0}.Px()+{1}.Px()+{2}.Px(),2)-pow({0}.Py()+{1}.Py()+{2}.Py(),2)-pow({0}.Pz()+{1}.Pz()+{2}.Pz(),2)+pow({0}.E()+{1}.E()+{2}.E(),2)'
 
@@ -314,6 +315,35 @@ inputs = [
         'antibjet_p4.Pt()',
         'antibjet_p4.Eta()',
         'antibjet_p4.Phi()-positron_p4.Phi()',
+
+        # # Matrix Element newVar3 #
+        #invMass2Momentas.format('init1_p4','init2_p4'), # s = (P1+p2)²
+        #invMass2Momentas.format('electron_p4','antineutrino_p4'),
+        #invMass2Momentas.format('positron_p4','neutrino_p4'),
+        #invMass3Momentas.format('electron_p4','antineutrino_p4','bjet_p4'),
+        #invMass3Momentas.format('positron_p4','neutrino_p4','antibjet_p4'),
+        #product2Momentas.format('electron_p4','neutrino_p4'),
+        #product2Momentas.format('positron_p4','antineutrino_p4'),
+        #product2Plus1Momentas.format('electron_p4','neutrino_p4','bjet_p4'),
+        #product2Plus1Momentas.format('positron_p4','antineutrino_p4','antibjet_p4'),
+        #'positron_p4.Pt()',
+        #'positron_p4.Eta()',
+        #'neutrino_p4.Pt()',
+        #'neutrino_p4.Eta()',
+        #'neutrino_p4.Phi()-positron_p4.Phi()',
+        #'bjet_p4.Pt()',
+        #'bjet_p4.Eta()',
+        #'bjet_p4.Phi()-positron_p4.Phi()',
+        #'electron_p4.Pt()',
+        #'electron_p4.Eta()',
+        #'electron_p4.Phi()-positron_p4.Phi()',
+        #'antineutrino_p4.Pt()',
+        #'antineutrino_p4.Eta()',
+        #'antineutrino_p4.Phi()-positron_p4.Phi()',
+        #'antibjet_p4.Pt()',
+        #'antibjet_p4.Eta()',
+        #'antibjet_p4.Phi()-positron_p4.Phi()',
+
 
         # Matrix Element reprocessing #
         #'init1_p4_E',

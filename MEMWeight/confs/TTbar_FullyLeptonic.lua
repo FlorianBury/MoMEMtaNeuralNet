@@ -48,7 +48,7 @@ load_modules(matrix_element_lib)
 -- Configuration of Cuba
 cuba = {
     seed =  random, 
-    relative_accuracy = 0.1,
+    relative_accuracy = 0.01,
     verbosity = 3,
     max_eval = max_eval,
     n_start = n_start,
@@ -241,9 +241,9 @@ Looper.looper = {
     -- NN related arguments
       save_ME = false, -- Save ME x PDF for learning 
       save_max = 1000, -- Maximum number of points in phase space to save
-      use_LWTNN = false,  -- Use NN regression for ME x PDF
-      use_Tensorflow = true,   -- Use NN regression for ME x PDF
-      json_file = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/MEMWeight/src/GPU_8x500_elu_200epochs_withBatchNorm_withPreprocess.json',
+      use_LWTNN = true,  -- Use NN regression for ME x PDF
+      use_Tensorflow = false,   -- Use NN regression for ME x PDF
+      json_file = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/MEMWeight/src/GPU_10x200_elu_200epochs_batchNorm_newvar2_ME.json',
       pb_file = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/MEMWeight/src/GPU_8x500_elu_200epochs_withBatchNorm_ME.pb',
 
     
@@ -257,16 +257,12 @@ Looper.looper = {
         inputs = full_inputs,
         ids = {
           {
-            pdg_id = 12,
-            me_index = 2,
-          },
-          {
-            pdg_id = -12,
-            me_index = 5,
-          },
-          {
             pdg_id = -11,
             me_index = 1,
+          },
+          {
+            pdg_id = 12,
+            me_index = 2,
           },
           {
             pdg_id = 5,
@@ -275,6 +271,10 @@ Looper.looper = {
           {
             pdg_id = 11,
             me_index = 4,
+          },
+          {
+            pdg_id = -12,
+            me_index = 5,
           },
           {
             pdg_id = -5,

@@ -354,12 +354,12 @@ def NeuralNetGeneratorModel(x_train,y_train,x_val,y_val,params):
     # Callbacks #
     early_stopping = EarlyStopping(monitor='val_loss', 
                                    min_delta=0., 
-                                   patience=100, 
+                                   patience=50, 
                                    verbose=1, 
                                    mode='min')
     reduceLR = ReduceLROnPlateau(monitor='val_loss', 
                                  factor=0.5, 
-                                 patience=50, 
+                                 patience=20, 
                                  verbose=1, 
                                  mode='min', 
                                  cooldown=10,
