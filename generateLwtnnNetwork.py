@@ -5,7 +5,9 @@ import json
 import h5py    
 import copy
 import pprint 
+import pickle
 import numpy as np
+from sklearn import preprocessing
 import parameters
 
 class generateLwtnnNetwork():
@@ -14,6 +16,7 @@ class generateLwtnnNetwork():
         self.h5_file        = h5_file
         self.new_json_file  = "new_"+os.path.basename(json_file)
         self.new_h5_file    = "new_"+os.path.basename(h5_file)
+        self.scaler_file    = self.new_h5_file.replace(".h5",".pkl")
         self.path_to_convert= "~/LWTNN/lwtnn/converters/kerasfunc2json.py"
         self.variables_json = "variables.json"
         self.neuralNet_json = "neuralNet.json"
@@ -159,6 +162,15 @@ class generateLwtnnNetwork():
         os.system("{} {} {} {} > {}".format(self.path_to_convert,self.new_json_file,self.new_h5_file,self.variables_json,self.neuralNet_json))
         print ("Created json file %s"%self.neuralNet_json)
 
+    def saveScaler(self):
+        print ("="*80)
+        scaler = preprocessing.StandardScaler()
+        scaler.mean_ = self.mean
+        scaler.scale_ = self.std
+        with open(self.scaler_file, 'wb') as handle:
+            pickle.dump(scaler, handle)
+        print ("Created scaler file %s"%self.scaler_file)
+
     def cleanUp(self):
         print ("="*80)
         print ("Clean up")
@@ -173,5 +185,6 @@ if __name__ == '__main__':
     instance.makeVariablesJson()
     instance.modifyVariablesJson()
     instance.makeNeuralNetJson()
+    instance.saveScaler()
     instance.cleanUp()
     #print_structure(sys.argv[2])
