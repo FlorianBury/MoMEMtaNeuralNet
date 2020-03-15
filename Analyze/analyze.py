@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import seaborn as sns
 import argparse
+import enlighten
 import parse
 import pickle
 from collections import OrderedDict 
@@ -225,9 +226,9 @@ class Analyze:
         bias = np.zeros(self.df_inputs.shape[1])
         std  = np.zeros(self.df_inputs.shape[1])
 
-        Nevents = 100000
+        Nevents = 10000
+        pbar = enlighten.Counter(total=min(Nevents,self.df_inputs.shape[0]), desc='Differentiation', unit='Event')
         for i in range(min(Nevents,self.df_inputs.shape[0])): # Loop over events 
-            print (i)
             # Get one event entry and scale it #
             inputs = self.df_inputs.loc[i].values.reshape(1,-1)
             inputs = self.scaler.transform(inputs)
@@ -241,6 +242,7 @@ class Analyze:
                 outputsvar = self.model.predict(inputsvar,batch_size=inputsvar.shape[1])
                 bias[j] += np.mean(outputsvar)-output
                 std[j]  += np.std(outputsvar)
+            pbar.update()
             
         bias /= Nevents
         std  /= Nevents
