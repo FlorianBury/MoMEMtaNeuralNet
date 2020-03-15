@@ -142,4 +142,5 @@ def LoopOverTrees(input_dir, variables, weight=None, tag=None, cut=None, reweigh
             first_file = False
         else:
             all_df = pd.concat([all_df,df])
+        all_df = all_df.reset_index(drop=True) # Otherwise there will be an index repetition for each file
     return all_df
