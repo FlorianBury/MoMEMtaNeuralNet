@@ -12,11 +12,11 @@ import pprint
 ##################################################################################################
 ##########################                 GetEntries                   ##########################
 ##################################################################################################
-def GetEntries(f,cut=''):
+def GetEntries(f,cut='',treeName="tree"):
     """ Count the entries in a file, with or without a cut """
     from ROOT import TFile
     file_handle = TFile.Open(f)                                                                                                                                                                
-    tree = file_handle.Get('tree') 
+    tree = file_handle.Get(treeName) 
     if cut=='':
         return tree.GetEntries()
     else:
@@ -26,7 +26,7 @@ def GetEntries(f,cut=''):
 ##################################################################################################
 ##########################                 ListEntries                  ##########################
 ##################################################################################################
-def ListEntries(path,part=[''],cut=''):
+def ListEntries(path,part=[''],cut='',treeName="tree"):
     """ Given a path, count the entries of all the files that match part, with or without cuts """
     if cut=='':
         N_tot = 0
@@ -50,14 +50,13 @@ def ListEntries(path,part=[''],cut=''):
             for root, dirs, files in os.walk(f):
                 for rf in files:
                     if rf.endswith('.root'):
-                        #N = N+GetEntries(os.path.join(root,rf),cut)
                         if cut=='':
-                            N += GetEntries(os.path.join(root,rf))
+                            N += GetEntries(os.path.join(root,rf),treeName=treeName)
                         else:
                             N = list( map(add, N, GetEntries(os.path.join(root,rf),cut)) )
         # If root files, get N directly #
         if os.path.isfile(f) and f.endswith('.root'):
-            N = GetEntries(f,cut)
+            N = GetEntries(f,cut,treeName=treeName)
         
         if cut=='':
             print (('Object : %s '%(filename)).ljust(70,'.')+('  %d'%(N)).ljust(9,' ')+' entries')    
@@ -293,6 +292,7 @@ if __name__=='__main__':
     countArgs.add_argument('--path', action='store', required=False, help='Path for the count')
     countArgs.add_argument('--input', action='append', nargs='+', required=False, help='List of strings that must be contained in the filename')
     countArgs.add_argument('--cut', action='store', default='', type=str, required=False, help='Cuts to be applied')
+    countArgs.add_argument('--tree', action='store', default='tree', type=str, required=False, help='Name of the tree (default="tree")')
 
     zipArgs = parser.add_argument_group('Concatenate zip files (also modifying names of files inside the archive')
     zipArgs.add_argument('--zip', action='append', nargs=2, required=False, help='path to input .zip + path to output .zip')
@@ -311,11 +311,11 @@ if __name__=='__main__':
         if args.input is not None:
             if args.variable is not None:
                 CountVariables(args.path,args.variable,is_time_in_ms=True,part=args.input[0])
-            ListEntries(path=args.path,part=args.input[0],cut=args.cut)
+            ListEntries(path=args.path,part=args.input[0],cut=args.cut,treeName=args.tree)
         else:
             if args.variable is not None:
                 CountVariables(args.path,args.variable,is_time_in_ms=True)
-            ListEntries(path=args.path,cut=args.cut)
+            ListEntries(path=args.path,cut=args.cut,treeName=args.tree)
 
     if args.zip is not None:
         CopyZip(args.zip[0][0],args.zip[0][1])
