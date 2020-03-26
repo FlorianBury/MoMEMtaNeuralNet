@@ -1,6 +1,9 @@
 import os
 import sys
 import logging
+import shutil
+import glob
+import json
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -14,7 +17,9 @@ from collections import OrderedDict
 
 from sklearn.feature_selection import SelectKBest, f_regression, mutual_info_regression
 from scipy.stats import pearsonr
+import tensorflow as tf
 from keras.models import model_from_json
+from keras import backend as k
 
 import innvestigate
 import innvestigate.utils as iutils
@@ -25,16 +30,18 @@ import parameters
 
 class Analyze:
     def __init__(self,N,suffix):
-        self.inputs     = parameters.inputs
-        self.outputs    = parameters.outputs
-        self.path_files = parameters.path_gen_output
-        self.path_out   = os.path.abspath(".")
-        self.N          = N
-        self.suffix     = suffix
-        self.scores     = pd.DataFrame(columns=self.inputs)
+        self.inputs      = parameters.inputs
+        self.outputs     = parameters.outputs
+        self.path_files  = parameters.path_gen_output
+        self.path_out    = os.path.abspath(".")
+        self.N           = N
+        self.suffix      = suffix
+        self.path_scores = os.path.join(os.getcwd(),"scores_"+suffix+".pkl")
+        self.scores      = pd.DataFrame(columns=self.inputs)
 
         self.makeVarNames()
-        self.getDF()
+        if self.N != 0:
+            self.getDF()
 
     def fromStringToLatexNames(self,s):
         particles = []
@@ -82,25 +89,30 @@ class Analyze:
             else:
                 part = self.fromStringToLatexNames(inp)
                 if not isinstance(part,list):
-                    if 'Pt' in inp: 
+                    if 'Pt()' in inp: 
                         self.inputs_names[inp] = r"$P_{T}(%s)$"%part
-                    elif 'Eta' in inp: 
+                    elif 'Eta()' in inp: 
                         self.inputs_names[inp] = r"$\eta(%s)$"%part
-                    elif 'Phi' in inp: 
+                    elif 'Phi()' in inp: 
                         self.inputs_names[inp] = r"$\phi(%s)$"%part
+                    elif 'E()' in inp: 
+                        self.inputs_names[inp] = r"$E(%s)$"%part
                 elif len(part)==2:
-                    if 'Pt' in inp: 
+                    if 'Pt()' in inp: 
                         self.inputs_names[inp] = r"$\Delta P_{T}(%s,%s)$"%(part[0],part[1])
-                    elif 'Eta' in inp: 
+                    elif 'Eta()' in inp: 
                         self.inputs_names[inp] = r"$\Delta \eta(%s,%s)$"%(part[0],part[1])
-                    elif 'Phi' in inp: 
+                    elif 'Phi()' in inp: 
                         self.inputs_names[inp] = r"$\Delta \phi(%s,%s)$"%(part[0],part[1])
+                else:
+                    self.inputs_names[inp] = inp
 
     def getDF(self):
         from import_tree import LoopOverTrees
         df = LoopOverTrees(input_dir  = self.path_files,
                            variables  = self.inputs+self.outputs,
                            n          = self.N)
+        df = df.sample(frac=1).reset_index(drop=True) # Shuffle dataframe
         self.df_inputs = df[self.inputs]
         self.df_outputs = df[self.outputs]
         del df
@@ -118,6 +130,53 @@ class Analyze:
         # Load scaler as basemodel.pkl#
         with open(basemodel+'.pkl', 'rb') as handle:
             self.scaler = pickle.load(handle)
+
+        # Normalize inputs (so that done only once) #
+        if self.N != 0:
+            self.norm_inputs = self.scaler.transform(self.df_inputs.values)
+
+
+    def saveScores(self):
+        # Load saved DF if exists #
+        if os.path.exists(self.path_scores):
+            saved_scores = pd.read_pickle(self.path_scores)
+            if saved_scores.shape[0] == 0:
+                logging.warning("Loaded empty DF, will not do anything")
+            else:
+                logging.info("Loaded DF containing")
+                for index in saved_scores.index:
+                    logging.info("..... "+index)
+                # Only take from save the index not calculated here #
+                unknown_index = [idx for idx in saved_scores.index if idx not in self.scores.index]
+                if len(unknown_index) != 0:
+                    logging.info("List of values that have not been recalculated and will come from the save")
+                    for idx in unknown_index:
+                        logging.info("..... "+idx)
+                # If some values have been calculated, append the ones coming from the save #
+                if self.scores.shape[0] != 0:
+                    self.scores = self.scores.append(saved_scores.loc[unknown_index])
+                else:
+                    logging.warning("Nothing has been calculated, all will com from the save")
+                    self.scores = saved_scores
+
+        # Save to pickle #
+        if self.scores.shape[0] != 0:
+            self.scores.to_pickle(self.path_scores)
+            logging.info("Scores saved as %s"%self.path_scores)
+            for index in self.scores.index:
+                logging.info("..... "+index)
+        else:
+            logging.warning("No scores available, will not save")
+            
+
+    def addScore(self,arr,title):
+        # Check if title already in score DF #
+        if title in self.scores.index:
+            logging.warning('Score entry "%s" has been rewritten'%title)
+            self.scores.drop([title])
+
+        new_row = pd.DataFrame(arr.reshape(1,-1),columns=self.scores.columns,index=[title])
+        self.scores = self.scores.append(new_row,verify_integrity=True)
 
     def makeInputsGridPlot(self):
         logging.info("Starting the input map plot")
@@ -186,8 +245,8 @@ class Analyze:
         for inp in self.inputs:
             r = pearsonr(self.df_inputs[inp].values,self.df_outputs.values.ravel()) 
             scores.append(r[0])
-        new_row = pd.DataFrame(np.array(scores).reshape(1,-1),columns=self.scores.columns,index=["Pearson correlation"])
-        self.scores = self.scores.append(new_row,verify_integrity=True)
+        # Add to scores DF #
+        self.addScore(np.array(scores),"Pearson correlation")
         logging.info("... done")
 
     def outputsMutualInformation(self):
@@ -196,8 +255,8 @@ class Analyze:
         for inp in self.inputs:
             r = mutual_info_regression(self.df_inputs[inp].values.reshape(-1,1),self.df_outputs.values.ravel())
             scores.append(r[0])
-        new_row = pd.DataFrame(np.array(scores).reshape(1,-1),columns=self.scores.columns,index=["Mutual information"])
-        self.scores = self.scores.append(new_row,verify_integrity=True)
+        # Add to scores DF #
+        self.addScore(np.array(scores),"Mutual information")
         logging.info("... done")
 
     def extractFirstLayerWeights(self):
@@ -206,81 +265,198 @@ class Analyze:
         f = h5py.File(self.basemodel+'.h5','r')
         weights = f['dense_1']['dense_1_1']['kernel:0'][()]
         avg_sum_weights = np.sum(np.absolute(weights),axis=1)/weights.shape[1]
-        new_row = pd.DataFrame(avg_sum_weights.reshape(1,-1),columns=self.scores.columns,index=['First layer weights averaged sum'])
-        self.scores = self.scores.append(new_row,verify_integrity=True)
+        # Add to scores DF #
+        self.addScore(avg_sum_weights,"First layer weights averaged sum")
         logging.info("... done")
 
-    def makeInputsVariations(self,inputs,index,varmax,varstep):
+    def getQuantiles(self):
+        xq = np.array([0.05,0.95]) # Quantiles
+        yq = np.array([0.,0.])
+        self.quantiles_dict = {}
+        filename = "quantiles_"+self.suffix+".json"
+
+        # Check if file exists #
+        if os.path.exists(filename): # Load it
+            logging.info("Found quantiles file %s"%filename)
+            with open(filename,'r') as handle:
+                self.quantiles_dict = json.load(handle)
+
+        else: # Create it
+            logging.info("Generating quantiles")
+            # get TChain over files #  
+            import ROOT
+            ROOT.gROOT.SetBatch(True)
+            chain = ROOT.TChain("tree")
+            for path in glob.glob(os.path.join(self.path_files,'*.root')):
+                chain.Add(path)
+            # Loop over inputs and get histogram quantiles#
+            pbar = enlighten.Counter(total=len(self.inputs), desc='Progress', unit='Inputs')
+            for inp in self.inputs:
+                # Get hist #
+                chain.Draw(inp+">>h(1000)")
+                h = ROOT.gROOT.FindObject("h")
+                # Get quantile #
+                h.GetQuantiles(2,yq,xq)
+                self.quantiles_dict[inp] = list(yq)
+                pbar.update()
+            # Save file #
+            with open(filename,'w') as handle:
+                json.dump(self.quantiles_dict, handle,indent=4)
+
+            logging.info("... Quantiles saved in %s"%filename)
+
+    def makeInputsVariations(self,inputs,index,varmin,varmax,Nvar):
         # Generate all variations of input at index #
-        valueToVary = inputs[index]
-        allvars = np.arange(valueToVary-varmax,valueToVary+varmax,varstep)
-        nvar = allvars.shape[0]
+        #valueToVary = inputs[index]
+        #allvars = np.linspace(valueToVary-varmin,valueToVary+varmax,Nvar)
+        allvars = np.linspace(varmin,varmax,Nvar)
         # Generate full array #
-        arrayLeft  = np.tile(inputs[0:index],(nvar,1))
-        arrayRight = np.tile(inputs[index+1:],(nvar,1))
+        arrayLeft  = np.tile(inputs[0:index],(Nvar,1))
+        arrayRight = np.tile(inputs[index+1:],(Nvar,1))
         arrayFull  = np.c_[arrayLeft,allvars,arrayRight]
         return arrayFull
 
     def differentiateNetwork(self):
         logging.info("Processing network differentiation")
-        bias = np.zeros(self.df_inputs.shape[1])
+        #bias = np.zeros(self.df_inputs.shape[1])
         std  = np.zeros(self.df_inputs.shape[1])
 
-        Nevents = 10000
-        pbar = enlighten.Counter(total=min(Nevents,self.df_inputs.shape[0]), desc='Differentiation', unit='Event')
+        self.getQuantiles()
+
+        # Loop over inputs #
+        Nevents = 100000
+        pbar = enlighten.Counter(total=min(Nevents,self.df_inputs.shape[0]), desc='Progress', unit='Event')
+        dict_dist = dict((k,np.array([])) for k in self.inputs)
+        badevents = 0
         for i in range(min(Nevents,self.df_inputs.shape[0])): # Loop over events 
+            pbar.update()
             # Get one event entry and scale it #
             inputs = self.df_inputs.loc[i].values.reshape(1,-1)
-            inputs = self.scaler.transform(inputs)
-            output = self.df_outputs.loc[i].values[0]
+            output_exact = self.df_outputs.loc[i].values[0]
+            output_model = self.model.predict(self.scaler.transform(inputs))
             # Loop over each variable #
             for j in range(inputs.shape[1]):
+                # get min and max values from quantiles #
+                yq = self.quantiles_dict[self.inputs[j]]
+                # make variations #
                 inputsvar = self.makeInputsVariations(inputs  = inputs[0], # Inputs is 2D
                                                       index   = j,
-                                                      varmax  = 5,
-                                                      varstep = 0.1) 
-                outputsvar = self.model.predict(inputsvar,batch_size=inputsvar.shape[1])
-                bias[j] += np.mean(outputsvar)-output
+                                                      varmin  = yq[0],
+                                                      varmax  = yq[1],
+                                                      Nvar    = 50) 
+                inputsvar  = self.scaler.transform(inputsvar) 
+                outputsvar = self.model.predict(inputsvar,batch_size=inputsvar.shape[0])
+                outputdiff = outputsvar-output_model 
+                dict_dist[self.inputs[j]] = np.append(dict_dist[self.inputs[j]],outputdiff)
+
+                # Remove weird events for which variations blow up : TODO find better way #
+                if (outputdiff>1000).any():
+                    continue
+
+                # Record bias and std #
+                #bias[j] += np.mean(outputsvar)-output_model
                 std[j]  += np.std(outputsvar)
-            pbar.update()
-            
-        bias /= Nevents
+
+
+        # Make dir for distributions #
+        path_deriv = os.path.join(os.getcwd(),"diff_"+self.suffix)
+        if os.path.exists(path_deriv):
+            shutil.rmtree(path_deriv)
+        os.mkdir(path_deriv)
+
+        # Make distribution plots #
+        bins = np.linspace(-5.,5.,100)
+        for name, arr in dict_dist.items():
+            latexname = self.inputs_names[name]
+            fig, ax = plt.subplots(1,figsize=(9,8))
+            fig.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1,hspace=0.1)
+            ax.hist(arr,bins=bins)
+            ax.set_title("Quantiles variations [0.05,0.95] of "+latexname+ " [%0.2f,%0.2f]"%(self.quantiles_dict[name][0],self.quantiles_dict[name][1]),fontsize=18)
+            ax.set_xlabel("$\Delta - log_{10}(DNN \ output)_{Variations - Input}$",fontsize=19)
+            ax.set_xlim(np.amin(bins),np.amax(bins))
+            name = os.path.join(path_deriv,"diff_"+latexname.replace("$","")+".png")
+            plt.savefig(name)
+            plt.close()
+
+        # Combine png into pdf #
+        os.system("convert "+path_deriv+"/*png "+path_deriv+"/allplot.pdf")
+
+        #bias /= Nevents
         std  /= Nevents
 
-        bias_row = pd.DataFrame(bias.reshape(1,-1),columns=self.scores.columns,index=['Derivative bias'])
-        std_row = pd.DataFrame(std.reshape(1,-1),columns=self.scores.columns,index=['Derivative std'])
-        self.scores = self.scores.append(bias_row,verify_integrity=True)
-        self.scores = self.scores.append(std_row,verify_integrity=True)
+        #bias_row = pd.DataFrame(bias.reshape(1,-1),columns=self.scores.columns,index=['Derivative bias'])
+        #self.scores = self.scores.append(bias_row,verify_integrity=True)
+        # Add to scores DF #
+        self.addScore(std,"Input variations between quantiles [0.05,0.95]")
         logging.info("... done")
 
     def LRPAnalysis(self):
         logging.info("Processing network LRP")
-        analyzers = {"Guided backpropagation":"guided_backprop","Input gradient":"input_t_gradient","LRP (z method)":"lrp.z"}
-        inputs = self.scaler.transform(self.df_inputs.values)
+        analyzers = {"Guided backpropagation":"guided_backprop","LRP (z method)":"lrp.z"}
         for title,analyzer_func in analyzers.items():
             analyzer = innvestigate.create_analyzer(analyzer_func,self.model)
-            analysis = analyzer.analyze(inputs)
+            analysis = analyzer.analyze(self.norm_inputs)
             result   = np.sum(analysis,axis=0)/analysis.shape[0]
-            new_row = pd.DataFrame(result.reshape(1,-1),columns=self.scores.columns,index=["LRP : "+title])
-            self.scores = self.scores.append(new_row,verify_integrity=True)
+            # Add to scores DF #
+            self.addScore(result,title)
+        logging.info("... done")
+
+    def networkGradient(self):
+        logging.info("Processing network gradient")
+        session = k.get_session()
+        outgrad = session.run(tf.gradients(self.model.output, self.model.input), feed_dict={self.model.input: self.norm_inputs})[0] # Returns a list of one numpy array
+        outgrad = np.sum(outgrad,axis=0)/outgrad.shape[0] # Average
+        # Add to scores DF #
+        self.addScore(outgrad,"Network gradient over inputs")
         logging.info("... done")
 
     def plotScores(self):
-        # Calling basic score functions #
-        self.outputsCorrelation()
-        self.outputsMutualInformation()
+        # Reorder plots #
+        order = ["Pearson correlation",
+                 "Mutual information",
+                 "First layer weights averaged sum",
+                 "Network gradient over inputs",
+                 "Input variations between quantiles [0.05,0.95]",
+                 "Guided backpropagation",
+                 "LRP (z method)"]
 
         logging.info("Starting the score plot")
-        # --- separate bar plots --- #
-        # Plotting options  #
+        logging.info("Scores available")
+        for index in self.scores.index:
+            logging.info("..... "+index)
+
+
+        self.scores = self.scores.loc[order]
+
         N = self.scores.shape[0]
-        color=iter(plt.cm.rainbow(np.linspace(0.3,1,N)))                                                                                                                                                
-        fig, ax = plt.subplots(N,figsize=(18,N*6))
-        fig.subplots_adjust(left=0.1, right=0.9, top=0.95, bottom=0.1,hspace=0.4)
         bins = np.arange(self.scores.shape[1])
         labels = []
+
+        # --- separate bar plots ---#
+        color=iter(plt.cm.rainbow(np.linspace(0.3,1,N))) 
         for col in self.scores.columns:
             labels.append(self.inputs_names[col])
+
+        # Plot the different scores separately  #
+        for i,(index, row) in enumerate(self.scores.iterrows()): # Index is title, row is data
+            c = next(color)
+            fig, ax = plt.subplots(1,figsize=(18,6))
+            fig.subplots_adjust(left=0.05, right=0.99, top=0.90, bottom=0.2,hspace=0.1)
+            #ax[i].bar(bins,row,tick_label=labels,color=c)
+            row = np.abs(row) #  TODO : might not be correct
+            ax.bar(bins,(row-np.amin(row))/(np.amax(row)-np.amin(row)),tick_label=labels,color=c)
+            ax.set_xticklabels(labels,rotation='vertical')
+            ax.set_title(index,fontsize=20)
+            name = os.path.join(self.path_out,(index+'_%s.png'%self.suffix).replace(" ","_"))
+            plt.savefig(name)
+            plt.close()
+            logging.info("... saved as %s"%name)
+
+        # --- stage bar plots --- #
+        # Plotting options  #
+        color=iter(plt.cm.rainbow(np.linspace(0.3,1,N))) 
+        fig, ax = plt.subplots(N,figsize=(18,N*6))
+        fig.subplots_adjust(left=0.1, right=0.9, top=0.95, bottom=0.1,hspace=0.4)
 
         # Plot the different scores separately  #
         for i,(index, row) in enumerate(self.scores.iterrows()): # Index is title, row is data
@@ -293,13 +469,14 @@ class Analyze:
 
         name = os.path.join(self.path_out,'separateScores_%s.png'%self.suffix)
         plt.savefig(name)
+        plt.close()
         logging.info("... saved as %s"%name)
 
-        # --- separate bar plots --- #
+        # --- combined bar plots --- #
         # Plotting options  #
         fig, ax = plt.subplots(1,figsize=(36,9))
         fig.subplots_adjust(left=0.01, right=0.99, top=0.95, bottom=0.1,hspace=0.2)
-        color=iter(plt.cm.rainbow(np.linspace(0.3,1,N)))                                                                                                                                                
+        color=iter(plt.cm.rainbow(np.linspace(0.3,1,N)))
 
         # Define binning #
         bin_dict = {} # Will contain the bins for each hist
@@ -336,49 +513,35 @@ class Analyze:
         plt.legend(loc='upper right')
         name = os.path.join(self.path_out,'combineScores_%s.png'%self.suffix)
         plt.savefig(name)
+        plt.close()
         logging.info("... saved as %s"%name)
-        
-#     for masspoint in list(inter_dict.values())[0].keys(): # Loop over mass points of first dict
-#         print ('Masspoint : m_H = %0.2f, m_A = %0.2f'%(masspoint[1],masspoint[0]))
-#         color=iter(plt.cm.rainbow(np.linspace(0.3,1,N)))                                                                                                                                                
-#         fig = plt.figure()
-#         for name, hist_dict in inter_dict.items(): # Loop over the histograms dict
-#             # Plot the bars #
-#             c=next(color)
-#             p = plt.bar(bin_dict[name],
-#                     hist_dict[masspoint],
-#                     align='edge',
-#                     width=0.5/(N+1),
-#                     color=c,
-#                     linewidth=2,
-#                     label=name)
-# 
-#         # Optional parameters #
-#         plt.legend(loc='upper right')
-#         plt.xlabel(r'$\rho$')
-#         plt.ylabel('Arb. units')
-#         plt.title(r'Mass point $m_H=$%d GeV, $m_A$=%d GeV'%(masspoint[1],masspoint[0]))
- 
-
 
 
 if __name__ == '__main__':
     #--- Argparse ---#
     parser = argparse.ArgumentParser(description='Analyzer : variables and/or network')
-    parser.add_argument('-n','--number', action='store', required=True, type=int,
+
+    # Main args #
+    parser.add_argument('-n','--number', action='store', required=False, type=int, default=0,
         help='Number of events max per file')
     parser.add_argument('--suffix', action='store', required=False, type=str, default = '',
         help='Suffix for the png plots (default is "")')
     parser.add_argument('-v','--verbose', action='store_true', required=False, default=False,
         help='Verbose mode')
+
+    # Inputs plots args #
     inputsplots = parser.add_argument_group('Make plots about the inputs alone')
-    inputsplots.add_argument('-c','--correlation', action='store_true', required=False, default=False,
+    inputsplots.add_argument('--correlationplot', action='store_true', required=False, default=False,
         help='Wether to plot the correlation matrix')
-    inputsplots.add_argument('-g','--gridplot', action='store_true', required=False, default=False,
+    inputsplots.add_argument('--gridplot', action='store_true', required=False, default=False,
         help='Wether to plot input grid')
+
+    # Output plots arg #
     outputsplots = parser.add_argument_group('Make plots about the inputs with respect to the output')
-    outputsplots.add_argument('-s','--scoreplot', action='store_true', required=False, default=False,
-        help='Wether to plot the scores')
+    outputsplots.add_argument('--correlation', action='store_true', required=False, default=False,
+        help='Wether add the Pearson correlation to the scores')
+    outputsplots.add_argument('--mi', action='store_true', required=False, default=False,
+        help='Wether add the mutual information to the scores')
     outputsplots.add_argument('-m','--model', action='store', required=False, default=None, type=str,
         help='Model name (base + .json and +.h5), required for the arguments looking at the network')
     outputsplots.add_argument('--firstlayer', action='store_true', required=False, default=False,
@@ -386,7 +549,11 @@ if __name__ == '__main__':
     outputsplots.add_argument('--LRP', action='store_true', required=False, default=False,
         help='Wether to plot Layer-Wise Relevance Propagation')
     outputsplots.add_argument('--derivative', action='store_true', required=False, default=False,
-        help='Wether to plot derivative')
+        help='Wether to plot derivative by varying the inputs')
+    outputsplots.add_argument('--gradient', action='store_true', required=False, default=False,
+        help='Wether to plot the gradient with Tensorflow')
+    outputsplots.add_argument('--plotscores', action='store_true', required=False, default=False,
+        help='Wether to plot the scores')
 
     opt = parser.parse_args()
     if opt.model == None and (opt.firstlayer or opt.LRP or opt.derivative):
@@ -397,22 +564,34 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.DEBUG,format='%(asctime)s - %(levelname)s - %(message)s',datefmt='%m/%d/%Y %H:%M:%S')
     else:
         logging.basicConfig(level=logging.INFO,format='%(asctime)s - %(levelname)s - %(message)s',datefmt='%m/%d/%Y %H:%M:%S')
+
     #--- Instantiation ---#
     instance = Analyze(N      = opt.number,
                        suffix = opt.suffix)
     if opt.model is not None:
         instance.loadModel(opt.model)
-    if opt.correlation:
+
+    if opt.correlationplot:
         instance.makeCorrelationMatrix()
     if opt.gridplot:
         instance.makeInputsGridPlot()
-    if opt.firstlayer: # Needs to be before plotScores()
+
+    if opt.correlation:
+        instance.outputsCorrelation()
+    if opt.mi:
+        instance.outputsMutualInformation()
+    if opt.firstlayer: 
         instance.extractFirstLayerWeights()
-    if opt.derivative: # Needs to be before plotScores() 
+    if opt.derivative: 
         instance.differentiateNetwork()
-    if opt.LRP: # Needs to be before plotScores() 
+    if opt.gradient:   
+        instance.networkGradient()
+    if opt.LRP: 
         instance.LRPAnalysis()
-    if opt.scoreplot:
+
+    # Save scores (and load entries that were already calculated) #
+    instance.saveScores()
+    if opt.plotscores:
         instance.plotScores()
 
 
