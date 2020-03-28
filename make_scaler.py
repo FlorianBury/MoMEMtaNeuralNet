@@ -39,7 +39,7 @@ def MakeScaler(data=None,list_inputs=[],generator=False,batch=100000):
                     array = rec2array(tree2array(tree,branches=list_inputs,start=i,stop=i+batch))
                     mean += np.sum(array,axis=0)
                     #pbar.update()
-            mean /= N
+            mean /= Ntot
             
             # Var Loop #
             logging.info("-"*80)
@@ -49,7 +49,6 @@ def MakeScaler(data=None,list_inputs=[],generator=False,batch=100000):
                 file_handle = TFile.Open(f)
                 tree = file_handle.Get('tree')
                 N = tree.GetEntries()
-                Ntot += N
                 logging.info("Opening file %s (%d entries)"%(f,N))
                 # Loop over batches #
                 #pbar = enlighten.Counter(total=N//batch+1, desc='Std', unit='Batch')
@@ -57,7 +56,7 @@ def MakeScaler(data=None,list_inputs=[],generator=False,batch=100000):
                     array = rec2array(tree2array(tree,branches=list_inputs,start=i,stop=i+batch))
                     std += np.sum(np.square(array-mean),axis=0)
                     #pbar.update()
-                std = np.sqrt(std/N)
+            std = np.sqrt(std/Ntot)
             # Set manually #
             scaler.mean_ = mean
             scaler.scale_ = std
