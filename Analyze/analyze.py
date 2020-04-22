@@ -33,12 +33,15 @@ class Analyze:
         self.inputs      = parameters.inputs
         self.outputs     = parameters.outputs
         self.path_files  = parameters.path_gen_output
-        self.path_out    = os.path.abspath(".")
+        self.path_out    = os.path.join(os.path.abspath("."),suffix)
         self.N           = N
         self.suffix      = suffix
-        self.path_scores = os.path.join(os.getcwd(),"scores_"+suffix+".pkl")
+        self.path_scores = os.path.join(self.path_out,"scores.pkl")
         self.scores      = pd.DataFrame(columns=self.inputs)
 
+        if not os.path.exists(self.path_out):
+            os.makedirs(self.path_out)
+    
         self.makeVarNames()
         if self.N != 0:
             self.getDF()
@@ -97,6 +100,14 @@ class Analyze:
                         self.inputs_names[inp] = r"$\phi(%s)$"%part
                     elif 'E()' in inp: 
                         self.inputs_names[inp] = r"$E(%s)$"%part
+                    elif 'Px()' in inp: 
+                        self.inputs_names[inp] = r"$P_x(%s)$"%part
+                    elif 'Py()' in inp: 
+                        self.inputs_names[inp] = r"$P_x(%s)$"%part
+                    elif 'Pz()' in inp: 
+                        self.inputs_names[inp] = r"$P_z(%s)$"%part
+                    else:
+                        self.inputs_names[inp] = inp
                 elif len(part)==2:
                     if 'Pt()' in inp: 
                         self.inputs_names[inp] = r"$\Delta P_{T}(%s,%s)$"%(part[0],part[1])
@@ -104,6 +115,8 @@ class Analyze:
                         self.inputs_names[inp] = r"$\Delta \eta(%s,%s)$"%(part[0],part[1])
                     elif 'Phi()' in inp: 
                         self.inputs_names[inp] = r"$\Delta \phi(%s,%s)$"%(part[0],part[1])
+                    else:
+                        self.inputs_names[inp] = inp
                 else:
                     self.inputs_names[inp] = inp
 
@@ -307,8 +320,6 @@ class Analyze:
 
     def makeInputsVariations(self,inputs,index,varmin,varmax,Nvar):
         # Generate all variations of input at index #
-        #valueToVary = inputs[index]
-        #allvars = np.linspace(valueToVary-varmin,valueToVary+varmax,Nvar)
         allvars = np.linspace(varmin,varmax,Nvar)
         # Generate full array #
         arrayLeft  = np.tile(inputs[0:index],(Nvar,1))
@@ -359,13 +370,13 @@ class Analyze:
 
 
         # Make dir for distributions #
-        path_deriv = os.path.join(os.getcwd(),"diff_"+self.suffix)
+        path_deriv = os.path.join(self.path_out,"diff")
         if os.path.exists(path_deriv):
             shutil.rmtree(path_deriv)
         os.mkdir(path_deriv)
 
         # Make distribution plots #
-        bins = np.linspace(-5.,5.,100)
+        bins = np.linspace(-10.,10.,100)
         for name, arr in dict_dist.items():
             latexname = self.inputs_names[name]
             fig, ax = plt.subplots(1,figsize=(9,8))
@@ -375,6 +386,7 @@ class Analyze:
             ax.set_xlabel("$\Delta - log_{10}(DNN \ output)_{Variations - Input}$",fontsize=19)
             ax.set_xlim(np.amin(bins),np.amax(bins))
             name = os.path.join(path_deriv,"diff_"+latexname.replace("$","")+".png")
+            print ("... Saved %s"%name)
             plt.savefig(name)
             plt.close()
 

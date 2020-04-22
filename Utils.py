@@ -15,13 +15,17 @@ import pprint
 def GetEntries(f,cut='',treeName="tree"):
     """ Count the entries in a file, with or without a cut """
     from ROOT import TFile
-    file_handle = TFile.Open(f)                                                                                                                                                                
-    tree = file_handle.Get(treeName) 
-    if cut=='':
-        return tree.GetEntries()
+    file_handle = TFile.Open(f) 
+    if file_handle.GetListOfKeys().Contains(treeName):
+        tree = file_handle.Get(treeName) 
+        if cut=='':
+            return tree.GetEntries()
+        else:
+            player = tree.GetPlayer()
+            return [player.GetEntries(cut),tree.GetEntries()]
     else:
-        player = tree.GetPlayer()
-        return [player.GetEntries(cut),tree.GetEntries()]
+        print ("Could not open tree %s in file %s"%(treeName,f))
+        return 0
 
 ##################################################################################################
 ##########################                 ListEntries                  ##########################

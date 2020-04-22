@@ -25,10 +25,8 @@ parameters = {
     W_width = 2.047600,
     Z_mass = 91.1876,
     Z_width = 2.49,
-    lep1_me_index = 1,
     --lep1TFFile = TFFile,
     --lep1TFName = "ERecMinEGenVSEGen_el_matchedToAfterFSR_allEta_Norm_hh_llmetjj_HWWleptons_nobtag_csv",
-    --lep2_me_index = 2,
     --lep2TFFile = TFFile,
     --lep2TFName = "ERecMinEGenVSEGen_el_matchedToAfterFSR_allEta_Norm_hh_llmetjj_HWWleptons_nobtag_csv",
     --jet1TFFile = TFFile,
@@ -92,7 +90,7 @@ cuba = {
 GaussianTransferFunctionOnEnergy.tf_p1 = { 
     ps_point = add_dimension(),
     reco_particle = lepton1.reco_p4,
-    sigma = 0.1,
+    sigma = 0.10,
     sigma_range = 3.,
 } 
 lepton1.set_gen_p4("tf_p1::output");
@@ -100,7 +98,7 @@ lepton1.set_gen_p4("tf_p1::output");
 GaussianTransferFunctionOnEnergy.tf_p2 = { 
     ps_point = add_dimension(),
     reco_particle = lepton2.reco_p4,
-    sigma = 0.1,
+    sigma = 0.10,
     sigma_range = 3.,
 }   
 lepton2.set_gen_p4("tf_p2::output")
@@ -108,7 +106,7 @@ lepton2.set_gen_p4("tf_p2::output")
 GaussianTransferFunctionOnEnergy.tf_p3 = {
     ps_point = add_dimension(),
     reco_particle = bjet1.reco_p4,
-    sigma = 0.3,
+    sigma = 0.30,
     sigma_range = 3.,
 }
 
@@ -117,7 +115,7 @@ bjet1.set_gen_p4("tf_p3::output");
 GaussianTransferFunctionOnEnergy.tf_p4 = {
     ps_point = add_dimension(),
     reco_particle = bjet2.reco_p4,
-    sigma = 0.3,
+    sigma = 0.30,
     sigma_range = 3.,
 }
 bjet2.set_gen_p4("tf_p4::output");
@@ -239,12 +237,10 @@ Looper.looper = {
       },
 
     -- NN related arguments
-      save_ME = false, -- Save ME x PDF for learning 
+      save_ME = true, -- Save ME x PDF for learning 
       save_max = 1000, -- Maximum number of points in phase space to save
-      use_LWTNN = true,  -- Use NN regression for ME x PDF
-      use_Tensorflow = false,   -- Use NN regression for ME x PDF
-      json_file = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/MEMWeight/src/GPU_10x200_elu_200epochs_batchNorm_newvar2_ME.json',
-      pb_file = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/MEMWeight/src/GPU_8x500_elu_200epochs_withBatchNorm_ME.pb',
+      use_LWTNN = use_NN,  -- Use NN regression for ME x PDF
+      json_file = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/MEMWeight/src/GPU_10x200_elu_300epochs_batchNorm_newvar3_v2_ME.json',
 
     
       initialState = 'boost::partons',

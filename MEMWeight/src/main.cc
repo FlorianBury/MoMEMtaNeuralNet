@@ -74,6 +74,7 @@ DEFINE_uint64(to, 0, "Last entry to process. If 0, process all the inputs");
 DEFINE_bool(verbose, false, "Enable verbose mode");
 DEFINE_string(confs_dir, CONFS_DIRECTORY, "Directory containing configurations");
 DEFINE_string(input, "input.root", "Name of the input file of the tree");
+DEFINE_string(process, "", "Process for which to compute the weights : TT, DY, HToZA");
 
 int main(int argc, char** argv) {
 
@@ -96,11 +97,9 @@ int main(int argc, char** argv) {
     string file = INPUT_DIR+FLAGS_input;
     LOG(info)<<"Directory : "+INPUT_DIR;
     LOG(info)<<"Using file : "+FLAGS_input; 
-    bool USE_RECOMPUTE = false;
+
     bool USE_JEC = false;
 
-    if (USE_RECOMPUTE)
-        LOG(warning)<<"Weights recomputation is enabled";
     if (USE_JEC)
         LOG(warning)<<"Jet Energy Correction is enabled";
 
@@ -114,7 +113,6 @@ int main(int argc, char** argv) {
     TTreeReaderValue<LorentzVectorE> jet2_p4E(myReader, "jet2_p4");
     // TODO : either float or doubles
     TTreeReaderValue<float> t_w(myReader, "total_weight");
-    //TTreeReaderValue<float> e_w(myReader,  "event_weight");
     TTreeReaderValue<float> jjm(myReader, "jj_M");
     TTreeReaderValue<float> lljjm(myReader, "lljj_M");
     TTreeReaderValue<float> llm(myReader, "ll_M");
@@ -393,22 +391,34 @@ int main(int argc, char** argv) {
 
     // Construct the ConfigurationReader from the Lua file
     LOG(info) << "Reading configuration files from '" << FLAGS_confs_dir << "'";
-    //ConfigurationReader configuration_TTbar(FLAGS_confs_dir + "TTbar_FullyLeptonic.lua");
-    //ConfigurationReader configuration_DY(FLAGS_confs_dir + "dy_to_ll_simple.lua");
+    // Init 
+    ConfigurationReader configuration_TTbar("");
+    MoMEMta TTbar_weight(configuration_TTbar.freeze());
+    ConfigurationReader configuration_DY("");
+    MoMEMta DY_weight(configuration_DY.freeze());
+    if (FLAGS_process == "TT"){
+        LOG(info)<<"\tTT conf : "<<FLAGS_confs_dir + "TTbar_FullyLeptonic.lua";
+        ConfigurationReader configuration_TTbar(FLAGS_confs_dir + "TTbar_FullyLeptonic.lua");
+        // Instantiate MoMEMta using a **frozen** configuration
+        MoMEMta TTbar_weight(configuration_TTbar.freeze()); 
+    }
+    if (FLAGS_process == "DY"){
+        LOG(info)<<"\tDY conf : "<<FLAGS_confs_dir + "dy_to_ll_simple.lua";
+        ConfigurationReader configuration_DY(FLAGS_confs_dir + "dy_to_ll_simple.lua");
+        // Instantiate MoMEMta using a **frozen** configuration
+        MoMEMta DY_weight(configuration_DY.freeze());
+    }
 
-    // Instantiate MoMEMta using a **frozen** configuration
-    //MoMEMta TTbar_weight(configuration_TTbar.freeze());
-    //MoMEMta DY_weight(configuration_DY.freeze());
+
     int rand_num = rand()%1000;
+    int n_start  = 20000;
+    int max_eval = 1000000;
     ParameterSet lua_parameters;
     lua_parameters.set("random", rand_num);
-    lua_parameters.set("n_start", 20000);
-    lua_parameters.set("max_eval", 1000000);
+    lua_parameters.set("n_start", n_start);
+    lua_parameters.set("max_eval", max_eval);
     LOG(info)<<"Random number for seed : "<<rand_num;
-    LOG(info)<<"Starting eval : 20000\tMax eval : 400000";
-    ConfigurationReader configuration_TTbar(FLAGS_confs_dir + "TTbar_FullyLeptonic.lua",lua_parameters);
-    // Instantiate MoMEMta using a **frozen** configuration
-    MoMEMta TTbar_weight(configuration_TTbar.freeze());
+    LOG(info)<<"Starting eval : "<<n_start<<"\tMax eval : "<<max_eval;
 
     // To and From parameters
     size_t to = 0;
@@ -505,32 +515,9 @@ int main(int argc, char** argv) {
         // Compute the weights!
 
         // TT weights
-        bool failed_TT = false;
-        int n_start_TT = 20000;
-        weight_TT_time = 0;
-        LOG(info) << "---------------------------------------------------------------------";
-        LOG(info)<<"Starting TT weight computation";
-        do {
-            if (n_start_TT>=2000000){
-                LOG(error)<<"Weights did not converge despite higher precision";
-                break;
-            }
-            failed_TT = false;
-
-            //if (USE_RECOMPUTE){ // If recomputation is asked, parameters need to be updated
-            //    int rand_num = rand()%1000;
-            //    LOG(info)<<"recomputing";
-            //    ParameterSet lua_parameters;
-            //    lua_parameters.set("random", rand_num);
-            //    lua_parameters.set("n_start", n_start_TT);
-            //    lua_parameters.set("max_eval", n_start_TT*20);
-            //    LOG(info)<<"Random number for seed : "<<rand_num;
-            //    LOG(info)<<"Starting eval : "<<n_start_TT<<"\tMax eval : "<<n_start_TT*20;
-            //    ConfigurationReader configuration_TTbar(FLAGS_confs_dir + "TTbar_FullyLeptonic.lua",lua_parameters);
-            //    // Instantiate MoMEMta using a **frozen** configuration
-            //    MoMEMta TTbar_weight(configuration_TTbar.freeze());
-            //}
-
+        if (FLAGS_process == "TT"){
+            LOG(info) << "---------------------------------------------------------------------";
+            LOG(info)<<"Starting TT weight computation";
             // Retrieve the weight and uncertainty for TT
             auto start_time_TT = system_clock::now();
             std::vector<std::pair<double, double>> TTbar_weights = TTbar_weight.computeWeights({lep_minus, lep_plus, bjet1, bjet2},met_p4);
@@ -538,49 +525,16 @@ int main(int argc, char** argv) {
 
             weight_TT = TTbar_weights.back().first;
             weight_TT_err = TTbar_weights.back().second;
-            weight_TT_time += std::chrono::duration_cast<milliseconds>(end_time_TT - start_time_TT).count();
+            weight_TT_time = std::chrono::duration_cast<milliseconds>(end_time_TT - start_time_TT).count();
 
             LOG(info)<<" -> TT result: " << weight_TT << " +- " << weight_TT_err;
             LOG(info) << "Weight computed in " << weight_TT_time << "ms";
-
-            // If weights did not converge 
-            if (USE_RECOMPUTE && weight_TT<=weight_TT_err){ 
-                LOG(warning) << "TT weights did not converge, will increase precision";
-                failed_TT = true;
-                n_start_TT += 400000;
-            }
         }
-        while (failed_TT);
-
 
         // DY weights 
-        LOG(info) << "---------------------------------------------------------------------";
-        LOG(info)<<"Starting DY weight computation";
-
-        bool failed_DY = false;
-        int n_start_DY = 20000;
-        weight_DY_time = 0;
-        do {
-            break;
-            if (n_start_DY>=2000000){
-                LOG(error)<<"Weights did not converge despite higher precision";
-                break;
-            }
-            int rand_num = rand()%1000;
-            failed_DY = false;
-            LOG(info)<<"Random number for seed : "<<rand_num;
-            LOG(info)<<"Starting eval : "<<n_start_DY<<"\tMax eval : "<<n_start_DY*20;
-
-            ParameterSet lua_parameters;
-            lua_parameters.set("random", rand_num);
-            lua_parameters.set("n_start", n_start_DY);
-            lua_parameters.set("max_eval", n_start_DY*20);
-
-            ConfigurationReader configuration_DY(FLAGS_confs_dir + "dy_to_ll_simple.lua",lua_parameters);
-
-            // Instantiate MoMEMta using a **frozen** configuration
-            MoMEMta DY_weight(configuration_DY.freeze());
-
+        if (FLAGS_process == "DY"){
+            LOG(info) << "---------------------------------------------------------------------";
+            LOG(info)<<"Starting DYn_start_HToZA*20); weight computation";
             // Retrieve the weight and uncertainty for DY
             auto start_time_DY = system_clock::now();
             std::vector<std::pair<double, double>> DY_weights = DY_weight.computeWeights({lep_minus, lep_plus, bjet1, bjet2, isr});
@@ -588,52 +542,32 @@ int main(int argc, char** argv) {
 
             weight_DY = DY_weights.back().first;
             weight_DY_err = DY_weights.back().second;
-            weight_DY_time += std::chrono::duration_cast<milliseconds>(end_time_DY - start_time_DY).count();
+            weight_DY_time = std::chrono::duration_cast<milliseconds>(end_time_DY - start_time_DY).count();
 
             LOG(info)<<" -> DY result: " << weight_DY << " +- " << weight_DY_err;
             LOG(info) << "Weight computed in " << weight_DY_time << "ms";
-            // If weights did not converge 
-            if (USE_RECOMPUTE == true && weight_DY<=weight_DY_err){ 
-                LOG(warning) << "DY weights did not converge, will increase precision";
-                failed_DY = true;
-                n_start_DY += 400000;
-            }
-
         }
-        while (failed_DY);
 
         // HToZA weights 
-        LOG(info) << "---------------------------------------------------------------------";
-        LOG(info)<<"Starting HToZA weight computation";
+        if (FLAGS_process == "HToZA"){
+            LOG(info) << "---------------------------------------------------------------------";
+            LOG(info)<<"Starting HToZA weight computation";
 
-        for (auto & x : weight){
-            break;
-            auto mH = x.first.first;
-            auto mA = x.first.second;
-            auto key = x.first;
-            LOG(info) << "\tMH = "<<std::to_string(mH)<<" MA = "<<std::to_string(mA);
-
-            bool failed_HToZA = false;
-            int n_start_HToZA = 10000;
-            do {
-                if (n_start_HToZA>=2000000){
-                    LOG(error)<<"Weights did not converge despite higher precision";
-                    break;
-                }
-                int rand_num = rand()%1000;
-                failed_HToZA = false;
-                LOG(info)<<"Random number for seed : "<<rand_num;
-                LOG(info)<<"Starting eval : "<<n_start_HToZA<<"\tMax eval : "<<n_start_HToZA*20;
+            for (auto & x : weight){
+                auto mH = x.first.first;
+                auto mA = x.first.second;
+                auto key = x.first;
+                LOG(info) << "\tMH = "<<std::to_string(mH)<<" MA = "<<std::to_string(mA);
 
                 ParameterSet lua_parameters;
                 lua_parameters.set("random", rand_num);
-                lua_parameters.set("n_start", n_start_HToZA);
-                lua_parameters.set("max_eval", n_start_HToZA*20);
+                lua_parameters.set("n_start", n_start);
+                lua_parameters.set("max_eval", max_eval);
                 lua_parameters.set("mH", mH);
                 lua_parameters.set("mA", mA);
 
-
-                ConfigurationReader configuration_HToZA(FLAGS_confs_dir + "htoza_llbb.lua",lua_parameters);
+                ConfigurationReader configuration_HToZA(FLAGS_confs_dir + "htoza_llbb.lua",lua_parameters); // needs to be called here so that we can change the masses
+                    // TODO : one instantiation per mass point
 
                 // Instantiate MoMEMta using a **frozen** configuration
                 MoMEMta HToZA_weight(configuration_HToZA.freeze());
@@ -645,19 +579,11 @@ int main(int argc, char** argv) {
 
                 weight[key] = HToZA_weights.back().first;
                 err[key] = HToZA_weights.back().second;
-                time[key] += std::chrono::duration_cast<milliseconds>(end_time_HToZA - start_time_HToZA).count();
+                time[key] = std::chrono::duration_cast<milliseconds>(end_time_HToZA - start_time_HToZA).count();
 
                 LOG(info)<<" -> HToZA result: " << HToZA_weights.back().first<< " +- " << HToZA_weights.back().second;
                 LOG(info) << "Weight computed in " << std::chrono::duration_cast<milliseconds>(end_time_HToZA - start_time_HToZA).count()<< "ms";
-                // If weights did not converge 
-                if (USE_RECOMPUTE == true && weight[key]<=err[key]){ 
-                    LOG(warning) << "HToZA weights did not converge, will increase precision";
-                    failed_HToZA = true;
-                    n_start_HToZA += 50000;
-                }
-
             }
-            while (failed_HToZA);
         }
 
         // Other values in branches

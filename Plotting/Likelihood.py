@@ -118,7 +118,7 @@ class LikelihoodMap():
         self.legend_title = title.replace('.root','')
         self.suffix = suffix
         if title.find('DY')!=-1:
-            title = 'Drell-Yann events'
+            title = 'Drell-Yan events'
         elif title.find('TT')!=-1:
             title = r't\bar{t} events'
         else:

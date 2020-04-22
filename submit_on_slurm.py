@@ -44,9 +44,7 @@ def submit_on_slurm(name,args,debug=False):
     config.payload = """ """
 
     if GPU:
-        config.payload += "export PYTHONPATH=/root6/lib:/python3/lib/python3.6/site-packages:$PYTHONPATH\n"
-                    # First path : /root6/lib -> in order to find ROOT and root_numpy
-                    # Second path : find local version of Keras (for GPU), otherwise will look first in .local (not compatible)
+        config.payload += "export PYTHONPATH=/root6/lib:$PYTHONPATH\n"
         config.payload += "module load cp3\n" # needed on gpu to load slurm_utils
         config.payload += "module load slurm/slurm_utils\n"
     config.payload += "python3 {script} "

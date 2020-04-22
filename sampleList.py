@@ -133,7 +133,7 @@ samples_dict['TT'] = [
                             
                       ]
 
-# Drell-Yann #
+# Drell-Yan #
 samples_dict['DY'] = [
                             #########################   Background weights regression  ###########################
                             #'valid_weights/DYJetsToLL_M.root',

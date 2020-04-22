@@ -351,7 +351,7 @@ def main():
             fullname = os.path.basename(f).replace('.root','')
             logging.info('Processing weights from %s'%(fullname+'.root'))
             if fullname.startswith('DY'):
-                filename = 'Drell-Yann'
+                filename = 'Drell-Yan'
             elif fullname.startswith('TT'):
                 filename = 't#bar{t}'
             elif fullname.startswith('HToZA'):

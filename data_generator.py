@@ -120,8 +120,16 @@ class DataGenerator(keras.utils.Sequence):
 
         for f,size in self.batch_sample.items():
             size = int(size) # For python2
-            X[pointer:pointer+size,:]= rec2array(root2array(f,treename='tree',branches=self.inputs,start=index*size,stop=(index+1)*size))
-            Y[pointer:pointer+size,:] = rec2array(root2array(f,treename='tree',branches=self.outputs,start=index*size,stop=(index+1)*size))
+            #while True:
+            #    try:
+            #        data = rec2array(root2array(f,treename='tree',branches=self.inputs+self.outputs,start=index*size,stop=(index+1)*size))
+            #        break
+            #    except OSError:
+            #        logging.warning("Could not import tree in worker, will try again in 3 seconds")
+            #        time.sleep(3)
+            data = rec2array(root2array(f,treename='tree',branches=self.inputs+self.outputs,start=index*size,stop=(index+1)*size))
+            X[pointer:pointer+size,:] = data[:,len(self.inputs):]
+            Y[pointer:pointer+size,:] = data[:,:len(self.outputs)]
             pointer += size
             logging.debug("%s    - Added %d entries from file %s"%(self.state_set,size,os.path.basename(f)))
 

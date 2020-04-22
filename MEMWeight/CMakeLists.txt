@@ -49,8 +49,16 @@ include_directories(${ROOT_INCLUDE_DIR})
 
 add_executable(
         MEMWeight
-        "src/main.cc"
+        "src/main_TT.cc"
             )
+#add_executable(
+#        MEMWeight
+#        "src/main_DY.cc"
+#            )
+#add_executable(
+#        MEMWeight
+#        "src/main_HToZA.cc"
+#            )
 
 # Set `confs` path
 target_compile_definitions(MEMWeight PRIVATE CONFS_DIRECTORY="${CMAKE_SOURCE_DIR}/confs/")

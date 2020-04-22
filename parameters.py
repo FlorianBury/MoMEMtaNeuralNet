@@ -49,33 +49,23 @@ model = 'NeuralNetGeneratorModel'
 #suffix = 'binary' 
 #suffix = 'class_param_test' 
 #suffix = 'gen_ME' 
-suffix = 'gen_ME_newvar2' 
+suffix = 'gen_ME_newvar4' 
 # scaler_name -> 'scaler_{suffix}.pkl'  If does not exist will be created 
 # mask_name -> 'mask_{suffix}_{sample}.npy'  If does not exist will be created 
 
 # Training resume #
-resume_model = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/model/GPU_10x200_elu_300epochs_batchNorm_CLHard200Epochs_ME.zip'
+resume_model = ''
 
 # Generator #
-path_gen_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_all/path3' # For training
-path_gen_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_all/path0' # For val_loss during training
-path_gen_evaluation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_all/path1' # for model evaluation
-path_gen_output = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_all/path2' # for output
+#path_gen_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_MCTF/path3' # For training
+#path_gen_validation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_MCTF/path0' # For val_loss during training
+#path_gen_evaluation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_MCTF/path1' # for model evaluation
+#path_gen_output = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/ME_TTBar_generator_MCTF/path2' # for output
 
-# Curriculum learning #
-#path_gen_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Training/All_in1OrderMag.root' # For curriculum training : easy
-#path_gen_validation= '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Validation/All_in1OrderMag.root' # For curriculum training : easy
-#path_gen_evaluation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Evaluation/All_in1OrderMag.root' # For curriculum training : easy
-#path_gen_output = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Output/All_in1OrderMag.root' # For curriculum training : easy
-
-#path_gen_training = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Training/All_out1OrderMag.root' # For curriculum training : hard
-#path_gen_validation= '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Validation/All_out1OrderMag.root' # For curriculum training : hard
-#path_gen_evaluation = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Evaluation/All_out1OrderMag.root' # For curriculum training : hard
-#path_gen_output = '/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Output/All_out1OrderMag.root' # For curriculum training : hard
-
-#weights_generator = '/home/ucl/cp3/fbury/MoMEMtaNeuralNet/utils/weights.root' # Must be turned on in the argparse arguments
-#weights_generator = ''
-
+path_gen_training = '/nfs/scratch/fynu/fbury/MoMEMta_output/ME_TTBar_generator_GaussianTF/path_training/' # For training
+path_gen_validation = '/nfs/scratch/fynu/fbury/MoMEMta_output/ME_TTBar_generator_GaussianTF/path_validation/' # For val_loss during training
+path_gen_evaluation = '/nfs/scratch/fynu/fbury/MoMEMta_output/ME_TTBar_generator_GaussianTF/path_evaluation/' # for model evaluation
+path_gen_output = '/nfs/scratch/fynu/fbury/MoMEMta_output/ME_TTBar_generator_GaussianTF/path_output/' # for output
 
 workers = 20
 
@@ -136,10 +126,10 @@ p = {
     'dropout' : [0],
     'hidden_layers' : [9], # does not take into account the first layer
     'output_activation' : [elu],
-    'l2' : [0],
+    'l2' : [0.],
     'optimizer' : [Adam],  
     'epochs' : [100],   
-    'batch_size' : [50000], 
+    'batch_size' : [100000], 
     'loss_function' : [mean_squared_error],
 }
 repetition = 1 # How many times each hyperparameter has to be used 
@@ -152,8 +142,8 @@ weights = None
 
 product2Momentas = '-{0}.Px()*{1}.Px()-{0}.Py()*{1}.Py()-{0}.Pz()*{1}.Pz()+{0}.E()*{1}.E()'
 product2Plus1Momentas = '-({0}.Px()+{1}.Px())*{2}.Px()-({0}.Py()+{1}.Py())*{2}.Py()-({0}.Pz()+{1}.Pz())*{2}.Pz()+({0}.E()+{1}.E())*{2}.E()'
-invMass2Momentas = '-pow({0}.Px()+{1}.Px(),2)-pow({0}.Py()+{1}.Py(),2)-pow({0}.Pz()+{1}.Pz(),2)+pow({0}.E()+{1}.E(),2)'
-invMass3Momentas = '-pow({0}.Px()+{1}.Px()+{2}.Px(),2)-pow({0}.Py()+{1}.Py()+{2}.Py(),2)-pow({0}.Pz()+{1}.Pz()+{2}.Pz(),2)+pow({0}.E()+{1}.E()+{2}.E(),2)'
+invMass2Momentas = 'sqrt(-pow({0}.Px()+{1}.Px(),2)-pow({0}.Py()+{1}.Py(),2)-pow({0}.Pz()+{1}.Pz(),2)+pow({0}.E()+{1}.E(),2))'
+invMass3Momentas = 'sqrt(-pow({0}.Px()+{1}.Px()+{2}.Px(),2)-pow({0}.Py()+{1}.Py()+{2}.Py(),2)-pow({0}.Pz()+{1}.Pz()+{2}.Pz(),2)+pow({0}.E()+{1}.E()+{2}.E(),2))'
 
 inputs = [
          #######   Regression ##########
@@ -278,54 +268,26 @@ inputs = [
         #'antibjet_p4.Phi()-positron_p4.Phi()',
 
          # Matrix Element newVar2 #
-        invMass2Momentas.format('init1_p4','init2_p4'), # s = (P1+p2)²
-        invMass2Momentas.format('electron_p4','antineutrino_p4'),
-        invMass2Momentas.format('positron_p4','neutrino_p4'),
-        product2Momentas.format('electron_p4','neutrino_p4'),
-        product2Momentas.format('electron_p4','antineutrino_p4'),
-        product2Momentas.format('electron_p4','positron_p4'),
-        product2Momentas.format('electron_p4','bjet_p4'),
-        product2Momentas.format('electron_p4','antibjet_p4'),
-        product2Momentas.format('neutrino_p4','antineutrino_p4'),
-        product2Momentas.format('neutrino_p4','positron_p4'),
-        product2Momentas.format('neutrino_p4','bjet_p4'),
-        product2Momentas.format('neutrino_p4','antibjet_p4'),
-        product2Momentas.format('bjet_p4','antineutrino_p4'),
-        product2Momentas.format('bjet_p4','positron_p4'),
-        product2Momentas.format('bjet_p4','antibjet_p4'),
-        product2Momentas.format('positron_p4','antineutrino_p4'),
-        product2Momentas.format('positron_p4','antibjet_p4'),
-        product2Momentas.format('antineutrino_p4','antibjet_p4'),
-        invMass3Momentas.format('electron_p4','antineutrino_p4','bjet_p4'),
-        invMass3Momentas.format('positron_p4','neutrino_p4','antibjet_p4'),
-        'positron_p4.Pt()',
-        'positron_p4.Eta()',
-        'neutrino_p4.Pt()',
-        'neutrino_p4.Eta()',
-        'neutrino_p4.Phi()-positron_p4.Phi()',
-        'bjet_p4.Pt()',
-        'bjet_p4.Eta()',
-        'bjet_p4.Phi()-positron_p4.Phi()',
-        'electron_p4.Pt()',
-        'electron_p4.Eta()',
-        'electron_p4.Phi()-positron_p4.Phi()',
-        'antineutrino_p4.Pt()',
-        'antineutrino_p4.Eta()',
-        'antineutrino_p4.Phi()-positron_p4.Phi()',
-        'antibjet_p4.Pt()',
-        'antibjet_p4.Eta()',
-        'antibjet_p4.Phi()-positron_p4.Phi()',
-
-        # # Matrix Element newVar3 #
         #invMass2Momentas.format('init1_p4','init2_p4'), # s = (P1+p2)²
         #invMass2Momentas.format('electron_p4','antineutrino_p4'),
         #invMass2Momentas.format('positron_p4','neutrino_p4'),
-        #invMass3Momentas.format('electron_p4','antineutrino_p4','bjet_p4'),
-        #invMass3Momentas.format('positron_p4','neutrino_p4','antibjet_p4'),
         #product2Momentas.format('electron_p4','neutrino_p4'),
+        #product2Momentas.format('electron_p4','antineutrino_p4'),
+        #product2Momentas.format('electron_p4','positron_p4'),
+        #product2Momentas.format('electron_p4','bjet_p4'),
+        #product2Momentas.format('electron_p4','antibjet_p4'),
+        #product2Momentas.format('neutrino_p4','antineutrino_p4'),
+        #product2Momentas.format('neutrino_p4','positron_p4'),
+        #product2Momentas.format('neutrino_p4','bjet_p4'),
+        #product2Momentas.format('neutrino_p4','antibjet_p4'),
+        #product2Momentas.format('bjet_p4','antineutrino_p4'),
+        #product2Momentas.format('bjet_p4','positron_p4'),
+        #product2Momentas.format('bjet_p4','antibjet_p4'),
         #product2Momentas.format('positron_p4','antineutrino_p4'),
-        #product2Plus1Momentas.format('electron_p4','neutrino_p4','bjet_p4'),
-        #product2Plus1Momentas.format('positron_p4','antineutrino_p4','antibjet_p4'),
+        #product2Momentas.format('positron_p4','antibjet_p4'),
+        #product2Momentas.format('antineutrino_p4','antibjet_p4'),
+        #invMass3Momentas.format('electron_p4','antineutrino_p4','bjet_p4'),# Wrong : antibjet 
+        #invMass3Momentas.format('positron_p4','neutrino_p4','antibjet_p4'),# Wrong : bjet
         #'positron_p4.Pt()',
         #'positron_p4.Eta()',
         #'neutrino_p4.Pt()',
@@ -343,6 +305,77 @@ inputs = [
         #'antibjet_p4.Pt()',
         #'antibjet_p4.Eta()',
         #'antibjet_p4.Phi()-positron_p4.Phi()',
+
+        # # Matrix Element newVar3 #
+        #invMass3Momentas.format('electron_p4','antineutrino_p4','bjet_p4'), # Wrong : antibjet
+        #invMass3Momentas.format('positron_p4','neutrino_p4','antibjet_p4'), # Wrong : bjet
+        #invMass2Momentas.format('init1_p4','init2_p4'), # s = (P1+p2)²
+        #invMass2Momentas.format('electron_p4','antineutrino_p4'),
+        #invMass2Momentas.format('positron_p4','neutrino_p4'),
+        #product2Momentas.format('electron_p4','neutrino_p4'),
+        #product2Momentas.format('electron_p4','antineutrino_p4'),
+        #product2Momentas.format('electron_p4','positron_p4'),
+        #product2Momentas.format('electron_p4','bjet_p4'),
+        #product2Momentas.format('electron_p4','antibjet_p4'),
+        #product2Momentas.format('neutrino_p4','antineutrino_p4'),
+        #product2Momentas.format('neutrino_p4','positron_p4'),
+        #product2Momentas.format('neutrino_p4','bjet_p4'),
+        #product2Momentas.format('neutrino_p4','antibjet_p4'),
+        #product2Momentas.format('bjet_p4','antineutrino_p4'),
+        #product2Momentas.format('bjet_p4','positron_p4'),
+        #product2Momentas.format('bjet_p4','antibjet_p4'),
+        #product2Momentas.format('positron_p4','antineutrino_p4'),
+        #product2Momentas.format('positron_p4','antibjet_p4'),
+        #product2Momentas.format('antineutrino_p4','antibjet_p4'),
+        #'init1_p4.E()',
+        #'init2_p4.E()',
+        #'positron_p4.Pt()',
+        #'neutrino_p4.Pt()',
+        #'bjet_p4.Pt()',
+        #'electron_p4.Pt()',
+        #'antineutrino_p4.Pt()',
+        #'antibjet_p4.Pt()',
+
+        # Matrix Element newVar4 #
+        invMass2Momentas.format('init1_p4','init2_p4'), # s = (P1+p2)²
+        invMass3Momentas.format('electron_p4','antineutrino_p4','antibjet_p4'),
+        invMass3Momentas.format('positron_p4','neutrino_p4','bjet_p4'),
+        invMass2Momentas.format('electron_p4','antineutrino_p4'),
+        invMass2Momentas.format('positron_p4','neutrino_p4'),
+        product2Momentas.format('electron_p4','neutrino_p4'),
+        product2Momentas.format('electron_p4','antineutrino_p4'),
+        product2Momentas.format('electron_p4','positron_p4'),
+        product2Momentas.format('electron_p4','bjet_p4'),
+        product2Momentas.format('electron_p4','antibjet_p4'),
+        product2Momentas.format('neutrino_p4','antineutrino_p4'),
+        product2Momentas.format('neutrino_p4','positron_p4'),
+        product2Momentas.format('neutrino_p4','bjet_p4'),
+        product2Momentas.format('neutrino_p4','antibjet_p4'),
+        product2Momentas.format('bjet_p4','antineutrino_p4'),
+        product2Momentas.format('bjet_p4','positron_p4'),
+        product2Momentas.format('bjet_p4','antibjet_p4'),
+        product2Momentas.format('positron_p4','antineutrino_p4'),
+        product2Momentas.format('positron_p4','antibjet_p4'),
+        product2Momentas.format('antineutrino_p4','antibjet_p4'),
+        'init1_p4.E()',
+        'init2_p4.E()',
+        'positron_p4.Pt()',
+        'positron_p4.Eta()',
+        'neutrino_p4.Pt()',
+        'neutrino_p4.Eta()',
+        'neutrino_p4.Phi()-positron_p4.Phi()',
+        'bjet_p4.Pt()',
+        'bjet_p4.Eta()',
+        'bjet_p4.Phi()-positron_p4.Phi()',
+        'electron_p4.Pt()',
+        'electron_p4.Eta()',
+        'electron_p4.Phi()-positron_p4.Phi()',
+        'antineutrino_p4.Pt()',
+        'antineutrino_p4.Eta()',
+        'antineutrino_p4.Phi()-positron_p4.Phi()',
+        'antibjet_p4.Pt()',
+        'antibjet_p4.Eta()',
+        'antibjet_p4.Phi()-positron_p4.Phi()',
 
 
         # Matrix Element reprocessing #

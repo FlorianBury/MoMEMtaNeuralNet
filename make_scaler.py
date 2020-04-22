@@ -73,12 +73,12 @@ def MakeScaler(data=None,list_inputs=[],generator=False,batch=100000):
      # Test the scaler #
     if data is not None:
         try:
-            mean_scale = np.mean(scaler.transform(train_all[list_inputs]))
-            var_scale = np.var(scaler.transform(train_all[list_inputs]))
+            mean_scale = np.mean(scaler.transform(data[list_inputs]))
+            var_scale = np.var(scaler.transform(data[list_inputs]))
         except ValueError:
             logging.critical("Problem with the scaler '%s' you imported, has the data changed since it was generated ?"%scaler_name)
-            sys.exit(1)
+            raise ValueError
         if abs(mean_scale)>0.01 or abs((var_scale-1)/var_scale)>0.01: # Check that scaling is correct to 1%
             logging.critical("Something is wrong with scaler '%s' (mean = %0.6f, var = %0.6f), maybe you loaded an incorrect scaler"%(scaler_name,mean_scale,var_scale))
-            sys.exit()
+            raise RunTimeError
 
