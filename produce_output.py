@@ -4,7 +4,9 @@ import sys
 import logging
 import numpy as np
 import pandas as pd
+import subprocess
 from root_numpy import array2root
+import ROOT
 
 from NeuralNet import HyperModel
 from import_tree import Tree2Pandas
@@ -43,7 +45,7 @@ class ProduceOutput:
             data = ParametrizeClassifier(data,name=signal_name) 
             self.list_inputs = ['-log10(weight_DY)','-log10(weight_TT)',signal_name,'mH_gen','mA_gen']
 
-        inputs = data[self.list_inputs].values
+        inputs = data[self.list_inputs].values if data is not None else None
         #output = np.empty((inputs.shape[0],0))
         output = None
         columns = []
@@ -127,17 +129,54 @@ class ProduceOutput:
                 var = parameters.inputs+parameters.outputs+parameters.other_variables
             else:
                 var = copy.deepcopy(variables) # Avoid bug where variables is changed at each new file
-            data = Tree2Pandas(input_file=full_path,
-                               variables=var,
-                               weight=parameters.weights,
-                               cut = parameters.cut,
-                               reweight_to_cross_section=False)
-                
-            if data.shape[0]==0:
-                logging.info('\tEmpty tree')
-                continue # Avoids empty trees
-            
-            if self.generator:
-                self.generator_filepath = full_path
 
-            self.OutputFromTraining(data=data,path_output=path_output,output_name=name)
+            if self.generator:
+                # Get number of events in file #
+                rootfile = ROOT.TFile(full_path)
+                tree = rootfile.Get("tree")
+                N = tree.GetEntries()
+                rootfile.Close()
+
+                self.generator = False # Do not use the generator since we need the whole array
+
+                slices = list(range(0,N,parameters.output_batch_size))
+                if slices[-1] != N:
+                    slices += [N]
+                limits = list(zip(slices[:-1], slices[1:]))
+                list_files = []
+                for idx,(start,stop) in enumerate(limits):
+                    logging.debug("Processing tree from %d to %d (total = %d)"%(start,stop,N))
+                    data = Tree2Pandas(input_file=full_path,
+                                       variables=var,
+                                       weight=parameters.weights,
+                                       cut = parameters.cut,
+                                       reweight_to_cross_section=False,
+                                       start=start,
+                                       n = stop)
+                    split_file = name.replace('.root','_%d.root'%idx)
+                    list_files.append(os.path.join(path_output,split_file))
+                    self.OutputFromTraining(data=data,path_output=path_output,output_name=split_file)
+
+                # Concatenate the output and remove split #
+                cmd = ["hadd",os.path.join(path_output,name)]+list_files
+                subprocess.run(cmd)
+                logging.info("Produced concatenated file at %s"%(os.path.join(path_output,name)))
+                for split_file in list_files:
+                    os.remove(split_file)
+                    logging.debug("... Deleted split file %s"%split_file)
+                logging.info("Cleaning of split files done")
+
+
+
+            else:
+                data = Tree2Pandas(input_file=full_path,
+                                   variables=var,
+                                   weight=parameters.weights,
+                                   cut = parameters.cut,
+                                   reweight_to_cross_section=False)
+                if data.shape[0]==0:
+                    logging.info('\tEmpty tree')
+                    continue # Avoids empty trees
+                self.OutputFromTraining(data=data,path_output=path_output,output_name=name)
+            
+
