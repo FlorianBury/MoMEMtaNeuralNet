@@ -52,8 +52,8 @@ class ProduceOutput:
 
         # Get Model Output #
         for model in self.list_model:
-            if model not in ['DY','TT','HToZA','class','class_param','binary','ME']:
-                logging.critical('Wrong model type specified : %s must be either "DY", "TT", "HToZA", "class", "class_param", "binary" or "ME"')
+            if model not in ['DY','TT','HToZA','class_global','class_param','binary','ME']:
+                logging.critical('Wrong model type specified : %s must be either "DY", "TT", "HToZA", "class_global", "class_param", "binary" or "ME"')
                 sys.exit(1)
 
             instance = HyperModel(self.model,model)
@@ -64,7 +64,7 @@ class ProduceOutput:
                 out = instance.HyperRestore(inputs,generator=self.generator,generator_filepath=self.generator_filepath)
                 if model in ['binary']:
                     columns.extend(['Prob_MEM_signal'])
-                if model in ['class_param','global']:
+                if model in ['class_param','class_global']:
                     columns.extend(['Prob_MEM_DY','Prob_MEM_HToZA','Prob_MEM_TT'])
             if output is None: # First element of loop
                 output = copy.deepcopy(out) # TODO : fix data_generator for last smaller batch

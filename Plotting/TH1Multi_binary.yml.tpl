@@ -3,14 +3,14 @@
 Multi_Prob:
   filename: 
   tree: tree
-  weight: total_weight
+  weight: ''
   name: Multi_Prob
   bins: 50
   xmin: 0
   xmax: 1
   title: '{} sample : Binary classification probabilities'
   xlabel: Probability
-  ylabel: Events
+  ylabel: events
   list_variable:
     - Prob_MEM_signal
     - Prob_DNN_signal

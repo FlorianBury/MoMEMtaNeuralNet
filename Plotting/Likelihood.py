@@ -17,7 +17,7 @@ from preprocessing import PreprocessLayer
 from talos import Restore
 
 import ROOT
-from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT, TGraph2D, gPad, TObject, gStyle
+from ROOT import TFile, TH1F, TH2F, TCanvas, gROOT, TGraph2D, gPad, TObject, gStyle, TPaveText
 import CMS_lumi
 import tdrstyle
 
@@ -115,7 +115,7 @@ class LikelihoodMap():
         self.nevents += 1
         
     def MakeGraph(self,title,suffix):
-        self.legend_title = title.replace('.root','')
+        self.legend_title = title.replace('.root','').replace('-','_')
         self.suffix = suffix
         if title.find('DY')!=-1:
             title = 'Drell-Yan events'
@@ -130,7 +130,7 @@ class LikelihoodMap():
         if self.normalize:
             self.Z += self.nevents*self.norm
             title += ' [Normalized]'
-            self.legend_title += ' [Normalized]'
+            self.legend_title += '_norm'
 
         # Divide by total entries #
         self.Z /= self.nevents # Divide by N
@@ -491,8 +491,15 @@ def main():
         path_zoom = os.path.abspath(os.path.join('PDF',opt.model,'likelihood_'+opt.suffix+'_zoom.root'))
         f = TFile(path_root)
         if opt.PDF:
-            canvas = TCanvas()
-            canvas.Print(path_pdf+'[')
+            c1 = TCanvas('c1','c1',1100,900)
+            c1.SetGrid()
+            #canvas = TCanvas('canvas','canvas',900,900)
+            #canvas.Print(path_pdf+'[')
+            c1.Print(path_pdf+'[')
+            c1.SetTopMargin(0.05)
+            c1.SetBottomMargin(0.18)
+            c1.SetLeftMargin(0.18)
+            c1.SetRightMargin(0.2)
         graphs = [(key,obj) for (key,obj) in getall(f)]
         graphs = sorted(graphs, key=lambda tup: tup[0]) # Sort according to name
         for  i,(key,obj) in enumerate(graphs):
@@ -524,8 +531,6 @@ def main():
 
 
                 if opt.PDF:
-                    c1 = TCanvas()
-                    c1.SetGrid()
                     base_hist = TH2F('','',opt.bins,opt.xmin,opt.xmax,opt.bins,opt.ymin,opt.ymax) 
                     obj.SetHistogram(base_hist)
                     hist = obj.GetHistogram()
@@ -535,22 +540,35 @@ def main():
                     hist.SetMinimum(max(opt.zmin,hist.GetMinimum()))
                     amax = hist.GetMaximum() if opt.zmax is None else opt.zmax 
                     hist.SetMaximum(amax)
+                    hist.SetTitle(";M_{A} [GeV];M_{H} [GeV];-2 log L")
+                    hist.GetXaxis().SetTitleOffset(1.2)
+                    hist.GetYaxis().SetTitleOffset(1.2)
+                    hist.GetZaxis().SetTitleOffset(1.2)
+                    hist.GetXaxis().SetLabelSize(0.04)
+                    hist.GetYaxis().SetLabelSize(0.04)
+                    hist.GetZaxis().SetLabelSize(0.04)
+                    hist.GetXaxis().SetTitleSize(0.06)
+                    hist.GetYaxis().SetTitleSize(0.06)
+                    hist.GetZaxis().SetTitleSize(0.06)
                     hist.Draw('colz') 
-                    c1.SetTopMargin(0.1)
-                    c1.SetBottomMargin(0.12)
-                    c1.SetLeftMargin(0.12)
-                    c1.SetRightMargin(0.18)
-                    hist.GetXaxis().SetTitleOffset(1.3)
-                    hist.GetYaxis().SetTitleOffset(1.3)
-                    hist.GetZaxis().SetTitleOffset(1.5)
-                    hist.SetTitle(obj.GetTitle())
+                    text = TPaveText(.55,.2,.80,.4,'brNDC')
+                    text.AddText("Events with")
+                    text.AddText("M_{A} = %d GeV"%mA_value)
+                    text.AddText("M_{H} = %d GeV"%mH_value)
+                    text.SetTextColor(1)
+                    text.SetFillStyle(4100)
+                    text.Draw("same")
+
+
+                    #hist.SetTitle(obj.GetTitle())
                     c1.Print(path_pdf,'Title:'+key.replace('.root','').replace('/',''))
             except Exception as e:
                 logging.critical('Could not save %s due to error "%s"'%(key,e))
         if opt.PDF:
-            canvas.Print(path_pdf) 
-            canvas.Print(path_pdf+']') 
+#            canvas.Print(path_pdf) 
+#            canvas.Print(path_pdf+']') 
             logging.info('PDF saved as %s'%path_pdf)
+            c1.Print(path_pdf+']') 
 
         sys.exit()
     #############################################################################################
@@ -575,6 +593,8 @@ def main():
                 ]
 
     events = Tree2Pandas(input_file=opt.file, variables=variables, n=opt.number).values
+    if events.shape[0] == 0:
+        raise RuntimeError("Did you forget -n ?")
 
     # Instantiate the map #
     likelihood = LikelihoodMap(name = opt.model,
@@ -586,7 +606,7 @@ def main():
                                normalize=opt.norm)
 
     # Loop over events #
-    print ('Adding events')
+    logging.info('Adding events')
     manager = enlighten.get_manager()
     pbar = manager.counter(total=opt.number, desc='Progress', unit='Event')
     for i in range(events.shape[0]):

@@ -16,7 +16,7 @@ ME_Wminus_M:
   xmax: 100
   title: '{} W- Boson : M'
   xlabel: M
-  ylabel: Events
+  ylabel: events
 
 ME_Wminus_E:
   filename: 
@@ -30,7 +30,7 @@ ME_Wminus_E:
   xmax: 2000
   title: '{} W- Boson : E'
   xlabel: E
-  ylabel: Events
+  ylabel: events
 
 ME_Wminus_Pt:
   filename: 
@@ -44,7 +44,7 @@ ME_Wminus_Pt:
   xmax: 2000
   title: '{} W- Boson : Pt'
   xlabel: Pt
-  ylabel: Events
+  ylabel: events
 
 ME_Wplus_M:
   filename: 
@@ -58,7 +58,7 @@ ME_Wplus_M:
   xmax: 100
   title: '{} W+ Boson : M'
   xlabel: M
-  ylabel: Events
+  ylabel: events
 
 ME_Wplus_E:
   filename: 
@@ -72,7 +72,7 @@ ME_Wplus_E:
   xmax: 2000
   title: '{} W+ Boson : E'
   xlabel: E
-  ylabel: Events
+  ylabel: events
 
 ME_Wplus_Pt:
   filename: 
@@ -86,7 +86,7 @@ ME_Wplus_Pt:
   xmax: 2000
   title: '{} W+ Boson : Pt'
   xlabel: Pt
-  ylabel: Events
+  ylabel: events
 
 #####################
 ###  top quarks  ####
@@ -104,7 +104,7 @@ ME_antitop_M:
   xmax: 200
   title: '{} Antitop quark : M'
   xlabel: M
-  ylabel: Events
+  ylabel: events
 
 ME_antitop_E:
   filename: 
@@ -118,7 +118,7 @@ ME_antitop_E:
   xmax: 2000
   title: '{} Antitop quark : E'
   xlabel: E
-  ylabel: Events
+  ylabel: events
 
 ME_antitop_Pt:
   filename: 
@@ -132,7 +132,7 @@ ME_antitop_Pt:
   xmax: 2000
   title: '{} Antitop quark : Pt'
   xlabel: Pt
-  ylabel: Events
+  ylabel: events
 
 ME_top_M:
   filename: 
@@ -146,7 +146,7 @@ ME_top_M:
   xmax: 200
   title: '{} Top quark : M'
   xlabel: M
-  ylabel: Events
+  ylabel: events
 
 ME_top_E:
   filename: 
@@ -160,7 +160,7 @@ ME_top_E:
   xmax: 2000
   title: '{} Top quark : E'
   xlabel: E
-  ylabel: Events
+  ylabel: events
 
 ME_top_Pt:
   filename: 
@@ -174,4 +174,4 @@ ME_top_Pt:
   xmax: 2000
   title: '{} Top quark : Pt'
   xlabel: Pt
-  ylabel: Events
+  ylabel: events

@@ -10,7 +10,7 @@ MEPdf:
   xmax: 15
   title: '{} sample : ME x PDF (MoMEMta)'
   xlabel: -log_{10}(ME x PDF)
-  ylabel: Events
+  ylabel: events
 
 output_ME:
   filename: 
@@ -24,7 +24,7 @@ output_ME:
   xmax: 15
   title: '{} sample : ME x PDF (DNN)'
   xlabel: -log_{10}(ME x PDF)
-  ylabel: Events
+  ylabel: events
 
 MEM_DNN_comp:
   filename: 
@@ -38,7 +38,7 @@ MEM_DNN_comp:
   xmax: 0.1
   title: '{} sample : comparison'
   xlabel: '|(ME x PDF)_{MoMEMta} - (ME x PDF)_{DNN}|'
-  ylabel: Events
+  ylabel: events
 
 MEM_DNN_comp_rel:
   filename: 
@@ -52,6 +52,6 @@ MEM_DNN_comp_rel:
   xmax: 1
   title: '{} sample : comparison'
   xlabel: '|(ME x PDF)_{MoMEMta} - (ME x PDF)_{DNN}|/(ME x PDF)_{MoMEMta}'
-  ylabel: Events
+  ylabel: events
 
 

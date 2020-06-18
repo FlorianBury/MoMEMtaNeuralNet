@@ -11,6 +11,7 @@ import enlighten
 import psutil
 import time
 from sklearn import metrics
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 from root_numpy import array2root
@@ -24,7 +25,7 @@ from signal_coupling import Repeater, Transposer, Decoupler, Recoupler
 from Utils import ListBranches
 
 # PYPLOT STYLE # 
-SMALL_SIZE = 10
+SMALL_SIZE = 16
 MEDIUM_SIZE = 20 
 BIGGER_SIZE = 24
 plt.rc('font', size=SMALL_SIZE)          # controls default text sizes 
@@ -462,9 +463,9 @@ class ProcessROC:
 
     def _makeROC(self):
         # Make figure #
-        fig = plt.figure(figsize=(16,9))
+        fig = plt.figure(figsize=(12,9))
         ax = fig.add_subplot(111)
-        plt.subplots_adjust(left=0.06, bottom=0.1, right=0.95, top=0.9)
+        plt.subplots_adjust(left=0.10, bottom=0.10, right=0.97, top=0.90)
         color= iter(cm.rainbow(np.linspace(0,1,len(self.scores))))
         print ('Starting the ROC section')
         # Get the roc curve for ellipses #
@@ -474,9 +475,11 @@ class ProcessROC:
         legend_ell = []
         legend_DNN_global = []
         legend_DNN_param = []
+        sigmas = []
         for key,val in self.scores.items():
             # Unpack 
             sigma, tpr_ell, fpr_ell = key
+            sigmas.append(sigma)
             tpr_global = val[:,0]
             fpr_global = val[:,1]
             tpr_param = val[:,2]
@@ -484,28 +487,37 @@ class ProcessROC:
             print ('....... Processing sigma %0.1f'%sigma)
             # plot #
             c = next(color)
-            ax.scatter(tpr_ell,fpr_ell,marker='X',s=100,color=c,label=r'Ellipse : %0.1f $\rho$'%sigma)
-            ax.plot(tpr_global,fpr_global,color=c,linestyle='-',label=r'Global + ellipse (%0.1f $\rho$)'%sigma)
-            ax.plot(tpr_param,fpr_param,color=c,linestyle='--',label=r'Parametric + ellipse (%0.1f $\rho)$'%sigma)
+            ax.scatter(tpr_ell,fpr_ell,marker='X',s=100,color=c)
+            ax.plot(tpr_global,fpr_global,color=c,linestyle='-')
+            ax.plot(tpr_param,fpr_param,color=c,linestyle='--')
         ax.plot(list_tpr_ell,list_fpr_ell,color='k',linestyle=':',label='ROC ellipses')
         ax.plot(self.tpr_DNN_global,self.fpr_DNN_global,color='k',linestyle='-',label='ROC global DNN')
         ax.plot(self.tpr_DNN_param,self.fpr_DNN_param,color='k',linestyle='--',label='ROC parametric DNN')
 
-        box = ax.get_position()
-        ax.set_position([box.x0, box.y0, box.width*0.55, box.height])
-        handles, labels = ax.get_legend_handles_labels()
-        labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
-        handles = list(handles)
-        labels = list(labels)
-        ell_handles =     [handles[-3]] + handles[:len(self.scores)]
-        global_handles =  [handles[-2]] + handles[len(self.scores):2*len(self.scores)]
-        param_handles =   [handles[-1]] + handles[2*len(self.scores):3*len(self.scores)]
-        ell_labels =      [labels[-3]] + labels[:len(self.scores)]
-        global_labels =   [labels[-2]] + labels[len(self.scores):2*len(self.scores)]
-        param_labels =    [labels[-1]] + labels[2*len(self.scores):3*len(self.scores)]
-        handles = ell_handles+global_handles+param_handles
-        labels = ell_labels+global_labels+param_labels
-        legend = ax.legend(handles, labels,loc='upper left',bbox_to_anchor=(1.02, 1,0.70,0),fancybox=False,labelspacing=2.5,shadow=True,ncol=3,prop={'size': 11},frameon=False)
+        norm = mpl.colors.Normalize(vmin=min(sigmas),vmax=max(sigmas))
+        cmap = plt.get_cmap('rainbow',1000)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])
+        cbar = plt.colorbar(sm, ticks=np.array(sigmas))
+
+
+        #box = ax.get_position()
+        #ax.set_position([box.x0, box.y0, box.width*0.55, box.height])
+        #handles, labels = ax.get_legend_handles_labels()
+        #labels, handles = zip(*sorted(zip(labels, handles), key=lambda t: t[0]))
+        #handles = list(handles)
+        #labels = list(labels)
+        #ell_handles =     [handles[-3]] + handles[:len(self.scores)]
+        #global_handles =  [handles[-2]] + handles[len(self.scores):2*len(self.scores)]
+        #param_handles =   [handles[-1]] + handles[2*len(self.scores):3*len(self.scores)]
+        #ell_labels =      [labels[-3]] + labels[:len(self.scores)]
+        #global_labels =   [labels[-2]] + labels[len(self.scores):2*len(self.scores)]
+        #param_labels =    [labels[-1]] + labels[2*len(self.scores):3*len(self.scores)]
+        #handles = ell_handles+global_handles+param_handles
+        #labels = ell_labels+global_labels+param_labels
+        #legend = ax.legend(handles, labels,loc='upper left',bbox_to_anchor=(1.02, 1,0.70,0),fancybox=False,labelspacing=2.5,shadow=True,ncol=3,prop={'size': 11},frameon=False)
+        
+        ax.legend(loc='upper left',prop={'size': 20})
 
         #ax.set_yscale('symlog', linthreshy=0.001)
         ax.set_yscale('log')
@@ -513,6 +525,7 @@ class ProcessROC:
         ax.set_ylim([0.0001, 1])
         ax.set_xlabel('Signal selection efficiency')
         ax.set_ylabel('Background selection efficiency')
+        cbar.set_label('Ellipse size in standard deviations',rotation=90,labelpad=15)
         plt.suptitle('ROC curve : $M_{H}$ = %0.2f GeV and $M_{A}$ = %0.2f GeV'%(self.inst_ellipse.mH,self.inst_ellipse.mA))
         plt.grid(b=True,which='both',axis='both')
         roc_name = os.path.join(self.path_ROC,('ROC_mH_%0.2f_mA_%0.2f'%(self.inst_ellipse.mH,self.inst_ellipse.mA)).replace('.','p')+'.png')

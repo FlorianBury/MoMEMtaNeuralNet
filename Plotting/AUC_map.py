@@ -2,9 +2,10 @@ import sys
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from ROOT import TGraph2D, TCanvas, gPad, TH2F, gStyle
+from ROOT import TGraph2D, TCanvas, gPad, TH2F, gStyle, gROOT
 
 gStyle.SetOptStat(0)
+gROOT.SetBatch(True)
 
 mH = np.array([200,200,250,250,300,300,300,500,500,500,500,500,650,800,800,800,800,800,1000,1000,1000,2000,3000])
 mA = np.array([50,100,50,100,50,100,200,50,100,200,300,400,50,50,100,200,400,700,50,200,500,1000,2000])
@@ -28,27 +29,47 @@ graph_MEM.SetNpy(500)
 graph_DNN.SetNpx(500)
 graph_DNN.SetNpy(500)
 
-canvas = TCanvas('c1','c1',1600,700)
+canvas = TCanvas('c1','c1',1800,700)
 canvas.Divide(2,1,0.005)
 
 canvas.cd(1)
 gPad.SetRightMargin(0.2)
-gPad.SetLeftMargin(0.12)
+gPad.SetLeftMargin(0.15)
+gPad.SetBottomMargin(0.15)
 base_hist = TH2F('','',500,50,850,500,200,1000)
 graph_MEM.SetHistogram(base_hist)
 graph_MEM.SetMinimum(np.amin(AUC_MEM))
 graph_MEM.SetMaximum(np.amax(AUC_MEM))
+graph_MEM.GetHistogram().GetXaxis().SetLabelSize(0.04)
+graph_MEM.GetHistogram().GetYaxis().SetLabelSize(0.04)
+graph_MEM.GetHistogram().GetZaxis().SetLabelSize(0.04)
+graph_MEM.GetHistogram().GetXaxis().SetTitleSize(0.06)
+graph_MEM.GetHistogram().GetYaxis().SetTitleSize(0.06)
+graph_MEM.GetHistogram().GetZaxis().SetTitleSize(0.06)
+graph_MEM.GetHistogram().GetXaxis().SetTitleOffset(1.1)
+graph_MEM.GetHistogram().GetYaxis().SetTitleOffset(1.2)
+graph_MEM.GetHistogram().GetZaxis().SetTitleOffset(1.1)
 graph_MEM.Draw("colz")
-graph_MEM.SetTitle("AUC score from MEM weights;M_{A} [GeV];M_{H} [GeV];AUC")
+graph_MEM.SetTitle("AUC score from MoMEMta weights;M_{A} [GeV];M_{H} [GeV];AUC")
 
     
 canvas.cd(2)
 gPad.SetRightMargin(0.2)
-gPad.SetLeftMargin(0.12)
+gPad.SetLeftMargin(0.20)
+gPad.SetBottomMargin(0.15)
 base_hist = TH2F('','',500,50,850,500,200,1000)
 graph_DNN.SetHistogram(base_hist)
 graph_DNN.SetMinimum(np.amin(AUC_DNN))
 graph_DNN.SetMaximum(np.amax(AUC_DNN))
+graph_DNN.GetHistogram().GetXaxis().SetLabelSize(0.04)
+graph_DNN.GetHistogram().GetYaxis().SetLabelSize(0.04)
+graph_DNN.GetHistogram().GetZaxis().SetLabelSize(0.04)
+graph_DNN.GetHistogram().GetXaxis().SetTitleSize(0.06)
+graph_DNN.GetHistogram().GetYaxis().SetTitleSize(0.06)
+graph_DNN.GetHistogram().GetZaxis().SetTitleSize(0.06)
+graph_DNN.GetHistogram().GetXaxis().SetTitleOffset(1.1)
+graph_DNN.GetHistogram().GetYaxis().SetTitleOffset(1.2)
+graph_DNN.GetHistogram().GetZaxis().SetTitleOffset(1.1)
 graph_DNN.Draw("colz")
 graph_DNN.SetTitle("AUC score from DNN weights;M_{A} [GeV];M_{H} [GeV];AUC")
 

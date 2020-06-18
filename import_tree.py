@@ -48,6 +48,7 @@ def Tree2Pandas(input_file, variables, weight=None, cut=None, reweight_to_cross_
     # Read the tree and convert it to a numpy structured array
     if weight is not None:
         variables += [weight]
+
     data = tree2array(tree, branches=variables, selection=cut, start=start, stop=n)
     
     # Convert to pandas dataframe #
@@ -66,6 +67,7 @@ def Tree2Pandas(input_file, variables, weight=None, cut=None, reweight_to_cross_
         else:
             logging.info("Reading only {} from input tree".format(n))
         
+    file_handle.Close()
 
     return df
 

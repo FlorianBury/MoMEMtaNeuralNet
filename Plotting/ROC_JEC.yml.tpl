@@ -3,8 +3,8 @@
 ROC_MEM_NoJEC:
   tree: tree
   variable : weight_TT/(weight_TT+weight_DY) 
-  weight : total_weight
-  title : MEM without JEC
+  weight : ''
+  title : MoMEMta without JEC
   cut : ''
   selector :
     'TT' : 1
@@ -13,8 +13,8 @@ ROC_MEM_NoJEC:
 ROC_MEM_JEC:
   tree: tree
   variable : weight_TT_JEC/(weight_TT_JEC+weight_DY_JEC) 
-  weight : total_weight
-  title : MEM with JEC
+  weight : ''
+  title : MoMEMta with JEC
   cut : ''
   selector :
     'TT' : 1
@@ -25,7 +25,7 @@ ROC_MEM_JEC:
 ROC_DNN_NoJEC:
   tree: tree
   variable : output_TT/(output_TT+output_DY) 
-  weight : total_weight
+  weight : ''
   title : DNN without JEC
   cut : ''
   selector :
@@ -35,7 +35,7 @@ ROC_DNN_NoJEC:
 ROC_DNN_JEC:
   tree: tree
   variable : output_TT_JEC/(output_TT_JEC+output_DY_JEC) 
-  weight : total_weight
+  weight : ''
   title : DNN with JEC
   cut : ''
   selector :

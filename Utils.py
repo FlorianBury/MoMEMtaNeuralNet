@@ -36,9 +36,11 @@ def ListEntries(path,part=[''],cut='',treeName="tree"):
         N_tot = 0
     else:
         N_tot = [0,0]
-    for f in glob.glob(path+'/*'):
+    list_f = glob.glob(path+'/*')
+    list_f.sort()
+    for f in list_f:
         skip = False
-        filename = f.replace(path,'').replace('root','')
+        filename = os.path.basename(f)
         for p in part:
             if filename.find(p)==-1: # Could not find part of name
                 skip = True

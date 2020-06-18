@@ -5,16 +5,16 @@ MEM_ratio_DNN_Prob_DY:
   tree: tree
   variable1: Prob_MEM_DY
   variable2: Prob_DNN_DY
-  weight: total_weight
+  weight: ''
   name: MEM_ratio_DNN_Prob_DY
   cut: '' 
   bins: 50
   xmin: 0
   xmax: 1
-  title: '{} sample : Ratio MEM/DNN Probability(Drell-Yann)'
-  xlabel: Probability(Drell-Yann)
-  ylabel: Events
-  legend1: 'MEM'
+  title: '' 
+  xlabel: Probability(Drell-Yan)
+  ylabel: events
+  legend1: 'MoMEMta'
   legend2: 'DNN' 
 
 ##################### Prob TT ########################
@@ -24,16 +24,16 @@ MEM_ratio_DNN_Prob_TT:
   tree: tree
   variable1: Prob_MEM_TT  
   variable2: Prob_DNN_TT  
-  weight: total_weight
+  weight: ''
   name: MEM_ratio_DNN_Prob_TT
   cut: '' 
   bins: 50
   xmin: 0
   xmax: 1
-  title: '{} sample : Ratio MEM/DNN Probability(t#bar{{t}})'
+  title: ''
   xlabel: Probability(t#bar{t})
-  ylabel: Events
-  legend1: 'MEM'
+  ylabel: events
+  legend1: 'MoMEMta'
   legend2: 'DNN' 
 
 #################### Prob HToZA #######################
@@ -43,15 +43,15 @@ MEM_ratio_DNN_Prob_HToZA:
   tree: tree
   variable1: Prob_MEM_HToZA  
   variable2: Prob_DNN_HToZA
-  weight: total_weight
+  weight: ''
   name: MEM_ratio_DNN_Prob_HToZA
   cut: '' 
   bins: 50
   xmin: 0
   xmax: 1
-  title: '{} sample : Ratio MEM/DNN Probability(signal)'
-  xlabel: Probability(H#rightarrow ZA)
-  ylabel: Events
-  legend1: 'MEM'
+  title: '' 
+  xlabel: Probability(H#rightarrowZA)
+  ylabel: events
+  legend1: 'MoMEMta'
   legend2: 'DNN' 
 

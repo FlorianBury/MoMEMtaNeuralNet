@@ -359,5 +359,4 @@ class HyperModel:
                                               workers=parameters.workers,
                                               use_multiprocessing=True,
                                               verbose=1)
-
         return outputs

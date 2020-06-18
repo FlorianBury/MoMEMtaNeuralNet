@@ -81,29 +81,29 @@ samples_dict['HToZA'] = [
                             #'classification_weights_valid/HToZATo2L2B_MH-800_MA-700_all_weights.root',
 
                             ######################  Classification with both weight and output  ################
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-1000_MA-200_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-1000_MA-500_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-1000_MA-50_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-2000_MA-1000_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-200_MA-100_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-200_MA-50_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-250_MA-100_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-250_MA-50_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-3000_MA-2000_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-300_MA-100_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-300_MA-200_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-300_MA-50_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-100_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-200_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-300_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-400_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-50_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-650_MA-50_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-100_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-200_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-400_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-50_all_weights.root',
-                            #'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-700_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-1000_MA-200_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-1000_MA-500_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-1000_MA-50_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-2000_MA-1000_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-200_MA-100_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-200_MA-50_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-250_MA-100_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-250_MA-50_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-3000_MA-2000_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-300_MA-100_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-300_MA-200_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-300_MA-50_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-100_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-200_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-300_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-400_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-500_MA-50_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-650_MA-50_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-100_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-200_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-400_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-50_all_weights.root',
+                            'signal_regression_for_classification_weights/HToZATo2L2B_MH-800_MA-700_all_weights.root',
 
 
 
@@ -123,13 +123,13 @@ samples_dict['TT'] = [
                             #'classification_weights_valid/TTTo2L2Nu_all_weights.root',
 
                             ######################  Classification with both weight and output  ################
-                            #'signal_regression_for_classification_weights/TT_Other_all_weights.root',
-                            #'signal_regression_for_classification_weights/TTTo2L2Nu_all_weights.root',
+                            'signal_regression_for_classification_weights/TT_Other_all_weights.root',
+                            'signal_regression_for_classification_weights/TTTo2L2Nu_all_weights.root',
                             
                             ############################## Matrix Element ######################################
                             #'ME_TTBar/TT_Other_ME.root',
                             #'ME_TTBar/TTTo2L2Nu_ME_small.root',
-                            'ME_TTBar_test/TTTo2L2Nu_ME_test.root',
+                            #'ME_TTBar_test/TTTo2L2Nu_ME_test.root',
                             
                       ]
 
@@ -154,17 +154,17 @@ samples_dict['DY'] = [
                             #'classification_weights_valid/DYToLL_2J_all_weights.root',
 
                             ######################  Classification with both weight and output  ################
-                            #'signal_regression_for_classification_weights/DYJetsToLL_M_all_weights.root',
-                            #'signal_regression_for_classification_weights/DYToLL_0J_all_weights.root',
-                            #'signal_regression_for_classification_weights/DYToLL_1J_all_weights.root',
-                            #'signal_regression_for_classification_weights/DYToLL_2J_all_weights.root',
+                            'signal_regression_for_classification_weights/DYJetsToLL_M_all_weights.root',
+                            'signal_regression_for_classification_weights/DYToLL_0J_all_weights.root',
+                            'signal_regression_for_classification_weights/DYToLL_1J_all_weights.root',
+                            'signal_regression_for_classification_weights/DYToLL_2J_all_weights.root',
 
                             ############################## Matrix Element ######################################
                             #'ME_TTBar/DYJetsToLL_M-10to50_ME.root',
                             #'ME_TTBar/DYToLL_0J_ME.root',
                             #'ME_TTBar/DYToLL_1J_ME.root',
                             #'ME_TTBar/DYToLL_2J_ME.root',
-                            'ME_TTBar_test/DYToLL_0J_ME_test.root',
+                            #'ME_TTBar_test/DYToLL_0J_ME_test.root',
                       ]
 
 
@@ -327,50 +327,47 @@ samples_dict['ME_test'] = [
                           ]
 
 ##############################     ME generator    #######################
-samples_dict['ME_generator_output'] = [
-                            'ME_TTBar_generator_all/path2/DYJetsToLL_M-10to50_ME.root',
-                            'ME_TTBar_generator_all/path2/DYToLL_0J_ME.root',
-                            'ME_TTBar_generator_all/path2/DYToLL_1J_ME.root',
-                            'ME_TTBar_generator_all/path2/DYToLL_2J_ME.root',
-                            'ME_TTBar_generator_all/path2/TT_Other_ME.root',
-                            'ME_TTBar_generator_all/path2/TTTo2L2Nu_ME.root',
+samples_dict['ME_generator_MCTF_output'] = [
+                            'ME_TTBar_generator_MCTF/path2/DYJetsToLL_M-10to50_ME.root',
+                            'ME_TTBar_generator_MCTF/path2/DYToLL_0J_ME.root',
+                            'ME_TTBar_generator_MCTF/path2/DYToLL_1J_ME.root',
+                            'ME_TTBar_generator_MCTF/path2/DYToLL_2J_ME.root',
+                            'ME_TTBar_generator_MCTF/path2/TT_Other_ME.root',
+                            'ME_TTBar_generator_MCTF/path2/TTTo2L2Nu_ME.root',
                           ]
-samples_dict['ME_generator_validation'] = [
-                            'ME_TTBar_generator_all/path0/DYJetsToLL_M-10to50_ME.root',
-                            'ME_TTBar_generator_all/path0/DYToLL_0J_ME.root',
-                            'ME_TTBar_generator_all/path0/DYToLL_1J_ME.root',
-                            'ME_TTBar_generator_all/path0/DYToLL_2J_ME.root',
-                            'ME_TTBar_generator_all/path0/TT_Other_ME.root',
-                            'ME_TTBar_generator_all/path0/TTTo2L2Nu_ME.root',
+samples_dict['ME_generator_MCTF_validation'] = [
+                            'ME_TTBar_generator_MCTF/path0/DYJetsToLL_M-10to50_ME.root',
+                            'ME_TTBar_generator_MCTF/path0/DYToLL_0J_ME.root',
+                            'ME_TTBar_generator_MCTF/path0/DYToLL_1J_ME.root',
+                            'ME_TTBar_generator_MCTF/path0/DYToLL_2J_ME.root',
+                            'ME_TTBar_generator_MCTF/path0/TT_Other_ME.root',
+                            'ME_TTBar_generator_MCTF/path0/TTTo2L2Nu_ME.root',
                           ]
-samples_dict['ME_generator_evaluation'] = [
-                            'ME_TTBar_generator_all/path2/DYJetsToLL_M-10to50_ME.root',
-                            'ME_TTBar_generator_all/path2/DYToLL_0J_ME.root',
-                            'ME_TTBar_generator_all/path2/DYToLL_1J_ME.root',
-                            'ME_TTBar_generator_all/path2/DYToLL_2J_ME.root',
-                            'ME_TTBar_generator_all/path2/TT_Other_ME.root',
-                            'ME_TTBar_generator_all/path2/TTTo2L2Nu_ME.root',
-                          ]
-
-samples_dict['ME_generator_training'] = [
-                            'ME_TTBar_generator_all/path3/DYJetsToLL_M-10to50_ME.root',
-                            'ME_TTBar_generator_all/path3/DYToLL_0J_ME.root',
-                            'ME_TTBar_generator_all/path3/DYToLL_1J_ME.root',
-                            'ME_TTBar_generator_all/path3/DYToLL_2J_ME.root',
-                            'ME_TTBar_generator_all/path3/TT_Other_ME.root',
-                            'ME_TTBar_generator_all/path3/TTTo2L2Nu_ME.root',
+samples_dict['ME_generator_MCTF_evaluation'] = [
+                            'ME_TTBar_generator_MCTF/path2/DYJetsToLL_M-10to50_ME.root',
+                            'ME_TTBar_generator_MCTF/path2/DYToLL_0J_ME.root',
+                            'ME_TTBar_generator_MCTF/path2/DYToLL_1J_ME.root',
+                            'ME_TTBar_generator_MCTF/path2/DYToLL_2J_ME.root',
+                            'ME_TTBar_generator_MCTF/path2/TT_Other_ME.root',
+                            'ME_TTBar_generator_MCTF/path2/TTTo2L2Nu_ME.root',
                           ]
 
-samples_dict['ME_CL_Easy'] = [ "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Output/All_in1OrderMag.root"]
-samples_dict['ME_CL_Hard'] = [ "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_10x200_elu_300epochs_batchNorm/CurriculumLearning/Output/All_out1OrderMag.root"]
+samples_dict['ME_generator_MCTF_training'] = [
+                            'ME_TTBar_generator_MCTF/path3/DYJetsToLL_M-10to50_ME.root',
+                            'ME_TTBar_generator_MCTF/path3/DYToLL_0J_ME.root',
+                            'ME_TTBar_generator_MCTF/path3/DYToLL_1J_ME.root',
+                            'ME_TTBar_generator_MCTF/path3/DYToLL_2J_ME.root',
+                            'ME_TTBar_generator_MCTF/path3/TT_Other_ME.root',
+                            'ME_TTBar_generator_MCTF/path3/TTTo2L2Nu_ME.root',
+                          ]
 
-samples_dict['ME_reprocessing'] = ["/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_6x200_elu_500epochs_batchNorm/ME_generator_weights/All.root"]
-samples_dict['ME_reprocessing_training'] = [
-    "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_6x200_elu_500epochs_batchNorm/ME_generator_training_weights/All_1.root",
-    "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_6x200_elu_500epochs_batchNorm/ME_generator_training_weights/All_2.root",
-    "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_6x200_elu_500epochs_batchNorm/ME_generator_training_weights/All_4.root",
-    "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_6x200_elu_500epochs_batchNorm/ME_generator_training_weights/All_5.root",
-    "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_6x200_elu_500epochs_batchNorm/ME_generator_training_weights/All_6.root",
-    "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_6x200_elu_500epochs_batchNorm/ME_generator_training_weights/All_7.root",
-    "/home/ucl/cp3/fbury/scratch/MoMEMta_output/NNOutput/GPU_6x200_elu_500epochs_batchNorm/ME_generator_training_weights/All_8.root",
-    ]
+
+samples_dict['ME_generator_GaussianTF_output'] = [
+        'ME_TTBar_generator_GaussianTF/path_output/TTTo2L2Nu_TTbarME_output.root']
+samples_dict['ME_generator_GaussianTF_validation'] = [
+        'ME_TTBar_generator_GaussianTF/path_validation/TTTo2L2Nu_TTbarME_validation.root']
+samples_dict['ME_generator_GaussianTF_evaluation'] = [
+        'ME_TTBar_generator_GaussianTF/path_evaluation/TTTo2L2Nu_TTbarME_evaluation.root']
+samples_dict['ME_generator_GaussianTF_training'] = [
+        'ME_TTBar_generator_GaussianTF/path_training/TTTo2L2Nu_TTbarME_training.root']
+

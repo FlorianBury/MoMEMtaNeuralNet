@@ -9,10 +9,10 @@ MEM_ratio_DNN_weight_DY:
   variable2: -TMath::Log10(output_DY)
   weight: ''
   name: MEM_ratio_DNN_weight_DY
-  cut: '' 
-  bins: 60
+  cut: 'weight_DY_err < weight_DY' 
+  bins: 50
   xmin: 15
-  xmax: 30
+  xmax: 40
   title: ''
   xlabel: -log_{10}(DY weight)
   ylabel: events
@@ -30,10 +30,10 @@ MEM_ratio_DNN_weight_TT:
   variable2: -TMath::Log10(output_TT)
   weight: ''
   name: MEM_ratio_DNN_weight_TT
-  cut: '' 
-  bins: 50
-  xmin: 15
-  xmax: 40
+  cut: 'weight_TT_err < weight_TT' 
+  bins: 60
+  xmin: 20
+  xmax: 50
   title: ''
   xlabel: -log_{10}(t#bar{t} weight)
   ylabel: events

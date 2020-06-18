@@ -11,6 +11,6 @@ MEPdfRatio:
   xmax: 15
   title: '{} sample : Ratio MEM/DNN ME x PDF'
   xlabel: -log_{10}(ME x PDF)
-  ylabel: Events
+  ylabel: events
   legend1: 'MoMEMta'
   legend2: 'DNN' 

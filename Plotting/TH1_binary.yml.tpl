@@ -6,7 +6,7 @@ MEM_prob_signal:
   filename: 
   tree: tree
   variable: Prob_MEM_signal
-  weight: total_weight
+  weight: ''
   name: MEM_prob_signal 
   cut: ''
   bins: 50
@@ -14,7 +14,7 @@ MEM_prob_signal:
   xmax: 1
   title: '{} sample : Signal probability from MEM weights'
   xlabel: P(Signal)
-  ylabel: Events
+  ylabel: events
 
 ############################################################
 #################### DNN probability #######################
@@ -24,7 +24,7 @@ DNN_prob_signal:
   filename: 
   tree: tree
   variable: Prob_DNN_signal
-  weight: total_weight
+  weight: ''
   name: DNN_prob_signal 
   cut: ''
   bins: 50
@@ -32,6 +32,6 @@ DNN_prob_signal:
   xmax: 1
   title: '{} sample : Signal probability from DNN weights'
   xlabel: P(Signal)
-  ylabel: Events
+  ylabel: events
 
 

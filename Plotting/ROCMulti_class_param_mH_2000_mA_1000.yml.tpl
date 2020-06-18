@@ -12,15 +12,15 @@ ROC_MEM::
     - Prob_MEM_TT/(Prob_MEM_DY+Prob_MEM_HToZA+Prob_MEM_TT)
 
   labels:
-    - P(Drell-Yann)
+    - P(Drell-Yan)
     - P(Signal $H\rightarrow ZA$)
     - P($t\bar{t}$)
   colors:
     - navy
     - green
     - darkred
-  weight : total_weight
-  title : MEM
+  weight : ''
+  title : MoMEMta
   cut : '(mH_gen==2000 && mA_gen==1000)'
   selector :
     'TT' : 'TT'
@@ -41,14 +41,14 @@ ROC_DNN::
     - Prob_DNN_TT/(Prob_DNN_DY+Prob_DNN_HToZA+Prob_DNN_TT)
 
   labels:
-    - P(Drell-Yann)
+    - P(Drell-Yan)
     - P(Signal $H\rightarrow ZA$)
     - P($t\bar{t}$)
   colors:
     - dodgerblue
     - lawngreen
     - red
-  weight : total_weight
+  weight : ''
   title : DNN
   cut : '(mH_gen==2000 && mA_gen==1000)'
   selector :

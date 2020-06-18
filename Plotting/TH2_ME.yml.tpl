@@ -15,7 +15,7 @@ MEM_vs_DNN_MEPdf:
   title: '{} sample : ME x PDF (MoMEMta vs DNN)'
   xlabel: -log_{10}(ME x PDF) from MoMEMta
   ylabel: -log_{10}(ME x PDF) from DNN
-  zlabel: Events
+  zlabel: events
   option : 'colz'
   logz : True
 
@@ -36,6 +36,6 @@ MEM_vs_DNN_MEPdf_prof:
   title: '{} sample : ME x PDF (MoMEMta vs DNN)'
   xlabel: -log_{10}(ME x PDF) from MoMEMta
   ylabel: -log_{10}(ME x PDF) from DNN
-  zlabel: Events
+  zlabel: events
   option : 'prof'
 

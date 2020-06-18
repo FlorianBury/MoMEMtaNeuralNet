@@ -5,7 +5,7 @@ Prob_DY_MEM_vs_DNN:
   tree: tree
   variablex: Prob_MEM_DY
   variabley: Prob_DNN_DY
-  weight: total_weight
+  weight: ''
   name: Prob_DY_MEM_vs_DNN 
   cut: ''
   binsx: 50
@@ -14,10 +14,10 @@ Prob_DY_MEM_vs_DNN:
   binsy: 50
   ymin: 0
   ymax: 1
-  title: '{} sample : MEM vs DNN Probability(Drell-Yann)'
-  xlabel: Probability(Drell-Yann|MEM)
-  ylabel: Probability(Drell-Yann|DNN)
-  zlabel: Events
+  title: ''
+  xlabel: Probability(Drell-Yan|MoMEMta)
+  ylabel: Probability(Drell-Yan|DNN)
+  zlabel: events
   option : 'prof'
 
 ##################### Prob TT ########################
@@ -27,7 +27,7 @@ Prob_TT_MEM_vs_DNN:
   tree: tree
   variablex: Prob_MEM_TT
   variabley: Prob_DNN_TT
-  weight: total_weight
+  weight: ''
   name: Prob_TT_MEM_vs_DNN 
   cut: ''
   binsx: 50
@@ -36,10 +36,10 @@ Prob_TT_MEM_vs_DNN:
   binsy: 50
   ymin: 0
   ymax: 1
-  title: '{} sample : MEM vs DNN Probability(t#bar{{t}})'
-  xlabel: Probability(t#bar{t}|MEM)
+  title: ''
+  xlabel: Probability(t#bar{t}|MoMEMta)
   ylabel: Probability(t#bar{t}|DNN)
-  zlabel: Events
+  zlabel: events
   option : 'prof'
 
 #################### Prob HToZA #######################
@@ -49,7 +49,7 @@ Prob_HToZA_MEM_vs_DNN:
   tree: tree
   variablex: Prob_MEM_HToZA
   variabley: Prob_DNN_HToZA
-  weight: total_weight
+  weight: ''
   name: Prob_HToZA_MEM_vs_DNN 
   cut: ''
   binsx: 50
@@ -58,9 +58,9 @@ Prob_HToZA_MEM_vs_DNN:
   binsy: 50
   ymin: 0
   ymax: 1
-  title: '{} sample : MEM vs DNN Probability(Signal)'
-  xlabel: Probability(H#rightarrow ZA|MEM)
+  title: ''
+  xlabel: Probability(H#rightarrow ZA|MoMEMta)
   ylabel: Probability(H#rightarrow ZA|DNN)
-  zlabel: Events
+  zlabel: events
   option : 'prof'
 

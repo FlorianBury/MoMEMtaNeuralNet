@@ -9,6 +9,7 @@ import pprint
 import logging
 import copy
 import pickle
+import traceback
 #import psutil
 
 import argparse
@@ -290,8 +291,9 @@ def main():
                 os.mkdir(path_output_sub)
             try:
                 inst_out.OutputNewData(input_dir=samples_path,list_sample=samples_dict[key],path_output=path_output_sub)
-            except Exception as e:
-                logging.critical('Could not process key "%s" due to "%s"'%(key,e))
+            except:
+                logging.critical('Could not process key "%s"'%(key))
+                traceback.print_exc()
         sys.exit()
     #############################################################################################
     # Data Input and preprocessing #
