@@ -70,10 +70,10 @@ Multi_no_JEC:
     - -TMath::Log10(weight_TT)
     - -TMath::Log10(output_TT)
   list_color:
-    - 416
-    - 600
-    - 632
-    - 616
+    - 418
+    - 602
+    - 634
+    - 402
   list_legend:
     - MEM Drell-Yan (without JES) 
     - DNN Drell-Yan (without JES) 
@@ -110,7 +110,7 @@ Multi_with_JEC:
     - 418
     - 602
     - 634
-    - 619
+    - 402
   list_legend:
     - MEM Drell-Yan (with JES) 
     - DNN Drell-Yan (with JES) 
@@ -150,12 +150,12 @@ JEC_DeltaW:
     - 418
     - 602
     - 634
-    - 619
+    - 402
   list_legend:
-    - MoMEMta Drell-Yan weight
-    - DNN Drell-Yan weight
-    - MoMEMta t#bar{t} weight 
-    - DNN t#bar{t} weight
+    - "#splitline{Drell-Yan weight}{MoMEMta}"
+    - "#splitline{Drell-Yan weight}{DNN}"
+    - "#splitline{t#bar{t} weight}{MoMEMta}"
+    - "#splitline{t#bar{t} weight}{DNN}"
   list_cut : 
     - 'weight_DY_err<weight_DY'
     - 'weight_DY_err<weight_DY'
@@ -163,8 +163,8 @@ JEC_DeltaW:
     - 'weight_TT_err<weight_TT'
   legend_pos:
     - 0.60
-    - 0.72
-    - 0.92
+    - 0.55
+    - 0.90
     - 0.92
   logy: True
 
@@ -188,7 +188,7 @@ JEC_RelDeltaW:
     - 418
     - 602
     - 634
-    - 619
+    - 402
   list_legend:
     - MEM Drell-Yan weight
     - DNN Drell-Yan weight
@@ -226,22 +226,22 @@ JEC_DeltaW_MEM_DNN:
     - 418
     - 602
     - 634
-    - 619
+    - 402
   list_legend:
-    - Drell-Yan (no JES)
-    - Drell-Yan (JES)
-    - t#bar{t} (no JES)
-    - t#bar{t} (JES)
+    - "#splitline{Drell-Yan weight}{no JES}"
+    - "#splitline{Drell-Yan weight}{with JES}"
+    - "#splitline{t#bar{t} weight}{no JES}"
+    - "#splitline{t#bar{t} weight}{with JES}"
   list_cut : 
     - 'weight_DY_err<weight_DY'
     - 'weight_DY_err<weight_DY'
     - 'weight_TT_err<weight_TT'
     - 'weight_TT_err<weight_TT'
   legend_pos:
-    - 0.60
-    - 0.72
-    - 0.92
-    - 0.92
+    - 0.62
+    - 0.55
+    - 0.90
+    - 0.93
   logy: True
 
 
