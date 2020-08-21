@@ -26,7 +26,7 @@ import tdrstyle
 gROOT.LoadMacro("formulas.C")
 
  # PYPLOT STYLE #
-SMALL_SIZE = 16
+SMALL_SIZE = 14
 MEDIUM_SIZE = 20
 BIGGER_SIZE = 22
 
@@ -222,6 +222,10 @@ class Plot_TH2:
         if len(self.ylabel) > 30:
             self.histo.GetYaxis().SetTitleSize(0.025)
             self.histo.GetYaxis().SetTitleOffset(1.8)
+
+        if "prof" in self.option:
+            self.histo.GetXaxis().SetRangeUser(self.xmin,self.xmax)
+            self.histo.GetYaxis().SetRangeUser(self.ymin,self.ymax)
 
         self.histo.GetZaxis().SetTitleOffset(1.2)
         self.histo.GetZaxis().SetLabelSize(0.03)
@@ -494,13 +498,18 @@ class Plot_Multi_TH1:
             
         self.list_obj[0].SetMaximum(maxY)
 
-        self.list_obj[0].GetXaxis().SetTitleOffset(1.4)
         self.list_obj[0].GetXaxis().SetLabelSize(0.03)
         self.list_obj[0].GetXaxis().SetTitleSize(0.05)
         if len(self.xlabel) > 30:
             self.list_obj[0].GetXaxis().SetTitleSize(0.035)
         if len(self.xlabel) > 60:
             self.list_obj[0].GetXaxis().SetTitleSize(0.03)
+        if "frac" in self.xlabel:
+            self.list_obj[0].GetXaxis().SetTitleSize(0.03)
+            self.list_obj[0].GetXaxis().SetTitleOffset(1.9)
+        else:
+            self.list_obj[0].GetXaxis().SetTitleOffset(1.6)
+            
             
         self.list_obj[0].GetYaxis().SetTitleOffset(1.5)
         self.list_obj[0].GetYaxis().SetLabelSize(0.03)
@@ -603,17 +612,17 @@ class Plot_ROC:
 def MakeROCPlot(list_obj,name,title=None):
     # Generate figure #
     fig, ax = plt.subplots(1,figsize=(8,6))
-    fig.subplots_adjust(left=0.1, bottom=0.1, right=0.95, top=0.95 if title is None else 0.90)
+    fig.subplots_adjust(left=0.12, bottom=0.12, right=0.95, top=0.95 if title is None else 0.90)
 
     # Loop over plot objects #
     for i,obj in enumerate(list_obj):
         ax.plot(obj.tpr, obj.fpr, label = '%s (AUC = %0.5f)' % (obj.title,obj.roc_auc))
         ax.grid(True)
     plt.legend(loc = 'upper left')
-    #plt.yscale('symlog',linthreshy=0.0001)
-    plt.plot([0, 1], [0, 1],'k--')
+    plt.yscale('symlog',linthreshy=0.001)
+    #plt.plot([0, 1], [0, 1],'k--')
     plt.xlim([0, 1])
-    plt.ylim([0, 1])
+    plt.ylim([0.001, 1])
     plt.xlabel("Correct identification rate")
     plt.ylabel("Misidentification rate")
     if title is not None:

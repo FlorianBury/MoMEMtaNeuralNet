@@ -83,8 +83,8 @@ def main():
                     #      override_params = {}),
                     #Plots(name = 'invalid_TT_weights',
                     #      override_params = {}),
-                    Plots(name = 'JEC_weights',
-                          override_params = {}),
+                    #Plots(name = 'JEC_weights',
+                    #      override_params = {}),
                     #Plots(name = 'interpolation_weights',
                     #      override_params = {}),
                     #Plots(name = 'classification_weights',
@@ -142,6 +142,8 @@ def main():
                     #         class_name = 'Plot_Ratio_TH1'),
 
                     #########       TH1 Multi       ###########
+                    #Template(tpl = 'TH1Multi_invalid_background.yml.tpl',
+                    #         class_name = 'Plot_Multi_TH1'),
                     #Template(tpl = 'TH1Multi_signal.yml.tpl',
                     #         class_name = 'Plot_Multi_TH1'),
                     #Template(tpl = 'TH1Multi_binary.yml.tpl',
@@ -152,13 +154,15 @@ def main():
                     #         class_name = 'Plot_Multi_TH1'),
                     #Template(tpl = 'TH1Multi_class_global.yml.tpl',
                     #         class_name = 'Plot_Multi_TH1'),
-                    Template(tpl = 'TH1Multi_JEC.yml.tpl',
-                             class_name = 'Plot_Multi_TH1'),
+                    #Template(tpl = 'TH1Multi_JEC.yml.tpl',
+                    #         class_name = 'Plot_Multi_TH1'),
 
                     ############       TH2       ##############
                     #Template(tpl = 'TH2_background.yml.tpl',
                     #         class_name = 'Plot_TH2'),
                     #Template(tpl = 'TH2_signal.yml.tpl',
+                    #         class_name = 'Plot_TH2'),
+                    #Template(tpl = 'TH2_JEC.yml.tpl',
                     #         class_name = 'Plot_TH2'),
                     #Template(tpl = 'TH2_class_global.yml.tpl',
                     #         class_name = 'Plot_TH2'),

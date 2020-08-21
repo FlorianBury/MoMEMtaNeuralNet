@@ -1,6 +1,6 @@
 #!/bin/bash
 # Submission script 
-#SBATCH --time=0-02:00:00 # days-hh:mm:ss
+#SBATCH --time=0-04:00:00 # days-hh:mm:ss
 #SBATCH --output=ellipse_ROC.txt
 #
 #SBATCH --ntasks=1

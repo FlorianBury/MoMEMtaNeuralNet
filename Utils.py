@@ -191,13 +191,12 @@ def convert_time(time):
 ##################################################################################################
 ##########################                 ListBranches                 ##########################
 ##################################################################################################
-def ListBranches(rootfile,tree_name ='tree',verbose=False):
+def ListBranches(rootfile,treeName ='tree',verbose=False):
     from ROOT import TFile
     name_list = []
     root_file = TFile.Open(rootfile)
-    tree = root_file.Get(tree_name)
+    tree = root_file.Get(treeName)
     br = tree.GetListOfBranches().Clone()
-    #br = tree.GetListOfLeaves().Clone()
     for b in br: # Loop over branch objects
         name = []
         try:
@@ -216,6 +215,8 @@ def ListBranches(rootfile,tree_name ='tree',verbose=False):
         print ('Branches from %s'%rootfile)
         for l in name_list:
             print ('\t%s'%l)
+
+    root_file.Close()
     return name_list
 
 ##################################################################################################
@@ -241,7 +242,7 @@ def find_rows(a, b):
     which_in_a = np.nonzero(which_in_a)[0]
     return np.column_stack((which_in_a, where_in_b))
 
-def AppendTree(rootfile1,rootfile2,branches,event_filter=None,rename=None):
+def AppendTree(rootfile1,rootfile2,branches,event_filter=None,rename=None,treeName='tree'):
     """
     Append the branches of rootfile2 to rootfile1
     If event_filter=None : All the common branches must be identical (make sure events are the same)
@@ -252,16 +253,16 @@ def AppendTree(rootfile1,rootfile2,branches,event_filter=None,rename=None):
     # Get the arrays #
     import root_numpy
     import pandas as pd
-    data1 = pd.DataFrame(root_numpy.root2array(rootfile1,'tree',branches=ListBranches(rootfile1)))
+    data1 = pd.DataFrame(root_numpy.root2array(rootfile1,treeName,branches=ListBranches(rootfile1,treeName)))
     # Check that the requested branches are in rootfile2 #
-    list_branches2 = ListBranches(rootfile2)
+    list_branches2 = ListBranches(rootfile2,treeName)
     for b in branches:
         if not b in list_branches2:
             print ('Branch %s not present in file %s'%(b,rootfile2))
     if event_filter is None:
-        data2 = pd.DataFrame(root_numpy.root2array(rootfile2,'tree',branches=branches))
+        data2 = pd.DataFrame(root_numpy.root2array(rootfile2,treeName,branches=branches))
     else:
-        data2 = pd.DataFrame(root_numpy.root2array(rootfile2,'tree',branches=branches+event_filter))
+        data2 = pd.DataFrame(root_numpy.root2array(rootfile2,treeName,branches=branches+event_filter))
 
     if data1.shape[0] != data2.shape[0] and event_filter is None:
         sys.exit('The two files do not have the same number of events')
@@ -284,7 +285,7 @@ def AppendTree(rootfile1,rootfile2,branches,event_filter=None,rename=None):
     all_data.dtype.names = [s.replace('(','').replace(')','').replace('.','_') for s in all_data.dtype.names] #root_numpy issues
     
     # Save them #
-    root_numpy.array2root(all_data,rootfile1.replace('.root','_new.root'),mode='recreate')
+    root_numpy.array2root(all_data,rootfile1.replace('.root','_new.root'),mode='recreate',treename=treeName)
     print ('New file saved as %s'%rootfile1.replace('.root','_new.root'))
 
 ##################################################################################################
@@ -358,7 +359,7 @@ if __name__=='__main__':
                     sys.exit(1)
             else:
                 list_names = None
-
-            AppendTree(file1,file2,branches,event_filter=filter_events,rename=list_names)
+            treeName = args.tree if args.tree is not None else 'tree'
+            AppendTree(file1,file2,branches,event_filter=filter_events,rename=list_names,treeName=treeName)
 
 

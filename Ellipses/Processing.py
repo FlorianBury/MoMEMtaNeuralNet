@@ -517,7 +517,7 @@ class ProcessROC:
         #labels = ell_labels+global_labels+param_labels
         #legend = ax.legend(handles, labels,loc='upper left',bbox_to_anchor=(1.02, 1,0.70,0),fancybox=False,labelspacing=2.5,shadow=True,ncol=3,prop={'size': 11},frameon=False)
         
-        ax.legend(loc='upper left',prop={'size': 20})
+        ax.legend(loc='lower right',prop={'size': 20})
 
         #ax.set_yscale('symlog', linthreshy=0.001)
         ax.set_yscale('log')

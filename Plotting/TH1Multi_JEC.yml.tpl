@@ -5,7 +5,7 @@ Multi_JEC:
   tree: tree
   weight: ''
   name: Multi_JEC
-  bins: 50
+  bins: 40
   xmin: 15
   xmax: 25
   title: ''
@@ -30,14 +30,14 @@ Multi_JEC:
     - 616
     - 619
   list_legend:
-    - MEM Drell-Yan (without JES) 
-    - DNN Drell-Yan (without JES) 
-    - MEM Drell-Yan (with JES) 
-    - DNN Drell-Yan (with JES) 
-    - MEM t#bar{t} (without JES) 
-    - DNN t#bar{t} (without JES) 
-    - MEM t#bar{t} (with JES) 
-    - DNN t#bar{t} (with JES) 
+    - MEM Drell-Yan (nominal events) 
+    - DNN Drell-Yan (nominal events) 
+    - MEM Drell-Yan (shifted JES) 
+    - DNN Drell-Yan (shifted JES) 
+    - MEM t#bar{t} (nominal events) 
+    - DNN t#bar{t} (nominal events) 
+    - MEM t#bar{t} (shifted JES) 
+    - DNN t#bar{t} (shifted JES) 
   list_cut : 
     - 'weight_DY_err<weight_DY'
     - 'weight_DY_err<weight_DY'
@@ -75,10 +75,10 @@ Multi_no_JEC:
     - 634
     - 402
   list_legend:
-    - MEM Drell-Yan (without JES) 
-    - DNN Drell-Yan (without JES) 
-    - MEM t#bar{t} (without JES) 
-    - DNN t#bar{t} (without JES) 
+    - MEM Drell-Yan (nominal events) 
+    - DNN Drell-Yan (nominal events) 
+    - MEM t#bar{t} (nominal events) 
+    - DNN t#bar{t} (nominal events) 
   list_cut : 
     - 'weight_DY_err<weight_DY'
     - 'weight_DY_err<weight_DY'
@@ -112,10 +112,10 @@ Multi_with_JEC:
     - 634
     - 402
   list_legend:
-    - MEM Drell-Yan (with JES) 
-    - DNN Drell-Yan (with JES) 
-    - MEM t#bar{t} (with JES) 
-    - DNN t#bar{t} (with JES) 
+    - MEM Drell-Yan (shifted JES) 
+    - DNN Drell-Yan (shifted JES) 
+    - MEM t#bar{t} (shifted JES) 
+    - DNN t#bar{t} (shifted JES) 
   list_cut :
     - 'weight_DY_err<weight_DY'
     - 'weight_DY_err<weight_DY'
@@ -139,7 +139,7 @@ JEC_DeltaW:
   xmin: -3
   xmax: 3
   title: ''
-  xlabel: '-log_{10}(weight_{JES})+log_{10}(weight_{no JES})'
+  xlabel: '-log_{10}(weight_{shifted JES})+log_{10}(weight_{nominal events})'
   ylabel: events
   list_variable:
     - -log10(weight_DY_JEC)+log10(weight_DY)
@@ -173,11 +173,11 @@ JEC_RelDeltaW:
   tree: tree
   weight: ''
   name: JEC_DeltaW
-  bins: 100
+  bins: 30
   xmin: -0.15
   xmax: 0.15
   title: ''
-  xlabel: '#frac{-log_{10}(W_{JES})+log_{10}(W_{no JES})}{-log_{10}(W_{no JES})}'
+  xlabel: '#frac{-log_{10}(W_{shifted JES})+log_{10}(W_{nominal events})}{-log_{10}(W_{nominal events})}'
   ylabel: events
   list_variable:
     - (-log10(weight_DY_JEC)+log10(weight_DY))/-log10(weight_DY)
@@ -228,10 +228,10 @@ JEC_DeltaW_MEM_DNN:
     - 634
     - 402
   list_legend:
-    - "#splitline{Drell-Yan weight}{no JES}"
-    - "#splitline{Drell-Yan weight}{with JES}"
-    - "#splitline{t#bar{t} weight}{no JES}"
-    - "#splitline{t#bar{t} weight}{with JES}"
+    - "#splitline{Drell-Yan weight}{nominal events}"
+    - "#splitline{Drell-Yan weight}{shifted JES}"
+    - "#splitline{t#bar{t} weight}{nominal events}"
+    - "#splitline{t#bar{t} weight}{shifted JES}"
   list_cut : 
     - 'weight_DY_err<weight_DY'
     - 'weight_DY_err<weight_DY'
